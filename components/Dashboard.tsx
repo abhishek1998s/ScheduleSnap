@@ -1,7 +1,7 @@
 
 import React, { useState, useRef } from 'react';
 import { Schedule, ChildProfile, BehaviorLog, MoodEntry, BehaviorAnalysis, VoiceMessage } from '../types';
-import { analyzeBehaviorLogs, analyzeBehaviorVideo } from '../services/geminiService';
+import { analyzeBehaviorLogs, analyzeBehaviorVideo, optimizeSchedule } from '../services/geminiService';
 
 interface DashboardProps {
   schedules: Schedule[];
@@ -14,6 +14,7 @@ interface DashboardProps {
   onExit: () => void;
   onSelectSchedule: (id: string) => void;
   onDeleteSchedule: (id: string) => void;
+  onUpdateSchedule: (schedule: Schedule) => void;
   onLogBehavior: (log: Omit<BehaviorLog, 'id' | 'timestamp'>) => void;
   onUpdateProfile: (profile: ChildProfile) => void;
   onToggleHighContrast: () => void;
@@ -21,7 +22,7 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
-  schedules, profile, moodLogs, behaviorLogs, voiceMessages, isHighContrast, caregiverPin, onExit, onSelectSchedule, onDeleteSchedule, onLogBehavior, onUpdateProfile, onToggleHighContrast, onUpdatePin
+  schedules, profile, moodLogs, behaviorLogs, voiceMessages, isHighContrast, caregiverPin, onExit, onSelectSchedule, onDeleteSchedule, onUpdateSchedule, onLogBehavior, onUpdateProfile, onToggleHighContrast, onUpdatePin
 }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pin, setPin] = useState('');
@@ -36,6 +37,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [analysis, setAnalysis] = useState<BehaviorAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const videoInputRef = useRef<HTMLInputElement>(null);
+
+  // Agentic Optimization State
+  const [optimizingId, setOptimizingId] = useState<string | null>(null);
 
   // Profile Edit State
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -92,6 +96,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
         alert("Analysis failed. Try again.");
     } finally {
         setIsAnalyzing(false);
+    }
+  };
+
+  const handleOptimizeSchedule = async (schedule: Schedule) => {
+    setOptimizingId(schedule.id);
+    try {
+        const optimized = await optimizeSchedule(schedule, behaviorLogs, profile);
+        onUpdateSchedule(optimized);
+        alert(`Successfully optimized "${schedule.title}" based on behavioral data.`);
+    } catch (e) {
+        alert("Optimization failed. Please try again.");
+    } finally {
+        setOptimizingId(null);
     }
   };
 
@@ -377,15 +394,46 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {activeTab === 'routines' && (
                 <div className="space-y-3">
                     {schedules.map(schedule => (
-                        <div key={schedule.id} className="bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center text-gray-800">
-                            <div className="flex items-center gap-4">
-                                <span className="text-2xl">{schedule.steps[0]?.emoji}</span>
-                                <div>
-                                    <h4 className="font-bold">{schedule.title}</h4>
-                                    <p className="text-xs opacity-50">{schedule.steps.length} steps</p>
+                        <div key={schedule.id} className="bg-white p-4 rounded-2xl shadow-sm flex flex-col gap-4 text-gray-800">
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-4">
+                                    <span className="text-2xl">{schedule.steps[0]?.emoji}</span>
+                                    <div>
+                                        <h4 className="font-bold">{schedule.title}</h4>
+                                        <p className="text-xs opacity-50">{schedule.steps.length} steps</p>
+                                    </div>
                                 </div>
+                                <button onClick={() => onDeleteSchedule(schedule.id)} className="text-red-400 p-2"><i className="fa-solid fa-trash"></i></button>
                             </div>
-                            <button onClick={() => onDeleteSchedule(schedule.id)} className="text-red-400 p-2"><i className="fa-solid fa-trash"></i></button>
+                            
+                            {/* Agentic Optimization Button */}
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => handleOptimizeSchedule(schedule)}
+                                    disabled={optimizingId === schedule.id}
+                                    className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-colors flex items-center justify-center gap-2
+                                        ${optimizingId === schedule.id 
+                                            ? 'bg-purple-50 text-purple-400 border-purple-100' 
+                                            : 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700'
+                                        }
+                                    `}
+                                >
+                                    {optimizingId === schedule.id ? (
+                                        <>
+                                            <i className="fa-solid fa-circle-notch fa-spin"></i> Agent Optimizing...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <i className="fa-solid fa-wand-magic-sparkles"></i> Auto-Improve with AI Agent
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                            {optimizingId === schedule.id && (
+                                <p className="text-[10px] text-purple-500 text-center animate-pulse">
+                                    Deep thinking agent is analyzing behavioral logs to reduce friction...
+                                </p>
+                            )}
                         </div>
                     ))}
                 </div>

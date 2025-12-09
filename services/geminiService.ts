@@ -289,15 +289,25 @@ export const analyzeBehaviorLogs = async (logs: BehaviorLog[], profile: ChildPro
 
     const logsSummary = logs.slice(-20).map(l => `${new Date(l.timestamp).toLocaleString()}: ${l.behavior} (${l.intensity}) triggered by ${l.trigger}`).join('\n');
     
-    // Use Thinking Mode if enabled in profile
+    // Use Deep Thinking Mode if enabled in profile
     const thinkingConfig = profile.useThinkingMode 
-      ? { thinkingConfig: { thinkingBudget: 2048 } } 
+      ? { thinkingConfig: { thinkingBudget: 10240 } } 
       : {};
 
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: `Analyze these behavior logs for a ${profile.age} year old autistic child. Identify patterns and suggestions. Language: ${profile.language || 'English'}.\n\nLogs:\n${logsSummary}`,
+            contents: `Perform a Functional Behavioral Assessment (FBA) simulation for a ${profile.age} year old autistic child based on these logs.
+            
+            Logs:
+            ${logsSummary}
+            
+            Task:
+            1. Identify the 'Function' of the behavior (Sensory, Escape, Attention, Tangible).
+            2. Detect temporal patterns.
+            3. Provide specific antecedant interventions.
+            
+            Language: ${profile.language || 'English'}.`,
             config: {
                 ...thinkingConfig,
                 responseMimeType: "application/json",
@@ -446,4 +456,108 @@ export const generateRewards = async (profile: ChildProfile, tokens: number): Pr
         console.error("Reward generation failed:", e);
         return [];
     }
+};
+
+/**
+ * Agentic capability: Autonomously improves a schedule based on logs and profile.
+ * Uses High Thinking Budget to reason about friction points.
+ */
+export const optimizeSchedule = async (
+  schedule: Schedule,
+  logs: BehaviorLog[],
+  profile: ChildProfile
+): Promise<Schedule> => {
+  if (!process.env.API_KEY) {
+     return new Promise(resolve => setTimeout(() => resolve({
+         ...schedule,
+         title: schedule.title + " (Agent Improved)",
+         socialStory: schedule.socialStory + " Now with calm breaths.",
+         steps: [
+             { id: 'opt-1', emoji: '🧘', instruction: 'Take a calm breath', encouragement: 'Ready for next step', completed: false },
+             ...schedule.steps
+         ]
+     }), 2000));
+  }
+
+  const recentLogs = logs.slice(-15).map(l => 
+    `[${new Date(l.timestamp).toLocaleTimeString()}] ${l.behavior} (${l.intensity}) - Trigger: ${l.trigger || 'Unknown'}`
+  ).join('\n');
+
+  const prompt = `
+    You are an autonomous AI agent specializing in pediatric occupational therapy.
+    Your goal is to OPTIMIZE a visual schedule for a ${profile.age}-year-old autistic child to reduce maladaptive behaviors and improve independence.
+
+    Current Schedule:
+    ${JSON.stringify(schedule.steps.map(s => `${s.emoji} ${s.instruction}`))}
+
+    Child Profile:
+    Interests: ${profile.interests.join(', ')}
+    Sensory Needs: ${JSON.stringify(profile.sensoryProfile)}
+
+    Recent Behavioral Issues (use this context to find friction points):
+    ${recentLogs || "No specific recent logs, please optimize for general engagement and sensory regulation based on profile."}
+
+    TASK:
+    1. Analyze potential friction points in the routine.
+    2. Suggest improvements (e.g., inserting sensory breaks, breaking down complex steps, reordering, changing encouragements to interest-based ones).
+    3. Return the COMPLETE updated schedule JSON.
+
+    Use "Thinking Mode" to deeply analyze the function of behavior before generating the schedule.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash', 
+      contents: prompt,
+      config: {
+        thinkingConfig: { thinkingBudget: 8192 }, // Deep Agentic Thought
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+             reasoning: { type: Type.STRING, description: "Agent's chain of thought explaining why changes were made" },
+             optimizedSchedule: {
+                type: Type.OBJECT,
+                properties: {
+                    steps: {
+                        type: Type.ARRAY,
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                emoji: { type: Type.STRING },
+                                instruction: { type: Type.STRING },
+                                encouragement: { type: Type.STRING }
+                            },
+                            required: ['emoji', 'instruction', 'encouragement']
+                        }
+                    },
+                    socialStory: { type: Type.STRING }
+                },
+                required: ['steps', 'socialStory']
+             }
+          },
+          required: ['reasoning', 'optimizedSchedule']
+        }
+      }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("No optimization generated");
+    const data = JSON.parse(text);
+
+    return {
+        ...schedule,
+        socialStory: data.optimizedSchedule.socialStory,
+        steps: data.optimizedSchedule.steps.map((s: any, i: number) => ({
+            id: `opt-${Date.now()}-${i}`,
+            emoji: s.emoji,
+            instruction: s.instruction,
+            encouragement: s.encouragement,
+            completed: false
+        }))
+    };
+  } catch (error) {
+    console.error("Optimization failed:", error);
+    throw error;
+  }
 };
