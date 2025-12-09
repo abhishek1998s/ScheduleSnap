@@ -98,6 +98,7 @@ export interface AppState {
   behaviorLogs: BehaviorLog[];
   voiceMessages: VoiceMessage[];
   meltdownRisk?: 'Low' | 'Medium' | 'High';
+  caregiverPin?: string;
 }
 
 export enum ViewState {

@@ -10,16 +10,18 @@ interface DashboardProps {
   behaviorLogs: BehaviorLog[];
   voiceMessages: VoiceMessage[];
   isHighContrast: boolean;
+  caregiverPin: string;
   onExit: () => void;
   onSelectSchedule: (id: string) => void;
   onDeleteSchedule: (id: string) => void;
   onLogBehavior: (log: Omit<BehaviorLog, 'id' | 'timestamp'>) => void;
   onUpdateProfile: (profile: ChildProfile) => void;
   onToggleHighContrast: () => void;
+  onUpdatePin: (newPin: string) => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
-  schedules, profile, moodLogs, behaviorLogs, voiceMessages, isHighContrast, onExit, onSelectSchedule, onDeleteSchedule, onLogBehavior, onUpdateProfile, onToggleHighContrast
+  schedules, profile, moodLogs, behaviorLogs, voiceMessages, isHighContrast, caregiverPin, onExit, onSelectSchedule, onDeleteSchedule, onLogBehavior, onUpdateProfile, onToggleHighContrast, onUpdatePin
 }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pin, setPin] = useState('');
@@ -45,12 +47,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [editThinkingMode, setEditThinkingMode] = useState(profile.useThinkingMode || false);
   const [shareCode, setShareCode] = useState<string | null>(null);
 
-  const handlePinSubmit = () => {
-    if (pin === '1234') setIsAuthenticated(true);
-    else {
-        setPin('');
-        alert("Incorrect PIN (Default: 1234)");
+  // Pin Change State
+  const [newPinInput, setNewPinInput] = useState('');
+
+  const handleNumpadPress = (num: number) => {
+    if (pin.length < 4) {
+      setPin(prev => prev + num);
     }
+  };
+
+  const handleBackspace = () => {
+    setPin(prev => prev.slice(0, -1));
+  };
+
+  const handleUnlock = () => {
+     if (pin === caregiverPin) {
+         setIsAuthenticated(true);
+     } else {
+         setPin('');
+         alert("Incorrect PIN");
+     }
   };
 
   const submitBehavior = () => {
@@ -120,25 +136,66 @@ export const Dashboard: React.FC<DashboardProps> = ({
      setShareCode(code);
   };
 
+  const handleChangePin = () => {
+      if (newPinInput.length === 4 && /^\d+$/.test(newPinInput)) {
+          onUpdatePin(newPinInput);
+          setNewPinInput('');
+          alert('PIN Updated Successfully');
+      } else {
+          alert('PIN must be 4 digits');
+      }
+  };
+
   if (!isAuthenticated) {
     return (
-      <div className="flex flex-col h-full bg-background items-center justify-center p-6">
-        <div className="bg-white p-8 rounded-3xl shadow-lg w-full max-w-sm text-center">
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i className="fa-solid fa-lock text-primary text-2xl"></i>
+      <div className="flex flex-col h-full bg-background items-center justify-center p-6 overflow-y-auto">
+        <div className="bg-white p-6 rounded-3xl shadow-lg w-full max-w-sm text-center relative flex flex-col items-center">
+            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-2">
+                <i className="fa-solid fa-lock text-primary text-xl"></i>
             </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Parent Access</h2>
-            <p className="text-gray-500 mb-6">Enter PIN to access settings</p>
-            <input 
-                type="password" 
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-                maxLength={4}
-                className="w-full text-center text-4xl tracking-widest border-b-2 border-gray-200 focus:border-primary outline-none py-2 mb-8 font-mono"
-                placeholder="••••"
-            />
-            <button onClick={handlePinSubmit} className="w-full bg-primary text-white py-3 rounded-xl font-bold shadow-md">Unlock</button>
-            <button onClick={onExit} className="mt-4 text-gray-400 text-sm">Cancel</button>
+            <h2 className="text-xl font-bold text-gray-800 mb-1">Parent Access</h2>
+            <p className="text-gray-500 text-sm mb-6">Enter PIN to access settings</p>
+            
+            {/* Visual PIN Dots */}
+            <div className="flex gap-4 mb-8 justify-center h-8">
+                 {[0, 1, 2, 3].map((i) => (
+                      <div 
+                        key={i}
+                        className={`w-4 h-4 rounded-full transition-all duration-200 border-2 ${
+                            i < pin.length ? 'bg-primary border-primary scale-110' : 'bg-transparent border-gray-300'
+                        }`}
+                      />
+                 ))}
+            </div>
+
+            {/* Custom On-Screen Numpad */}
+            <div className="grid grid-cols-3 gap-3 w-full max-w-[240px] mb-6">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+                    <button 
+                        key={num} 
+                        onClick={() => handleNumpadPress(num)}
+                        className="aspect-square bg-gray-50 rounded-full text-xl font-bold text-gray-700 active:bg-primary active:text-white transition-colors shadow-sm"
+                    >
+                        {num}
+                    </button>
+                ))}
+                <div className="aspect-square"></div>
+                <button 
+                    onClick={() => handleNumpadPress(0)}
+                    className="aspect-square bg-gray-50 rounded-full text-xl font-bold text-gray-700 active:bg-primary active:text-white transition-colors shadow-sm"
+                >
+                    0
+                </button>
+                <button 
+                    onClick={handleBackspace}
+                    className="aspect-square flex items-center justify-center text-gray-400 active:text-gray-600 rounded-full hover:bg-gray-50"
+                >
+                    <i className="fa-solid fa-delete-left text-xl"></i>
+                </button>
+            </div>
+
+            <button onClick={handleUnlock} className="w-full bg-primary text-white py-3 rounded-xl font-bold shadow-md mb-2">Unlock</button>
+            <button onClick={onExit} className="text-gray-400 text-sm py-2">Cancel</button>
         </div>
       </div>
     );
@@ -251,7 +308,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         )}
                     </div>
 
-                    <div className={`${isHighContrast ? 'bg-gray-900 border-2 border-yellow-400' : 'bg-white border-gray-100'} p-6 rounded-2xl shadow-sm border flex flex-col gap-4`}>
+                    <div className={`${isHighContrast ? 'bg-gray-900 border-2 border-yellow-400' : 'bg-white border-gray-100'} p-6 rounded-2xl shadow-sm border flex flex-col gap-6`}>
+                        {/* High Contrast */}
                         <div className="flex items-center justify-between">
                             <span className="font-bold">High Contrast Mode</span>
                             <button 
@@ -262,6 +320,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             </button>
                         </div>
                         
+                        {/* Share */}
                         <div className="pt-4 border-t border-gray-100">
                              <div className="flex justify-between items-center mb-2">
                                 <span className="font-bold text-sm">Share Profile</span>
@@ -273,6 +332,32 @@ export const Dashboard: React.FC<DashboardProps> = ({
                              >
                                 {shareCode ? 'Regenerate Code' : 'Generate Share Code'}
                              </button>
+                        </div>
+
+                         {/* Security - Change PIN */}
+                         <div className="pt-4 border-t border-gray-100">
+                             <div className="flex justify-between items-center mb-2">
+                                <span className="font-bold text-sm">Security</span>
+                             </div>
+                             <div className="flex gap-2">
+                                <input 
+                                    type="tel"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*" 
+                                    placeholder="New 4-digit PIN"
+                                    maxLength={4}
+                                    value={newPinInput}
+                                    onChange={(e) => setNewPinInput(e.target.value.replace(/[^0-9]/g, ''))}
+                                    className="flex-1 border rounded-lg px-3 py-2 bg-gray-50 text-black text-sm"
+                                />
+                                <button 
+                                    onClick={handleChangePin}
+                                    disabled={newPinInput.length !== 4}
+                                    className={`px-4 py-2 rounded-lg font-bold text-sm ${isHighContrast ? 'bg-gray-800 text-yellow-300' : 'bg-primary text-white disabled:opacity-50'}`}
+                                >
+                                    Update PIN
+                                </button>
+                             </div>
                         </div>
                     </div>
 
@@ -324,33 +409,43 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <div className="space-y-6">
                      <div className={`${isHighContrast ? 'bg-gray-900 border-2 border-yellow-400' : 'bg-white border-gray-100'} p-6 rounded-2xl shadow-sm border`}>
                         <h3 className="font-bold mb-4">Quick Log</h3>
-                        <div className="space-y-4 text-black">
+                        <div className="flex flex-col gap-6 text-black">
                             <select 
                                 value={newLogBehavior}
                                 onChange={(e) => setNewLogBehavior(e.target.value)}
-                                className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200"
+                                className="w-full p-4 bg-gray-50 rounded-xl border border-gray-200 text-lg"
                             >
                                 {['Meltdown', 'Stimming', 'Aggression', 'Elopement', 'Refusal', 'Anxiety'].map(b => <option key={b} value={b}>{b}</option>)}
                             </select>
+                            
                             <div className="flex gap-2">
                                 {['Mild', 'Moderate', 'Severe'].map(l => (
                                     <button 
                                         key={l}
                                         onClick={() => setNewLogIntensity(l as any)}
-                                        className={`flex-1 py-2 rounded-lg text-sm font-bold border ${newLogIntensity === l ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-500 border-gray-200'}`}
+                                        className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition-all ${
+                                            newLogIntensity === l 
+                                            ? 'bg-gray-800 text-white border-gray-800 shadow-md' 
+                                            : 'bg-white text-gray-500 border-gray-100 hover:border-gray-200'
+                                        }`}
                                     >
                                         {l}
                                     </button>
                                 ))}
                             </div>
+                            
                             <input 
                                 type="text"
                                 placeholder="Trigger (optional)"
                                 value={newLogTrigger}
                                 onChange={(e) => setNewLogTrigger(e.target.value)}
-                                className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200"
+                                className="w-full p-4 bg-gray-50 rounded-xl border border-gray-200"
                             />
-                            <button onClick={submitBehavior} className="w-full bg-red-500 text-white py-3 rounded-xl font-bold shadow-md">
+                            
+                            <button 
+                                onClick={submitBehavior} 
+                                className="w-full bg-red-500 hover:bg-red-600 text-white py-4 rounded-xl font-bold shadow-lg mt-2 active:scale-95 transition-transform"
+                            >
                                 Log Incident
                             </button>
                         </div>
@@ -409,9 +504,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         <div className="space-y-3">
                             {behaviorLogs.length === 0 ? <p className="opacity-50 text-sm">No incidents logged.</p> : 
                                 behaviorLogs.slice().reverse().slice(0,5).map(log => (
-                                    <div key={log.id} className="text-sm p-3 bg-red-50 text-red-900 rounded-lg flex justify-between">
-                                        <span className="font-bold">{log.behavior}</span>
-                                        <span>{new Date(log.timestamp).toLocaleDateString()}</span>
+                                    <div key={log.id} className="text-sm p-4 bg-red-50 text-red-900 rounded-xl flex flex-col gap-1 border border-red-100">
+                                        <div className="flex justify-between items-center">
+                                            <span className="font-bold text-lg">{log.behavior}</span>
+                                            <span className={`text-xs px-2 py-1 rounded-full font-bold ${log.intensity === 'Severe' ? 'bg-red-200' : log.intensity === 'Moderate' ? 'bg-orange-200' : 'bg-yellow-200'}`}>
+                                                {log.intensity}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center mt-1 text-red-700/70">
+                                            <span>{new Date(log.timestamp).toLocaleDateString()} {new Date(log.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                            {log.trigger && <span className="text-xs font-bold max-w-[50%] truncate">Trigger: {log.trigger}</span>}
+                                        </div>
                                     </div>
                                 ))
                             }

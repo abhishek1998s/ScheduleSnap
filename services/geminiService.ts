@@ -154,10 +154,26 @@ export const generateEmotionQuiz = async (age: number, lang: string = 'English')
         };
     }
 
+    // Force variety by picking a random emotion concept
+    const emotions = ["happy", "sad", "angry", "surprised", "scared", "tired", "excited", "bored", "frustrated", "proud", "confused", "shy"];
+    const randomEmotion = emotions[Math.floor(Math.random() * emotions.length)];
+    const contexts = ["friendship", "school", "home", "playtime", "animals", "weather", "food"];
+    const randomContext = contexts[Math.floor(Math.random() * contexts.length)];
+
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: `Generate a simple emotion recognition quiz question for a ${age} year old autistic child. Language: ${lang}.`,
+            contents: `Generate a random emotion recognition quiz question for a ${age} year old autistic child.
+            Target Emotion: "${randomEmotion}".
+            Context: "${randomContext}".
+            Language: ${lang}.
+            
+            Return:
+            1. A question about a situation.
+            2. An emoji representation of the situation/feeling.
+            3. 4 multiple choice options.
+            4. The correct answer.
+            5. A hint.`,
             config: {
                 responseMimeType: "application/json",
                 responseSchema: {
