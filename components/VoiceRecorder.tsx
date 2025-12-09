@@ -1,6 +1,7 @@
 
 import React, { useState, useRef } from 'react';
 import { VoiceMessage } from '../types';
+import { transcribeAudio } from '../services/geminiService';
 
 interface VoiceRecorderProps {
   onSave: (msg: VoiceMessage) => void;
@@ -9,6 +10,8 @@ interface VoiceRecorderProps {
 
 export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onSave, onExit }) => {
   const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [transcription, setTranscription] = useState<string>('');
   const [audioURL, setAudioURL] = useState<string | null>(null);
   const [blob, setBlob] = useState<Blob | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -25,15 +28,22 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onSave, onExit }) 
         if (e.data.size > 0) chunksRef.current.push(e.data);
       };
 
-      mediaRecorder.onstop = () => {
+      mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
         const url = URL.createObjectURL(audioBlob);
         setAudioURL(url);
         setBlob(audioBlob);
+        
+        // Auto-transcribe
+        setIsTranscribing(true);
+        const text = await transcribeAudio(audioBlob);
+        setTranscription(text);
+        setIsTranscribing(false);
       };
 
       mediaRecorder.start();
       setIsRecording(true);
+      setTranscription(''); // Clear previous
     } catch (err) {
       alert("Could not access microphone");
     }
@@ -53,7 +63,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onSave, onExit }) 
         id: Date.now().toString(),
         timestamp: Date.now(),
         audioBlob: blob,
-        transcription: "Voice message (Transcription unavailable in demo)"
+        transcription: transcription
       });
       onExit();
     }
@@ -74,11 +84,24 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onSave, onExit }) 
           <i className={`fa-solid ${isRecording ? 'fa-stop' : 'fa-microphone'} text-5xl text-white`}></i>
         </button>
       ) : (
-        <div className="w-full max-w-sm bg-white p-6 rounded-3xl shadow-lg">
-          <audio src={audioURL} controls className="w-full mb-6" />
+        <div className="w-full max-w-sm bg-white p-6 rounded-3xl shadow-lg flex flex-col gap-4">
+          <audio src={audioURL} controls className="w-full" />
+          
+          {/* Transcription Area */}
+          <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 min-h-[60px] flex items-center justify-center text-sm text-gray-700 italic">
+            {isTranscribing ? (
+                <div className="flex items-center gap-2 text-pink-500">
+                    <i className="fa-solid fa-circle-notch fa-spin"></i>
+                    <span>Converting speech to text...</span>
+                </div>
+            ) : (
+                <p>"{transcription}"</p>
+            )}
+          </div>
+
           <div className="flex gap-4">
             <button 
-              onClick={() => { setAudioURL(null); setBlob(null); }}
+              onClick={() => { setAudioURL(null); setBlob(null); setTranscription(''); }}
               className="flex-1 py-3 rounded-xl font-bold text-gray-500 bg-gray-100"
             >
               Retry

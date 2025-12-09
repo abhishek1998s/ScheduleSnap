@@ -561,3 +561,41 @@ export const optimizeSchedule = async (
     throw error;
   }
 };
+
+export const transcribeAudio = async (audioBlob: Blob): Promise<string> => {
+  if (!process.env.API_KEY) {
+      return new Promise(resolve => setTimeout(() => resolve("Simulated transcription: I want apple juice please."), 1000));
+  }
+
+  try {
+      // Convert Blob to Base64
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve, reject) => {
+          reader.onloadend = () => {
+              const result = reader.result as string;
+              // Remove data url prefix (e.g. "data:audio/webm;base64,")
+              const base64 = result.split(',')[1];
+              resolve(base64);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(audioBlob);
+      });
+      
+      const base64Audio = await base64Promise;
+
+      const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: {
+              parts: [
+                  { inlineData: { mimeType: audioBlob.type || 'audio/webm', data: base64Audio } },
+                  { text: "Please transcribe the spoken audio accurately in the language spoken. If there is no distinct speech, describe the audio (e.g. [Crying], [Laughter], [Background Noise])." }
+              ]
+          }
+      });
+      
+      return response.text || "";
+  } catch (e) {
+      console.error("Transcription error:", e);
+      return "Transcription unavailable.";
+  }
+};

@@ -446,7 +446,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         voiceMessages.map(msg => (
                             <div key={msg.id} className="bg-white text-black p-4 rounded-2xl shadow-sm">
                                 <p className="text-xs text-gray-400 mb-2">{new Date(msg.timestamp).toLocaleString()}</p>
-                                <audio controls src={URL.createObjectURL(msg.audioBlob)} className="w-full" />
+                                <audio controls src={URL.createObjectURL(msg.audioBlob)} className="w-full mb-3" />
+                                {msg.transcription && (
+                                    <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                        <p className="text-xs text-gray-500 font-bold mb-1 uppercase tracking-wider">Transcription</p>
+                                        <p className="text-sm text-gray-700 italic">"{msg.transcription}"</p>
+                                    </div>
+                                )}
                             </div>
                         ))
                      }
