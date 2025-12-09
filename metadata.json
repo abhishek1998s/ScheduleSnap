@@ -1,0 +1,8 @@
+{
+  "name": "ScheduleSnap",
+  "description": "AI-Powered Visual Schedule Generator for Autistic Children. Transforms photos into personalized routines in seconds.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
