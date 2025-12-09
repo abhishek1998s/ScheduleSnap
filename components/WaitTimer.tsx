@@ -35,8 +35,8 @@ export const WaitTimer: React.FC<WaitTimerProps> = ({ onExit }) => {
   const calculateDashOffset = () => {
     if (duration === null || timeLeft === null) return 0;
     const fraction = timeLeft / duration;
-    // Circumference of circle r=58 is roughly 365
-    return 365 * (1 - fraction);
+    // Circumference of circle r=60 is roughly 377
+    return 377 * (1 - fraction);
   };
 
   return (
@@ -52,21 +52,22 @@ export const WaitTimer: React.FC<WaitTimerProps> = ({ onExit }) => {
             {/* Visual Timer Display */}
             <div className="relative w-64 h-64 flex items-center justify-center shrink-0">
                 {/* Background Circle */}
-                <svg className="w-full h-full transform -rotate-90">
-                    <circle cx="128" cy="128" r="58" stroke="#f3f4f6" strokeWidth="110" fill="none" />
+                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 256 256">
+                    <circle cx="128" cy="128" r="60" stroke="#f3f4f6" strokeWidth="120" fill="none" />
                     {duration && timeLeft !== null && (
                         <circle 
-                            cx="128" cy="128" r="58" 
+                            cx="128" cy="128" r="60" 
                             stroke={timeLeft < 10 ? '#ef4444' : '#3b82f6'} 
-                            strokeWidth="110" 
+                            strokeWidth="120" 
                             fill="none" 
-                            strokeDasharray="365"
+                            strokeDasharray="377"
                             strokeDashoffset={calculateDashOffset()}
                             className="transition-[stroke-dashoffset] duration-1000 linear"
                         />
                     )}
                 </svg>
-                <div className="absolute text-center z-10 pointer-events-none">
+                {/* Centered Content */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
                     {timeLeft !== null ? (
                         <>
                             <div className="text-6xl font-bold text-gray-800 drop-shadow-sm">
