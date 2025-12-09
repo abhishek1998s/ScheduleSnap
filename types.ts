@@ -86,6 +86,13 @@ export interface ResearchResult {
   sources: { title: string; uri: string }[];
 }
 
+export interface RewardItem {
+  id: string;
+  name: string;
+  emoji: string;
+  cost: number;
+}
+
 export interface AppState {
   view: 'home' | 'camera' | 'schedule-runner' | 'dashboard' | 'calm' | 'preview' | 'mood' | 'quiz' | 'store' | 'coach' | 'social' | 'voice-recorder' | 'timer' | 'research';
   activeScheduleId: string | null;

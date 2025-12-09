@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { Schedule, ChildProfile, QuizQuestion, SocialScenario, BehaviorLog, BehaviorAnalysis, ResearchResult } from "../types";
+import { Schedule, ChildProfile, QuizQuestion, SocialScenario, BehaviorLog, BehaviorAnalysis, ResearchResult, RewardItem } from "../types";
 
 // Initialize Gemini Client
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
@@ -395,4 +395,55 @@ export const searchAutismResources = async (query: string, lang: string = 'Engli
       console.error(e);
       throw e;
   }
+};
+
+export const generateRewards = async (profile: ChildProfile, tokens: number): Promise<RewardItem[]> => {
+    if (!process.env.API_KEY) {
+        return [
+            { id: '1', name: `Watch ${profile.interests[0] || 'Cartoons'}`, emoji: "📺", cost: 2 },
+            { id: '2', name: "Play on Tablet", emoji: "📱", cost: 5 },
+            { id: '3', name: "Special Snack", emoji: "🍪", cost: 8 },
+            { id: '4', name: "New Toy", emoji: "🧸", cost: 15 },
+        ];
+    }
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: `Generate 6 personalized rewards for a ${profile.age} year old autistic child who loves: ${profile.interests.join(', ')}. 
+            Language: ${profile.language || 'English'}.
+            Current Tokens: ${tokens}.
+            Create a variety of low cost (2-5) and high cost (10-20) rewards.
+            Returns JSON array of rewards.`,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        rewards: { 
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    name: { type: Type.STRING },
+                                    emoji: { type: Type.STRING },
+                                    cost: { type: Type.NUMBER }
+                                },
+                                required: ['name', 'emoji', 'cost']
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        const text = response.text;
+        if (!text) return [];
+        const data = JSON.parse(text);
+        return data.rewards.map((r: any, i: number) => ({ ...r, id: `rew-${Date.now()}-${i}` }));
+
+    } catch (e) {
+        console.error("Reward generation failed:", e);
+        return [];
+    }
 };

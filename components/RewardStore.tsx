@@ -1,22 +1,44 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { RewardItem, ChildProfile } from '../types';
+import { generateRewards } from '../services/geminiService';
 
 interface RewardStoreProps {
   tokens: number;
+  profile: ChildProfile;
   onRedeem: (cost: number) => void;
   onExit: () => void;
 }
 
-const REWARDS = [
-    { id: 1, name: "Extra TV Time", emoji: "📺", cost: 2 },
-    { id: 2, name: "Tablet Time", emoji: "📱", cost: 5 },
-    { id: 3, name: "Special Snack", emoji: "🍪", cost: 8 },
-    { id: 4, name: "New Toy", emoji: "🧸", cost: 15 },
-];
+export const RewardStore: React.FC<RewardStoreProps> = ({ tokens, profile, onRedeem, onExit }) => {
+  const [rewards, setRewards] = useState<RewardItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [purchasedItem, setPurchasedItem] = useState<RewardItem | null>(null);
 
-export const RewardStore: React.FC<RewardStoreProps> = ({ tokens, onRedeem, onExit }) => {
+  useEffect(() => {
+    const loadRewards = async () => {
+        setIsLoading(true);
+        try {
+            const data = await generateRewards(profile, tokens);
+            setRewards(data);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    loadRewards();
+  }, [profile]); // Reload if profile changes
+
+  const handleBuy = (reward: RewardItem) => {
+      if (confirm(`Buy "${reward.name}" for ${reward.cost} tokens?`)) {
+          onRedeem(reward.cost);
+          setPurchasedItem(reward);
+      }
+  };
+
   return (
-    <div className="h-full bg-purple-50 flex flex-col">
+    <div className="h-full bg-purple-50 flex flex-col relative">
         {/* Header */}
         <div className="bg-white p-4 shadow-sm flex items-center justify-between sticky top-0 z-10 shrink-0">
             <button onClick={onExit}><i className="fa-solid fa-arrow-left text-xl"></i></button>
@@ -28,32 +50,60 @@ export const RewardStore: React.FC<RewardStoreProps> = ({ tokens, onRedeem, onEx
         </div>
 
         <div className="flex-1 p-6 overflow-y-auto">
-            <div className="grid grid-cols-2 gap-4 pb-6">
-                {REWARDS.map(reward => {
-                    const canAfford = tokens >= reward.cost;
-                    return (
-                        <button 
-                            key={reward.id}
-                            disabled={!canAfford}
-                            onClick={() => {
-                                if(confirm(`Buy ${reward.name} for ${reward.cost} tokens?`)) {
-                                    onRedeem(reward.cost);
-                                }
-                            }}
-                            className={`bg-white p-4 rounded-2xl shadow-sm flex flex-col items-center gap-2 border-b-4 transition-all
-                                ${canAfford ? 'border-purple-200 active:border-purple-100 active:translate-y-1' : 'border-gray-200 opacity-50 grayscale cursor-not-allowed'}
-                            `}
-                        >
-                            <span className="text-5xl mb-2">{reward.emoji}</span>
-                            <span className="font-bold text-gray-800 text-sm">{reward.name}</span>
-                            <div className="bg-yellow-100 px-3 py-1 rounded-full text-yellow-700 font-bold text-xs">
-                                {reward.cost} Tokens
-                            </div>
-                        </button>
-                    );
-                })}
-            </div>
+            {isLoading ? (
+                <div className="h-full flex flex-col items-center justify-center text-purple-400">
+                    <i className="fa-solid fa-gift text-5xl fa-bounce mb-4"></i>
+                    <p className="font-bold">Finding special rewards...</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-2 gap-4 pb-6">
+                    {rewards.map(reward => {
+                        const canAfford = tokens >= reward.cost;
+                        return (
+                            <button 
+                                key={reward.id}
+                                disabled={!canAfford}
+                                onClick={() => handleBuy(reward)}
+                                className={`bg-white p-4 rounded-2xl shadow-sm flex flex-col items-center gap-2 border-b-4 transition-all
+                                    ${canAfford ? 'border-purple-200 active:border-purple-100 active:translate-y-1 hover:scale-105' : 'border-gray-200 opacity-50 grayscale cursor-not-allowed'}
+                                `}
+                            >
+                                <span className="text-5xl mb-2 filter drop-shadow-sm">{reward.emoji}</span>
+                                <span className="font-bold text-gray-800 text-sm leading-tight">{reward.name}</span>
+                                <div className={`px-3 py-1 rounded-full text-xs font-bold mt-2 ${canAfford ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-400'}`}>
+                                    {reward.cost} Tokens
+                                </div>
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+            
+            {!isLoading && rewards.length === 0 && (
+                <div className="text-center text-gray-400 mt-10">
+                    <p>No rewards found. Try updating interests!</p>
+                </div>
+            )}
         </div>
+
+        {/* Purchase Success Modal */}
+        {purchasedItem && (
+            <div className="absolute inset-0 z-50 bg-black/80 flex items-center justify-center p-6 animate-fadeIn">
+                <div className="bg-white rounded-3xl p-8 text-center w-full max-w-sm relative overflow-hidden animate-slideUp">
+                    <div className="absolute inset-0 bg-yellow-100 opacity-20 animate-pulse"></div>
+                    <i className="fa-solid fa-gift text-6xl text-purple-500 mb-4 animate-bounce"></i>
+                    <h2 className="text-2xl font-bold text-gray-800 mb-2">You bought it!</h2>
+                    <div className="text-8xl my-4">{purchasedItem.emoji}</div>
+                    <p className="text-xl font-bold text-purple-700 mb-6">{purchasedItem.name}</p>
+                    <button 
+                        onClick={() => setPurchasedItem(null)}
+                        className="w-full bg-purple-600 text-white py-3 rounded-xl font-bold shadow-lg text-lg"
+                    >
+                        Enjoy!
+                    </button>
+                </div>
+            </div>
+        )}
     </div>
   );
 };

@@ -287,7 +287,7 @@ const App: React.FC = () => {
       {state.view === ViewState.VOICE_RECORDER && <VoiceRecorder onExit={() => navigateTo(ViewState.HOME)} onSave={(msg) => setState(prev => ({ ...prev, voiceMessages: [msg, ...prev.voiceMessages] }))} />}
       {state.view === ViewState.TIMER && <WaitTimer onExit={() => navigateTo(ViewState.HOME)} />}
       {state.view === ViewState.RESEARCH && <ResearchTool onExit={() => navigateTo(ViewState.HOME)} />}
-      {state.view === ViewState.STORE && <RewardStore tokens={state.tokens} onExit={() => navigateTo(ViewState.HOME)} onRedeem={(cost) => setState(prev => ({ ...prev, tokens: prev.tokens - cost }))} />}
+      {state.view === ViewState.STORE && <RewardStore tokens={state.tokens} profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} onRedeem={(cost) => setState(prev => ({ ...prev, tokens: prev.tokens - cost }))} />}
       {state.view === ViewState.COACH && <LiveVoiceCoach profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} />}
       {(state.view === ViewState.CALM) && <CalmMode onExit={() => navigateTo(ViewState.HOME)} />}
       <AACBoard isOpen={state.isAACOpen} onClose={() => setState(s => ({...s, isAACOpen: false}))} />
