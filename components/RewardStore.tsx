@@ -14,6 +14,7 @@ export const RewardStore: React.FC<RewardStoreProps> = ({ tokens, profile, onRed
   const [rewards, setRewards] = useState<RewardItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [purchasedItem, setPurchasedItem] = useState<RewardItem | null>(null);
+  const [confirmingReward, setConfirmingReward] = useState<RewardItem | null>(null);
 
   useEffect(() => {
     const loadRewards = async () => {
@@ -28,12 +29,17 @@ export const RewardStore: React.FC<RewardStoreProps> = ({ tokens, profile, onRed
         }
     };
     loadRewards();
-  }, [profile]); // Reload if profile changes
+  }, [profile]);
 
-  const handleBuy = (reward: RewardItem) => {
-      if (confirm(`Buy "${reward.name}" for ${reward.cost} tokens?`)) {
-          onRedeem(reward.cost);
-          setPurchasedItem(reward);
+  const handleBuyClick = (reward: RewardItem) => {
+      setConfirmingReward(reward);
+  };
+
+  const confirmPurchase = () => {
+      if (confirmingReward) {
+          onRedeem(confirmingReward.cost);
+          setPurchasedItem(confirmingReward);
+          setConfirmingReward(null);
       }
   };
 
@@ -63,7 +69,7 @@ export const RewardStore: React.FC<RewardStoreProps> = ({ tokens, profile, onRed
                             <button 
                                 key={reward.id}
                                 disabled={!canAfford}
-                                onClick={() => handleBuy(reward)}
+                                onClick={() => handleBuyClick(reward)}
                                 className={`bg-white p-4 rounded-2xl shadow-sm flex flex-col items-center gap-2 border-b-4 transition-all
                                     ${canAfford ? 'border-purple-200 active:border-purple-100 active:translate-y-1 hover:scale-105' : 'border-gray-200 opacity-50 grayscale cursor-not-allowed'}
                                 `}
@@ -85,6 +91,36 @@ export const RewardStore: React.FC<RewardStoreProps> = ({ tokens, profile, onRed
                 </div>
             )}
         </div>
+
+        {/* Confirmation Modal */}
+        {confirmingReward && (
+            <div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-6 animate-fadeIn">
+                <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl transform transition-all scale-100 animate-slideUp">
+                    <h2 className="text-xl font-bold text-gray-800 mb-4 text-center">Buy this reward?</h2>
+                    <div className="flex flex-col items-center mb-6">
+                        <span className="text-6xl mb-2">{confirmingReward.emoji}</span>
+                        <span className="font-bold text-lg">{confirmingReward.name}</span>
+                        <div className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full font-bold text-sm mt-2">
+                            {confirmingReward.cost} Tokens
+                        </div>
+                    </div>
+                    <div className="flex gap-4">
+                        <button 
+                            onClick={() => setConfirmingReward(null)}
+                            className="flex-1 py-3 rounded-xl font-bold bg-gray-100 text-gray-600 active:bg-gray-200"
+                        >
+                            No
+                        </button>
+                        <button 
+                            onClick={confirmPurchase}
+                            className="flex-1 py-3 rounded-xl font-bold bg-purple-600 text-white shadow-md active:bg-purple-700"
+                        >
+                            Yes!
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
 
         {/* Purchase Success Modal */}
         {purchasedItem && (
