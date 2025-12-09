@@ -92,12 +92,14 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
 
   if (isCompleted) {
     return (
-      <div className="flex flex-col items-center justify-center h-full bg-primary text-white p-6 text-center animate-fadeIn">
-        <i className="fa-solid fa-trophy text-8xl text-yellow-300 mb-6 animate-bounce"></i>
-        <h1 className="text-4xl font-bold mb-4">You Did It!</h1>
-        <p className="text-2xl mb-8">All done with {schedule.title}!</p>
-        <div className="flex gap-2 mb-8">
-            {[1,2,3,4,5].map(i => <i key={i} className="fa-solid fa-star text-3xl text-yellow-300 animate-pulse"></i>)}
+      <div className="flex flex-col items-center justify-center h-full bg-primary text-white p-6 text-center animate-fadeIn overflow-y-auto">
+        <div className="min-h-full flex flex-col items-center justify-center">
+            <i className="fa-solid fa-trophy text-8xl text-yellow-300 mb-6 animate-bounce"></i>
+            <h1 className="text-4xl font-bold mb-4">You Did It!</h1>
+            <p className="text-2xl mb-8">All done with {schedule.title}!</p>
+            <div className="flex gap-2 mb-8">
+                {[1,2,3,4,5].map(i => <i key={i} className="fa-solid fa-star text-3xl text-yellow-300 animate-pulse"></i>)}
+            </div>
         </div>
       </div>
     );
@@ -119,7 +121,7 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
       )}
 
       {/* Top Bar with Child Lock Exit */}
-      <div className="bg-white p-4 flex justify-between items-center shadow-sm z-10">
+      <div className="bg-white p-4 flex justify-between items-center shadow-sm z-10 shrink-0">
         <div className="flex items-center gap-2">
            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold">
              {currentStepIndex + 1}/{schedule.steps.length}
@@ -138,7 +140,7 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
       </div>
 
       {/* First / Then Board */}
-      <div className="bg-primary/10 p-2 flex justify-center gap-4 border-b border-primary/20">
+      <div className="bg-primary/10 p-2 flex justify-center gap-4 border-b border-primary/20 shrink-0">
          <div className="flex items-center gap-2 opacity-100">
             <span className="text-xs font-bold text-primary uppercase tracking-wide">Now:</span>
             <span className="text-xl">{currentStep.emoji}</span>
@@ -152,69 +154,71 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
          )}
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center p-6 gap-6 overflow-y-auto">
-        
-        {/* Pie Timer (F3) */}
-        <div className="flex flex-col items-center justify-center gap-1">
-             <div className="relative w-16 h-16">
-                 <svg className="w-full h-full transform -rotate-90">
-                     <circle cx="32" cy="32" r="20" stroke="#e5e7eb" strokeWidth="6" fill="none" />
-                     <circle 
-                        cx="32" cy="32" r="20" 
-                        stroke={timeLeft < 10 ? '#ef4444' : '#3b82f6'} 
-                        strokeWidth="6" 
-                        fill="none" 
-                        strokeDasharray="126"
-                        strokeDashoffset={calculateDashOffset()}
-                        className="transition-all duration-1000 linear"
-                     />
-                 </svg>
-                 <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-500">
-                     {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
-                 </div>
-             </div>
-        </div>
-
-        <div 
-          onClick={() => playAudio(currentStep.instruction)}
-          className="w-full max-w-sm bg-white rounded-3xl shadow-xl p-8 flex flex-col items-center border-4 border-transparent hover:border-primary/30 transition-all cursor-pointer transform hover:scale-[1.02]"
-        >
-          <div className="text-[8rem] leading-none mb-6 filter drop-shadow-sm">
-            {currentStep.emoji}
-          </div>
-          <h2 className="text-4xl font-bold text-center text-gray-800 mb-2 font-sans">
-            {currentStep.instruction}
-          </h2>
-          <p className="text-xl text-primary font-medium text-center">
-            {currentStep.encouragement}
-          </p>
-          
-          {currentStep.subSteps && currentStep.subSteps.length > 0 && (
-             <div className="mt-8 w-full space-y-3">
-                {currentStep.subSteps.map(sub => (
-                    <div 
-                        key={sub.id} 
-                        onClick={(e) => { e.stopPropagation(); handleSubStepToggle(sub.id); }}
-                        className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${completedSubSteps.has(sub.id) ? 'bg-green-50 border-green-200 opacity-60' : 'bg-gray-50 border-gray-100'}`}
-                    >
-                        <div className={`w-6 h-6 rounded-md flex items-center justify-center border-2 ${completedSubSteps.has(sub.id) ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 bg-white'}`}>
-                            {completedSubSteps.has(sub.id) && <i className="fa-solid fa-check text-xs"></i>}
-                        </div>
-                        <span className={`text-lg font-bold ${completedSubSteps.has(sub.id) ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
-                            {sub.text}
-                        </span>
+      {/* Main Content - Scrollable Area */}
+      <div className="flex-1 overflow-y-auto w-full">
+        <div className="min-h-full flex flex-col items-center justify-center p-6 gap-6">
+            
+            {/* Pie Timer (F3) */}
+            <div className="flex flex-col items-center justify-center gap-1">
+                <div className="relative w-16 h-16">
+                    <svg className="w-full h-full transform -rotate-90">
+                        <circle cx="32" cy="32" r="20" stroke="#e5e7eb" strokeWidth="6" fill="none" />
+                        <circle 
+                            cx="32" cy="32" r="20" 
+                            stroke={timeLeft < 10 ? '#ef4444' : '#3b82f6'} 
+                            strokeWidth="6" 
+                            fill="none" 
+                            strokeDasharray="126"
+                            strokeDashoffset={calculateDashOffset()}
+                            className="transition-all duration-1000 linear"
+                        />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-500">
+                        {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
                     </div>
-                ))}
-             </div>
-          )}
+                </div>
+            </div>
+
+            <div 
+            onClick={() => playAudio(currentStep.instruction)}
+            className="w-full max-w-sm bg-white rounded-3xl shadow-xl p-8 flex flex-col items-center border-4 border-transparent hover:border-primary/30 transition-all cursor-pointer transform hover:scale-[1.02]"
+            >
+            <div className="text-6xl sm:text-8xl md:text-[8rem] leading-none mb-6 filter drop-shadow-sm">
+                {currentStep.emoji}
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold text-center text-gray-800 mb-2 font-sans">
+                {currentStep.instruction}
+            </h2>
+            <p className="text-lg sm:text-xl text-primary font-medium text-center">
+                {currentStep.encouragement}
+            </p>
+            
+            {currentStep.subSteps && currentStep.subSteps.length > 0 && (
+                <div className="mt-8 w-full space-y-3">
+                    {currentStep.subSteps.map(sub => (
+                        <div 
+                            key={sub.id} 
+                            onClick={(e) => { e.stopPropagation(); handleSubStepToggle(sub.id); }}
+                            className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${completedSubSteps.has(sub.id) ? 'bg-green-50 border-green-200 opacity-60' : 'bg-gray-50 border-gray-100'}`}
+                        >
+                            <div className={`w-6 h-6 rounded-md flex items-center justify-center border-2 ${completedSubSteps.has(sub.id) ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 bg-white'}`}>
+                                {completedSubSteps.has(sub.id) && <i className="fa-solid fa-check text-xs"></i>}
+                            </div>
+                            <span className={`text-lg font-bold ${completedSubSteps.has(sub.id) ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+                                {sub.text}
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            )}
+            </div>
         </div>
       </div>
 
-      <div className="p-6 bg-white border-t pb-8">
+      <div className="p-4 sm:p-6 bg-white border-t pb-8 sm:pb-6 shrink-0">
         <button
           onClick={handleNext}
-          className="w-full bg-primary hover:bg-secondary text-white text-3xl font-bold py-6 rounded-2xl shadow-lg transform active:scale-95 transition-all flex items-center justify-center gap-4"
+          className="w-full bg-primary hover:bg-secondary text-white text-2xl sm:text-3xl font-bold py-4 sm:py-6 rounded-2xl shadow-lg transform active:scale-95 transition-all flex items-center justify-center gap-4"
         >
           <span>I Did It!</span>
           <i className="fa-solid fa-check-circle"></i>

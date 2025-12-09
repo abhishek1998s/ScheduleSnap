@@ -41,76 +41,78 @@ export const WaitTimer: React.FC<WaitTimerProps> = ({ onExit }) => {
 
   return (
     <div className="flex flex-col h-full bg-white">
-      <div className="p-4 flex items-center justify-between">
+      <div className="p-4 flex items-center justify-between shrink-0">
          <button onClick={onExit}><i className="fa-solid fa-arrow-left text-2xl text-gray-400"></i></button>
          <h2 className="text-xl font-bold text-gray-700">Wait Timer</h2>
          <div className="w-8"></div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center p-6 gap-8">
-         {/* Visual Timer Display */}
-         <div className="relative w-64 h-64 flex items-center justify-center">
-             {/* Background Circle */}
-             <svg className="w-full h-full transform -rotate-90">
-                 <circle cx="128" cy="128" r="58" stroke="#f3f4f6" strokeWidth="110" fill="none" />
-                 {duration && timeLeft !== null && (
-                    <circle 
-                        cx="128" cy="128" r="58" 
-                        stroke={timeLeft < 10 ? '#ef4444' : '#3b82f6'} 
-                        strokeWidth="110" 
-                        fill="none" 
-                        strokeDasharray="365"
-                        strokeDashoffset={calculateDashOffset()}
-                        className="transition-[stroke-dashoffset] duration-1000 linear"
-                    />
-                 )}
-             </svg>
-             <div className="absolute text-center z-10 pointer-events-none">
-                {timeLeft !== null ? (
-                    <>
-                        <div className="text-6xl font-bold text-gray-800 drop-shadow-sm">
-                            {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+      <div className="flex-1 overflow-y-auto w-full">
+         <div className="min-h-full flex flex-col items-center justify-center p-6 gap-8">
+            {/* Visual Timer Display */}
+            <div className="relative w-64 h-64 flex items-center justify-center shrink-0">
+                {/* Background Circle */}
+                <svg className="w-full h-full transform -rotate-90">
+                    <circle cx="128" cy="128" r="58" stroke="#f3f4f6" strokeWidth="110" fill="none" />
+                    {duration && timeLeft !== null && (
+                        <circle 
+                            cx="128" cy="128" r="58" 
+                            stroke={timeLeft < 10 ? '#ef4444' : '#3b82f6'} 
+                            strokeWidth="110" 
+                            fill="none" 
+                            strokeDasharray="365"
+                            strokeDashoffset={calculateDashOffset()}
+                            className="transition-[stroke-dashoffset] duration-1000 linear"
+                        />
+                    )}
+                </svg>
+                <div className="absolute text-center z-10 pointer-events-none">
+                    {timeLeft !== null ? (
+                        <>
+                            <div className="text-6xl font-bold text-gray-800 drop-shadow-sm">
+                                {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+                            </div>
+                            <div className="text-gray-600 font-bold">{timeLeft === 0 ? "DONE!" : "Waiting..."}</div>
+                        </>
+                    ) : (
+                        <div className="flex flex-col items-center text-gray-400">
+                            <i className="fa-solid fa-hourglass-start text-5xl mb-2"></i>
+                            <span className="font-bold text-lg">Set Time</span>
                         </div>
-                        <div className="text-gray-600 font-bold">{timeLeft === 0 ? "DONE!" : "Waiting..."}</div>
-                    </>
-                ) : (
-                    <div className="flex flex-col items-center text-gray-400">
-                        <i className="fa-solid fa-hourglass-start text-5xl mb-2"></i>
-                        <span className="font-bold text-lg">Set Time</span>
-                    </div>
-                )}
-             </div>
-         </div>
+                    )}
+                </div>
+            </div>
 
-         {/* Controls */}
-         <div className="w-full grid grid-cols-2 gap-4">
-             {[1, 2, 5, 10].map(min => (
-                 <button 
-                    key={min}
-                    onClick={() => startTimer(min)}
-                    className="bg-blue-50 text-blue-600 font-bold py-4 rounded-xl border-2 border-blue-100 active:bg-blue-500 active:text-white transition-colors"
-                 >
-                    {min} Min
-                 </button>
-             ))}
+            {/* Controls */}
+            <div className="w-full max-w-md grid grid-cols-2 gap-4">
+                {[1, 2, 5, 10].map(min => (
+                    <button 
+                        key={min}
+                        onClick={() => startTimer(min)}
+                        className="bg-blue-50 text-blue-600 font-bold py-4 rounded-xl border-2 border-blue-100 active:bg-blue-500 active:text-white transition-colors"
+                    >
+                        {min} Min
+                    </button>
+                ))}
+            </div>
+            
+            {isRunning && (
+                <button 
+                    onClick={() => setIsRunning(false)}
+                    className="w-full max-w-md bg-red-100 text-red-500 font-bold py-4 rounded-xl"
+                >
+                    Pause
+                </button>
+            )}
+            {!isRunning && timeLeft !== null && timeLeft > 0 && (
+                <button 
+                    onClick={() => setIsRunning(true)}
+                    className="w-full max-w-md bg-green-100 text-green-600 font-bold py-4 rounded-xl"
+                >
+                    Resume
+                </button>
+            )}
          </div>
-         
-         {isRunning && (
-             <button 
-                onClick={() => setIsRunning(false)}
-                className="w-full bg-red-100 text-red-500 font-bold py-4 rounded-xl"
-             >
-                Pause
-             </button>
-         )}
-         {!isRunning && timeLeft !== null && timeLeft > 0 && (
-             <button 
-                onClick={() => setIsRunning(true)}
-                className="w-full bg-green-100 text-green-600 font-bold py-4 rounded-xl"
-             >
-                Resume
-             </button>
-         )}
       </div>
     </div>
   );

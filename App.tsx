@@ -182,7 +182,7 @@ const App: React.FC = () => {
       
       {state.view === ViewState.HOME && (
         <div className="flex flex-col h-full p-6">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between items-center mb-6 shrink-0">
             <h1 className="text-3xl font-bold text-primary">ScheduleSnap</h1>
             <div className="flex gap-2">
                 <button 
@@ -200,7 +200,7 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto pb-20">
+          <div className="flex-1 overflow-y-auto pb-20 w-full">
             <button 
                 onClick={() => navigateTo(ViewState.CAMERA)}
                 className={`w-full p-8 rounded-3xl flex flex-col items-center gap-4 active:scale-95 transition-transform mb-6 ${state.isHighContrast ? 'bg-yellow-400 text-black font-bold border-4 border-white' : 'bg-primary text-white shadow-xl'}`}
@@ -209,7 +209,7 @@ const App: React.FC = () => {
                 <span className="text-2xl font-bold">Snap New Routine</span>
             </button>
 
-            <div className="grid grid-cols-2 gap-4 mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-8">
                 <button onClick={() => navigateTo(ViewState.CALM)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-calm text-primary')}`}>
                     <i className="fa-solid fa-wind text-3xl"></i><span className="font-bold">Calm Mode</span>
                 </button>
