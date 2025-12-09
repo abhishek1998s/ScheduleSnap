@@ -5,6 +5,7 @@ export interface ScheduleStep {
   instruction: string;
   encouragement: string;
   completed: boolean;
+  subSteps?: { id: string; text: string; completed: boolean }[];
 }
 
 export interface Schedule {
@@ -12,6 +13,8 @@ export interface Schedule {
   title: string;
   type: 'Morning' | 'Bedtime' | 'Meal' | 'Play' | 'General';
   steps: ScheduleStep[];
+  socialStory: string;
+  scheduledTime?: string; // New: "08:00", "19:30"
   createdAt: number;
 }
 
@@ -19,9 +22,15 @@ export interface ChildProfile {
   name: string;
   age: number;
   interests: string[];
+  language: string;
   sensoryProfile: {
     soundSensitivity: 'low' | 'medium' | 'high';
   };
+  audioPreferences?: {
+    speechRate: number; // 0.5 to 1.5
+    pitch: number;      // 0.5 to 1.5
+  };
+  useThinkingMode?: boolean; // New: Enable deep reasoning
 }
 
 export interface MoodEntry {
@@ -65,15 +74,30 @@ export interface BehaviorAnalysis {
   insight: string;
 }
 
+export interface VoiceMessage {
+  id: string;
+  timestamp: number;
+  audioBlob: Blob; 
+  transcription?: string;
+}
+
+export interface ResearchResult {
+  answer: string;
+  sources: { title: string; uri: string }[];
+}
+
 export interface AppState {
-  view: 'home' | 'camera' | 'schedule-runner' | 'dashboard' | 'calm' | 'preview' | 'mood' | 'quiz' | 'store' | 'coach' | 'social';
+  view: 'home' | 'camera' | 'schedule-runner' | 'dashboard' | 'calm' | 'preview' | 'mood' | 'quiz' | 'store' | 'coach' | 'social' | 'voice-recorder' | 'timer' | 'research';
   activeScheduleId: string | null;
   schedules: Schedule[];
   profile: ChildProfile;
   isAACOpen: boolean;
+  isHighContrast: boolean;
   tokens: number;
   moodLogs: MoodEntry[];
   behaviorLogs: BehaviorLog[];
+  voiceMessages: VoiceMessage[];
+  meltdownRisk?: 'Low' | 'Medium' | 'High';
 }
 
 export enum ViewState {
@@ -87,5 +111,8 @@ export enum ViewState {
   QUIZ = 'quiz',
   STORE = 'store',
   COACH = 'coach',
-  SOCIAL = 'social'
+  SOCIAL = 'social',
+  VOICE_RECORDER = 'voice-recorder',
+  TIMER = 'timer',
+  RESEARCH = 'research'
 }

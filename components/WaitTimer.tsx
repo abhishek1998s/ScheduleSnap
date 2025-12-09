@@ -1,0 +1,114 @@
+
+import React, { useState, useEffect } from 'react';
+
+interface WaitTimerProps {
+  onExit: () => void;
+}
+
+export const WaitTimer: React.FC<WaitTimerProps> = ({ onExit }) => {
+  const [duration, setDuration] = useState<number | null>(null); // in seconds
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isRunning && timeLeft !== null && timeLeft > 0) {
+      interval = setInterval(() => {
+        setTimeLeft(prev => prev !== null ? prev - 1 : 0);
+      }, 1000);
+    } else if (timeLeft === 0 && isRunning) {
+      setIsRunning(false);
+      // Play alarm sound or celebrate
+      const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+      audio.play().catch(() => {});
+    }
+    return () => clearInterval(interval);
+  }, [isRunning, timeLeft]);
+
+  const startTimer = (min: number) => {
+    const sec = min * 60;
+    setDuration(sec);
+    setTimeLeft(sec);
+    setIsRunning(true);
+  };
+
+  const calculateDashOffset = () => {
+    if (duration === null || timeLeft === null) return 0;
+    const fraction = timeLeft / duration;
+    // Circumference of circle r=58 is roughly 365
+    return 365 * (1 - fraction);
+  };
+
+  return (
+    <div className="flex flex-col h-full bg-white">
+      <div className="p-4 flex items-center justify-between">
+         <button onClick={onExit}><i className="fa-solid fa-arrow-left text-2xl text-gray-400"></i></button>
+         <h2 className="text-xl font-bold text-gray-700">Wait Timer</h2>
+         <div className="w-8"></div>
+      </div>
+
+      <div className="flex-1 flex flex-col items-center justify-center p-6 gap-8">
+         {/* Visual Timer Display */}
+         <div className="relative w-64 h-64 flex items-center justify-center">
+             {/* Background Circle */}
+             <svg className="w-full h-full transform -rotate-90">
+                 <circle cx="128" cy="128" r="58" stroke="#f3f4f6" strokeWidth="110" fill="none" />
+                 {duration && timeLeft !== null && (
+                    <circle 
+                        cx="128" cy="128" r="58" 
+                        stroke={timeLeft < 10 ? '#ef4444' : '#3b82f6'} 
+                        strokeWidth="110" 
+                        fill="none" 
+                        strokeDasharray="365"
+                        strokeDashoffset={calculateDashOffset()}
+                        className="transition-[stroke-dashoffset] duration-1000 linear"
+                    />
+                 )}
+             </svg>
+             <div className="absolute text-center z-10 pointer-events-none">
+                {timeLeft !== null ? (
+                    <>
+                        <div className="text-6xl font-bold text-white drop-shadow-md">
+                            {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+                        </div>
+                        <div className="text-white font-bold drop-shadow-md">{timeLeft === 0 ? "DONE!" : "Waiting..."}</div>
+                    </>
+                ) : (
+                    <i className="fa-solid fa-hourglass-start text-4xl text-gray-300"></i>
+                )}
+             </div>
+         </div>
+
+         {/* Controls */}
+         <div className="w-full grid grid-cols-2 gap-4">
+             {[1, 2, 5, 10].map(min => (
+                 <button 
+                    key={min}
+                    onClick={() => startTimer(min)}
+                    className="bg-blue-50 text-blue-600 font-bold py-4 rounded-xl border-2 border-blue-100 active:bg-blue-500 active:text-white transition-colors"
+                 >
+                    {min} Min
+                 </button>
+             ))}
+         </div>
+         
+         {isRunning && (
+             <button 
+                onClick={() => setIsRunning(false)}
+                className="w-full bg-red-100 text-red-500 font-bold py-4 rounded-xl"
+             >
+                Pause
+             </button>
+         )}
+         {!isRunning && timeLeft !== null && timeLeft > 0 && (
+             <button 
+                onClick={() => setIsRunning(true)}
+                className="w-full bg-green-100 text-green-600 font-bold py-4 rounded-xl"
+             >
+                Resume
+             </button>
+         )}
+      </div>
+    </div>
+  );
+};

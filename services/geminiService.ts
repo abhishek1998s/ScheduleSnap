@@ -1,13 +1,14 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { Schedule, ChildProfile, QuizQuestion, SocialScenario, BehaviorLog, BehaviorAnalysis } from "../types";
+import { Schedule, ChildProfile, QuizQuestion, SocialScenario, BehaviorLog, BehaviorAnalysis, ResearchResult } from "../types";
 
 // Initialize Gemini Client
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
-const SYSTEM_INSTRUCTION = `
+const getSystemInstruction = (lang: string) => `
 You are an expert pediatric occupational therapist specializing in autism. 
-Your goal is to create visual schedules for children based on images of their environment or objects.
+Your goal is to create visual schedules and content for children.
+ALWAYS generate content in the following language: ${lang}.
 Keep language simple, direct, and positive. Use emojis heavily.
 `;
 
@@ -23,6 +24,7 @@ export const generateScheduleFromImage = async (
         resolve({
           title: "Morning Routine",
           type: "Morning",
+          socialStory: "In the morning, we wake up and get ready. We do things in order so we feel happy and ready to play!",
           steps: [
             { id: '1', emoji: "🛏️", instruction: "Wake up", encouragement: "Good morning sunshine!", completed: false },
             { id: '2', emoji: "🚽", instruction: "Use bathroom", encouragement: "Great job!", completed: false },
@@ -37,11 +39,17 @@ export const generateScheduleFromImage = async (
   const prompt = `
     Analyze this image and create a structured visual schedule for a ${profile.age}-year-old child named ${profile.name}.
     The child likes: ${profile.interests.join(', ')}.
+    Language: ${profile.language || 'English'}.
     
     Determine the most likely routine type (Morning, Bedtime, Meal, Play, or General).
     Create 4-6 distinct steps based on the objects visible or implied by the context.
-    For each step, provide a clear emoji, a simple instruction (max 5 words), and a short, specific encouragement related to their interests if possible.
+    Also generate a short "Social Story" (2 sentences) explaining WHY we do this routine, suitable for the child.
   `;
+
+  // Use Thinking Mode if enabled in profile
+  const thinkingConfig = profile.useThinkingMode 
+    ? { thinkingConfig: { thinkingBudget: 2048 } } 
+    : {};
 
   try {
     const response = await ai.models.generateContent({
@@ -53,13 +61,15 @@ export const generateScheduleFromImage = async (
         ]
       },
       config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
+        ...thinkingConfig,
+        systemInstruction: getSystemInstruction(profile.language || 'English'),
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            title: { type: Type.STRING, description: "Title of the routine (e.g., Morning Time)" },
+            title: { type: Type.STRING, description: "Title of the routine" },
             type: { type: Type.STRING, enum: ['Morning', 'Bedtime', 'Meal', 'Play', 'General'] },
+            socialStory: { type: Type.STRING, description: "Simple explanation of the routine's purpose" },
             steps: {
               type: Type.ARRAY,
               items: {
@@ -73,7 +83,7 @@ export const generateScheduleFromImage = async (
               }
             }
           },
-          required: ['title', 'type', 'steps']
+          required: ['title', 'type', 'socialStory', 'steps']
         }
       }
     });
@@ -83,7 +93,6 @@ export const generateScheduleFromImage = async (
     
     const data = JSON.parse(text);
     
-    // Add IDs and completed state to steps
     const stepsWithIds = data.steps.map((step: any, index: number) => ({
       ...step,
       id: `step-${Date.now()}-${index}`,
@@ -93,6 +102,7 @@ export const generateScheduleFromImage = async (
     return {
       title: data.title,
       type: data.type,
+      socialStory: data.socialStory,
       steps: stepsWithIds
     };
 
@@ -102,7 +112,38 @@ export const generateScheduleFromImage = async (
   }
 };
 
-export const generateEmotionQuiz = async (age: number): Promise<QuizQuestion> => {
+export const generateMicroSteps = async (
+    instruction: string, 
+    profile: ChildProfile
+): Promise<string[]> => {
+    if (!process.env.API_KEY) {
+        return ["First part of task", "Middle part of task", "Final part of task"];
+    }
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: `Break down the task "${instruction}" into 3 simple micro-steps for a ${profile.age} year old autistic child. Keep them extremely short. Language: ${profile.language || 'English'}.`,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        microSteps: { type: Type.ARRAY, items: { type: Type.STRING } }
+                    }
+                }
+            }
+        });
+        const text = response.text;
+        if (!text) return [];
+        return JSON.parse(text).microSteps;
+    } catch (e) {
+        console.error(e);
+        return [];
+    }
+};
+
+export const generateEmotionQuiz = async (age: number, lang: string = 'English'): Promise<QuizQuestion> => {
     if (!process.env.API_KEY) {
         return {
             question: "How does someone feel when they drop their ice cream?",
@@ -116,7 +157,7 @@ export const generateEmotionQuiz = async (age: number): Promise<QuizQuestion> =>
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: `Generate a simple emotion recognition quiz question for a ${age} year old autistic child.`,
+            contents: `Generate a simple emotion recognition quiz question for a ${age} year old autistic child. Language: ${lang}.`,
             config: {
                 responseMimeType: "application/json",
                 responseSchema: {
@@ -148,7 +189,7 @@ export const generateCopingStrategy = async (mood: string, profile: ChildProfile
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: `A ${profile.age} year old autistic child is feeling ${mood}. Suggest 3 simple, sensory-friendly coping strategies using emojis.`,
+            contents: `A ${profile.age} year old autistic child is feeling ${mood}. Suggest 3 simple, sensory-friendly coping strategies using emojis. Language: ${profile.language || 'English'}.`,
             config: {
                 responseMimeType: "application/json",
                 responseSchema: {
@@ -167,7 +208,7 @@ export const generateCopingStrategy = async (mood: string, profile: ChildProfile
     }
 };
 
-export const generateSocialScenario = async (age: number): Promise<SocialScenario> => {
+export const generateSocialScenario = async (age: number, lang: string = 'English'): Promise<SocialScenario> => {
   if (!process.env.API_KEY) {
       return {
           title: "Sharing Toys",
@@ -184,7 +225,7 @@ export const generateSocialScenario = async (age: number): Promise<SocialScenari
   try {
       const response = await ai.models.generateContent({
           model: 'gemini-2.5-flash',
-          contents: `Generate a simple social scenario for a ${age} year old autistic child to practice social skills. Include feedback for answers.`,
+          contents: `Generate a simple social scenario for a ${age} year old autistic child to practice social skills. Include feedback for answers. Language: ${lang}.`,
           config: {
               responseMimeType: "application/json",
               responseSchema: {
@@ -231,12 +272,18 @@ export const analyzeBehaviorLogs = async (logs: BehaviorLog[], profile: ChildPro
     }
 
     const logsSummary = logs.slice(-20).map(l => `${new Date(l.timestamp).toLocaleString()}: ${l.behavior} (${l.intensity}) triggered by ${l.trigger}`).join('\n');
+    
+    // Use Thinking Mode if enabled in profile
+    const thinkingConfig = profile.useThinkingMode 
+      ? { thinkingConfig: { thinkingBudget: 2048 } } 
+      : {};
 
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: `Analyze these behavior logs for a ${profile.age} year old autistic child. Identify patterns and suggestions.\n\nLogs:\n${logsSummary}`,
+            contents: `Analyze these behavior logs for a ${profile.age} year old autistic child. Identify patterns and suggestions. Language: ${profile.language || 'English'}.\n\nLogs:\n${logsSummary}`,
             config: {
+                ...thinkingConfig,
                 responseMimeType: "application/json",
                 responseSchema: {
                     type: Type.OBJECT,
@@ -258,4 +305,78 @@ export const analyzeBehaviorLogs = async (logs: BehaviorLog[], profile: ChildPro
         console.error(e);
         throw e;
     }
+};
+
+export const analyzeBehaviorVideo = async (videoBase64: string, profile: ChildProfile): Promise<BehaviorAnalysis> => {
+    if (!process.env.API_KEY) {
+         return {
+            patterns: ["Rapid repetitive movements observed", "Signs of sensory overload"],
+            triggers: ["Loud auditory environment likely"],
+            suggestions: ["Provide noise-canceling headphones", "Create a quiet retreat space"],
+            insight: "The video indicates a sensory-seeking behavior turning into overload."
+        };
+    }
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: {
+                parts: [
+                    { inlineData: { mimeType: 'video/mp4', data: videoBase64 } },
+                    { text: `Analyze this video of a ${profile.age} year old autistic child's behavior. Identify potential triggers, the function of the behavior, and calming strategies. Language: ${profile.language || 'English'}.` }
+                ]
+            },
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        patterns: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        triggers: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        suggestions: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        insight: { type: Type.STRING }
+                    },
+                    required: ['patterns', 'triggers', 'suggestions', 'insight']
+                }
+            }
+        });
+
+        const text = response.text;
+        if (!text) throw new Error("No analysis generated");
+        return JSON.parse(text);
+    } catch (e) {
+        console.error("Video analysis failed:", e);
+        throw e;
+    }
+};
+
+export const searchAutismResources = async (query: string, lang: string = 'English'): Promise<ResearchResult> => {
+  if (!process.env.API_KEY) {
+      return {
+          answer: "Autism, or autism spectrum disorder (ASD), refers to a broad range of conditions characterized by challenges with social skills, repetitive behaviors, speech and nonverbal communication.",
+          sources: [{ title: "Autism Speaks", uri: "https://www.autismspeaks.org" }]
+      };
+  }
+
+  try {
+      const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: `Answer this question about autism for a parent. Language: ${lang}. Query: ${query}`,
+          config: {
+              tools: [{ googleSearch: {} }]
+          }
+      });
+      
+      const text = response.text || "I couldn't find information on that.";
+      const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+      const sources = chunks
+        .map((chunk: any) => chunk.web)
+        .filter((web: any) => web)
+        .map((web: any) => ({ title: web.title, uri: web.uri }));
+
+      return { answer: text, sources };
+  } catch (e) {
+      console.error(e);
+      throw e;
+  }
 };
