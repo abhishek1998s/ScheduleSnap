@@ -68,13 +68,16 @@ export const WaitTimer: React.FC<WaitTimerProps> = ({ onExit }) => {
              <div className="absolute text-center z-10 pointer-events-none">
                 {timeLeft !== null ? (
                     <>
-                        <div className="text-6xl font-bold text-white drop-shadow-md">
+                        <div className="text-6xl font-bold text-gray-800 drop-shadow-sm">
                             {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
                         </div>
-                        <div className="text-white font-bold drop-shadow-md">{timeLeft === 0 ? "DONE!" : "Waiting..."}</div>
+                        <div className="text-gray-600 font-bold">{timeLeft === 0 ? "DONE!" : "Waiting..."}</div>
                     </>
                 ) : (
-                    <i className="fa-solid fa-hourglass-start text-4xl text-gray-300"></i>
+                    <div className="flex flex-col items-center text-gray-400">
+                        <i className="fa-solid fa-hourglass-start text-5xl mb-2"></i>
+                        <span className="font-bold text-lg">Set Time</span>
+                    </div>
                 )}
              </div>
          </div>

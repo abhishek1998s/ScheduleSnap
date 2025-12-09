@@ -42,7 +42,7 @@ export const ResearchTool: React.FC<ResearchToolProps> = ({ onExit }) => {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Ask about autism, therapies, rights..."
-                    className="w-full p-4 pr-12 rounded-2xl border border-slate-200 shadow-sm focus:border-primary outline-none"
+                    className="w-full p-4 pr-12 rounded-2xl border border-slate-200 shadow-sm focus:border-primary outline-none bg-white text-gray-800 placeholder-gray-400"
                  />
                  <button 
                     type="submit"
