@@ -43,6 +43,11 @@ export const RewardStore: React.FC<RewardStoreProps> = ({ tokens, profile, onRed
       }
   };
 
+  const handleEnjoy = () => {
+      setPurchasedItem(null);
+      onExit();
+  };
+
   return (
     <div className="h-full bg-purple-50 flex flex-col relative">
         {/* Header */}
@@ -126,14 +131,14 @@ export const RewardStore: React.FC<RewardStoreProps> = ({ tokens, profile, onRed
         {purchasedItem && (
             <div className="absolute inset-0 z-50 bg-black/80 flex items-center justify-center p-6 animate-fadeIn">
                 <div className="bg-white rounded-3xl p-8 text-center w-full max-w-sm relative overflow-hidden animate-slideUp">
-                    <div className="absolute inset-0 bg-yellow-100 opacity-20 animate-pulse"></div>
-                    <i className="fa-solid fa-gift text-6xl text-purple-500 mb-4 animate-bounce"></i>
-                    <h2 className="text-2xl font-bold text-gray-800 mb-2">You bought it!</h2>
-                    <div className="text-8xl my-4">{purchasedItem.emoji}</div>
-                    <p className="text-xl font-bold text-purple-700 mb-6">{purchasedItem.name}</p>
+                    <div className="absolute inset-0 bg-yellow-100 opacity-20 animate-pulse pointer-events-none"></div>
+                    <i className="fa-solid fa-gift text-6xl text-purple-500 mb-4 animate-bounce relative z-10"></i>
+                    <h2 className="text-2xl font-bold text-gray-800 mb-2 relative z-10">You bought it!</h2>
+                    <div className="text-8xl my-4 relative z-10">{purchasedItem.emoji}</div>
+                    <p className="text-xl font-bold text-purple-700 mb-6 relative z-10">{purchasedItem.name}</p>
                     <button 
-                        onClick={() => setPurchasedItem(null)}
-                        className="w-full bg-purple-600 text-white py-3 rounded-xl font-bold shadow-lg text-lg"
+                        onClick={handleEnjoy}
+                        className="w-full bg-purple-600 text-white py-3 rounded-xl font-bold shadow-lg text-lg relative z-10"
                     >
                         Enjoy!
                     </button>
