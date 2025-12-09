@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Schedule, ScheduleStep, ChildProfile } from '../types';
 import { LongPressButton } from './LongPressButton';
+import { t } from '../utils/translations';
 
 interface ScheduleRunnerProps {
   schedule: Schedule;
@@ -20,6 +21,7 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
   const [stepDuration, setStepDuration] = useState(DEFAULT_STEP_DURATION);
   const [timeLeft, setTimeLeft] = useState(DEFAULT_STEP_DURATION);
   const [isTimerRunning, setIsTimerRunning] = useState(true);
+  const lang = profile?.language;
 
   const currentStep = schedule.steps[currentStepIndex];
   const nextStep = schedule.steps[currentStepIndex + 1];
@@ -95,8 +97,8 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
       <div className="flex flex-col items-center justify-center h-full bg-primary text-white p-6 text-center animate-fadeIn overflow-y-auto">
         <div className="min-h-full flex flex-col items-center justify-center">
             <i className="fa-solid fa-trophy text-8xl text-yellow-300 mb-6 animate-bounce"></i>
-            <h1 className="text-4xl font-bold mb-4">You Did It!</h1>
-            <p className="text-2xl mb-8">All done with {schedule.title}!</p>
+            <h1 className="text-4xl font-bold mb-4">{t(lang, 'iDidIt')}</h1>
+            <p className="text-2xl mb-8">{t(lang, 'allDone')} {schedule.title}!</p>
             <div className="flex gap-2 mb-8">
                 {[1,2,3,4,5].map(i => <i key={i} className="fa-solid fa-star text-3xl text-yellow-300 animate-pulse"></i>)}
             </div>
@@ -135,20 +137,20 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
           duration={3000}
           className="text-gray-400 hover:text-red-500 text-xs font-bold border rounded-full px-3 py-1 flex items-center gap-2"
         >
-          <span>Hold to Exit</span>
+          <span>{t(lang, 'holdExit')}</span>
         </LongPressButton>
       </div>
 
       {/* First / Then Board */}
       <div className="bg-primary/10 p-2 flex justify-center gap-4 border-b border-primary/20 shrink-0">
          <div className="flex items-center gap-2 opacity-100">
-            <span className="text-xs font-bold text-primary uppercase tracking-wide">Now:</span>
+            <span className="text-xs font-bold text-primary uppercase tracking-wide">{t(lang, 'now')}</span>
             <span className="text-xl">{currentStep.emoji}</span>
          </div>
          {nextStep && (
              <div className="flex items-center gap-2 opacity-60">
                 <i className="fa-solid fa-arrow-right text-primary/50 text-xs"></i>
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Then:</span>
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">{t(lang, 'then')}</span>
                 <span className="text-xl">{nextStep.emoji}</span>
              </div>
          )}
@@ -220,7 +222,7 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
           onClick={handleNext}
           className="w-full bg-primary hover:bg-secondary text-white text-2xl sm:text-3xl font-bold py-4 sm:py-6 rounded-2xl shadow-lg transform active:scale-95 transition-all flex items-center justify-center gap-4"
         >
-          <span>I Did It!</span>
+          <span>{t(lang, 'iDidIt')}</span>
           <i className="fa-solid fa-check-circle"></i>
         </button>
       </div>

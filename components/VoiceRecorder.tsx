@@ -2,13 +2,15 @@
 import React, { useState, useRef } from 'react';
 import { VoiceMessage } from '../types';
 import { transcribeAudio } from '../services/geminiService';
+import { t } from '../utils/translations';
 
 interface VoiceRecorderProps {
   onSave: (msg: VoiceMessage) => void;
   onExit: () => void;
+  language?: string;
 }
 
-export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onSave, onExit }) => {
+export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onSave, onExit, language }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcription, setTranscription] = useState<string>('');
@@ -36,7 +38,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onSave, onExit }) 
         
         // Auto-transcribe
         setIsTranscribing(true);
-        const text = await transcribeAudio(audioBlob);
+        const text = await transcribeAudio(audioBlob, language);
         setTranscription(text);
         setIsTranscribing(false);
       };
@@ -71,8 +73,8 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onSave, onExit }) 
 
   return (
     <div className="flex flex-col h-full bg-pink-50 items-center justify-center p-6 text-center">
-      <h2 className="text-2xl font-bold text-pink-700 mb-2">Tell Parents</h2>
-      <p className="text-gray-500 mb-8">Record a message for mom or dad</p>
+      <h2 className="text-2xl font-bold text-pink-700 mb-2">{t(language, 'tellParents')}</h2>
+      <p className="text-gray-500 mb-8">{t(language, 'recordMessage')}</p>
 
       {!audioURL ? (
         <button
@@ -92,7 +94,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onSave, onExit }) 
             {isTranscribing ? (
                 <div className="flex items-center gap-2 text-pink-500">
                     <i className="fa-solid fa-circle-notch fa-spin"></i>
-                    <span>Converting speech to text...</span>
+                    <span>{t(language, 'converting')}</span>
                 </div>
             ) : (
                 <p>"{transcription}"</p>
@@ -104,13 +106,13 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onSave, onExit }) 
               onClick={() => { setAudioURL(null); setBlob(null); setTranscription(''); }}
               className="flex-1 py-3 rounded-xl font-bold text-gray-500 bg-gray-100"
             >
-              Retry
+              {t(language, 'retry')}
             </button>
             <button 
               onClick={handleSend}
               className="flex-1 py-3 rounded-xl font-bold text-white bg-green-500 shadow-md"
             >
-              Send <i className="fa-solid fa-paper-plane ml-2"></i>
+              {t(language, 'send')} <i className="fa-solid fa-paper-plane ml-2"></i>
             </button>
           </div>
         </div>
@@ -118,7 +120,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onSave, onExit }) 
 
       {!audioURL && (
           <p className="mt-8 text-xl font-bold text-gray-400">
-              {isRecording ? "Recording..." : "Tap to Start"}
+              {isRecording ? t(language, 'recording') : t(language, 'tapStart')}
           </p>
       )}
 

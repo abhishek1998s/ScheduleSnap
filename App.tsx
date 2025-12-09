@@ -16,6 +16,7 @@ import { SocialScenarioPractice } from './components/SocialScenario';
 import { VoiceRecorder } from './components/VoiceRecorder';
 import { WaitTimer } from './components/WaitTimer';
 import { ResearchTool } from './components/ResearchTool';
+import { t } from './utils/translations';
 
 const INITIAL_PROFILE: ChildProfile = {
   name: "Leo",
@@ -163,6 +164,7 @@ const App: React.FC = () => {
   };
 
   const activeSchedule = state.schedules.find(s => s.id === state.activeScheduleId);
+  const lang = state.profile.language;
 
   if (!isLoaded) return null;
 
@@ -184,7 +186,7 @@ const App: React.FC = () => {
                 onClick={() => navigateTo(ViewState.CALM)}
                 className="bg-white text-red-500 text-xs px-3 py-1 rounded-full font-bold uppercase"
               >
-                Start Calm Mode
+                {t(lang, 'calmMode')}
               </button>
           </div>
       )}
@@ -192,7 +194,7 @@ const App: React.FC = () => {
       {state.view === ViewState.HOME && (
         <div className="flex flex-col h-full p-6">
           <div className="flex justify-between items-center mb-6 shrink-0">
-            <h1 className="text-3xl font-bold text-primary">ScheduleSnap</h1>
+            <h1 className="text-3xl font-bold text-primary">{t(lang, 'appTitle')}</h1>
             <div className="flex gap-2">
                 <button 
                     onClick={() => navigateTo(ViewState.STORE)}
@@ -215,38 +217,38 @@ const App: React.FC = () => {
                 className={`w-full p-8 rounded-3xl flex flex-col items-center gap-4 active:scale-95 transition-transform mb-6 ${state.isHighContrast ? 'bg-yellow-400 text-black font-bold border-4 border-white' : 'bg-primary text-white shadow-xl'}`}
             >
                 <i className="fa-solid fa-camera text-5xl"></i>
-                <span className="text-2xl font-bold">Snap New Routine</span>
+                <span className="text-2xl font-bold">{t(lang, 'snapRoutine')}</span>
             </button>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-8">
                 <button onClick={() => navigateTo(ViewState.CALM)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-calm text-primary')}`}>
-                    <i className="fa-solid fa-wind text-3xl"></i><span className="font-bold">Calm Mode</span>
+                    <i className="fa-solid fa-wind text-3xl"></i><span className="font-bold">{t(lang, 'calmMode')}</span>
                 </button>
                 <button onClick={() => navigateTo(ViewState.MOOD)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-blue-100 text-blue-600')}`}>
-                    <i className="fa-solid fa-face-smile text-3xl"></i><span className="font-bold">Feelings</span>
+                    <i className="fa-solid fa-face-smile text-3xl"></i><span className="font-bold">{t(lang, 'feelings')}</span>
                 </button>
                 <button onClick={() => navigateTo(ViewState.COACH)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-purple-100 text-purple-600')}`}>
-                    <i className="fa-solid fa-headset text-3xl"></i><span className="font-bold">AI Coach</span>
+                    <i className="fa-solid fa-headset text-3xl"></i><span className="font-bold">{t(lang, 'aiCoach')}</span>
                 </button>
                 <button onClick={() => navigateTo(ViewState.TIMER)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-gray-200 text-gray-700')}`}>
-                    <i className="fa-solid fa-hourglass-start text-3xl"></i><span className="font-bold">Wait Timer</span>
+                    <i className="fa-solid fa-hourglass-start text-3xl"></i><span className="font-bold">{t(lang, 'waitTimer')}</span>
                 </button>
                  <button onClick={() => navigateTo(ViewState.VOICE_RECORDER)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-teal-100 text-teal-600')}`}>
-                    <i className="fa-solid fa-microphone text-3xl"></i><span className="font-bold">Tell Parents</span>
+                    <i className="fa-solid fa-microphone text-3xl"></i><span className="font-bold">{t(lang, 'tellParents')}</span>
                 </button>
                 <button onClick={() => navigateTo(ViewState.RESEARCH)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-indigo-100 text-indigo-600')}`}>
-                    <i className="fa-solid fa-book-open text-3xl"></i><span className="font-bold">Research</span>
+                    <i className="fa-solid fa-book-open text-3xl"></i><span className="font-bold">{t(lang, 'research')}</span>
                 </button>
                 <button onClick={() => navigateTo(ViewState.SOCIAL)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-pink-100 text-pink-600')}`}>
-                    <i className="fa-solid fa-users text-3xl"></i><span className="font-bold">Social</span>
+                    <i className="fa-solid fa-users text-3xl"></i><span className="font-bold">{t(lang, 'social')}</span>
                 </button>
                 <button onClick={() => navigateTo(ViewState.QUIZ)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-orange-100 text-orange-600')}`}>
-                    <i className="fa-solid fa-puzzle-piece text-3xl"></i><span className="font-bold">Quiz</span>
+                    <i className="fa-solid fa-puzzle-piece text-3xl"></i><span className="font-bold">{t(lang, 'quiz')}</span>
                 </button>
             </div>
 
             <div>
-                <h3 className="text-gray-500 font-bold mb-3 uppercase text-sm tracking-wider">My Routines</h3>
+                <h3 className="text-gray-500 font-bold mb-3 uppercase text-sm tracking-wider">{t(lang, 'myRoutines')}</h3>
                 <div className="space-y-3">
                     {state.schedules
                         .sort((a,b) => (a.scheduledTime || '23:59').localeCompare(b.scheduledTime || '23:59'))
@@ -266,7 +268,7 @@ const App: React.FC = () => {
                                         </span>
                                     )}
                                 </div>
-                                <p className={`text-xs ${state.isHighContrast ? 'text-yellow-100' : 'text-gray-400'}`}>{schedule.steps.length} Steps</p>
+                                <p className={`text-xs ${state.isHighContrast ? 'text-yellow-100' : 'text-gray-400'}`}>{schedule.steps.length} {t(lang, 'steps')}</p>
                             </div>
                             <i className="fa-solid fa-play text-primary"></i>
                         </button>
@@ -284,14 +286,14 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {state.view === ViewState.CAMERA && <CameraCapture isLoading={isProcessing} onImageSelected={handleImageSelected} onCancel={() => navigateTo(ViewState.HOME)} />}
+      {state.view === ViewState.CAMERA && <CameraCapture isLoading={isProcessing} onImageSelected={handleImageSelected} onCancel={() => navigateTo(ViewState.HOME)} language={lang} />}
       {state.view === ViewState.PREVIEW && generatedSchedule && <PreviewSchedule schedule={generatedSchedule} profile={state.profile} onSave={handleSaveSchedule} onCancel={() => { setGeneratedSchedule(null); navigateTo(ViewState.HOME); }} />}
       {state.view === ViewState.RUNNER && activeSchedule && <ScheduleRunner schedule={activeSchedule} profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} onComplete={() => { setState(prev => ({ ...prev, tokens: prev.tokens + 5 })); navigateTo(ViewState.HOME); }} />}
       {state.view === ViewState.DASHBOARD && <Dashboard schedules={state.schedules} profile={state.profile} moodLogs={state.moodLogs} behaviorLogs={state.behaviorLogs} voiceMessages={state.voiceMessages} isHighContrast={state.isHighContrast} caregiverPin={state.caregiverPin || '1234'} onUpdatePin={(p) => setState(prev => ({...prev, caregiverPin: p}))} onExit={() => navigateTo(ViewState.HOME)} onSelectSchedule={(id) => startRoutine(id)} onDeleteSchedule={handleDeleteSchedule} onUpdateSchedule={handleUpdateSchedule} onUpdateProfile={(p) => setState(prev => ({ ...prev, profile: p }))} onToggleHighContrast={() => setState(prev => ({ ...prev, isHighContrast: !prev.isHighContrast }))} onLogBehavior={(log) => setState(prev => ({ ...prev, behaviorLogs: [...prev.behaviorLogs, { ...log, id: Date.now().toString(), timestamp: Date.now() }] }))} />}
       {state.view === ViewState.MOOD && <MoodCheck profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} onSave={(entry) => setState(prev => ({ ...prev, moodLogs: [...prev.moodLogs, entry] }))} />}
       {state.view === ViewState.QUIZ && <EmotionQuiz age={state.profile.age} onExit={() => navigateTo(ViewState.HOME)} onCorrect={() => setState(prev => ({ ...prev, tokens: prev.tokens + 1 }))} />}
       {state.view === ViewState.SOCIAL && <SocialScenarioPractice age={state.profile.age} onExit={() => navigateTo(ViewState.HOME)} onComplete={(success) => { if(success) setState(prev => ({ ...prev, tokens: prev.tokens + 2 })); }} />}
-      {state.view === ViewState.VOICE_RECORDER && <VoiceRecorder onExit={() => navigateTo(ViewState.HOME)} onSave={(msg) => setState(prev => ({ ...prev, voiceMessages: [msg, ...prev.voiceMessages] }))} />}
+      {state.view === ViewState.VOICE_RECORDER && <VoiceRecorder onExit={() => navigateTo(ViewState.HOME)} onSave={(msg) => setState(prev => ({ ...prev, voiceMessages: [msg, ...prev.voiceMessages] }))} language={lang} />}
       {state.view === ViewState.TIMER && <WaitTimer onExit={() => navigateTo(ViewState.HOME)} />}
       {state.view === ViewState.RESEARCH && <ResearchTool onExit={() => navigateTo(ViewState.HOME)} />}
       {state.view === ViewState.STORE && <RewardStore tokens={state.tokens} profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} onRedeem={(cost) => setState(prev => ({ ...prev, tokens: prev.tokens - cost }))} />}

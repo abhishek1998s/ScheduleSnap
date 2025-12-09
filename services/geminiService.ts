@@ -39,7 +39,7 @@ export const generateScheduleFromImage = async (
   const prompt = `
     Analyze this image and create a structured visual schedule for a ${profile.age}-year-old child named ${profile.name}.
     The child likes: ${profile.interests.join(', ')}.
-    Language: ${profile.language || 'English'}.
+    OUTPUT LANGUAGE: ${profile.language || 'English'}.
     
     Determine the most likely routine type (Morning, Bedtime, Meal, Play, or General).
     Create 4-6 distinct steps based on the objects visible or implied by the context.
@@ -493,6 +493,7 @@ export const optimizeSchedule = async (
     Child Profile:
     Interests: ${profile.interests.join(', ')}
     Sensory Needs: ${JSON.stringify(profile.sensoryProfile)}
+    Output Language: ${profile.language || 'English'}
 
     Recent Behavioral Issues (use this context to find friction points):
     ${recentLogs || "No specific recent logs, please optimize for general engagement and sensory regulation based on profile."}
@@ -562,7 +563,7 @@ export const optimizeSchedule = async (
   }
 };
 
-export const transcribeAudio = async (audioBlob: Blob): Promise<string> => {
+export const transcribeAudio = async (audioBlob: Blob, language: string = 'English'): Promise<string> => {
   if (!process.env.API_KEY) {
       return new Promise(resolve => setTimeout(() => resolve("Simulated transcription: I want apple juice please."), 1000));
   }
@@ -588,7 +589,7 @@ export const transcribeAudio = async (audioBlob: Blob): Promise<string> => {
           contents: {
               parts: [
                   { inlineData: { mimeType: audioBlob.type || 'audio/webm', data: base64Audio } },
-                  { text: "Please transcribe the spoken audio accurately in the language spoken. If there is no distinct speech, describe the audio (e.g. [Crying], [Laughter], [Background Noise])." }
+                  { text: `Please transcribe the spoken audio accurately in the following language: ${language}. If there is no distinct speech, describe the audio (e.g. [Crying], [Laughter], [Background Noise]).` }
               ]
           }
       });

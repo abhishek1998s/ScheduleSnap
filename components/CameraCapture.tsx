@@ -1,12 +1,15 @@
+
 import React, { useState, useRef } from 'react';
+import { t } from '../utils/translations';
 
 interface CameraCaptureProps {
   onImageSelected: (base64: string) => void;
   onCancel: () => void;
   isLoading: boolean;
+  language?: string;
 }
 
-export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, onCancel, isLoading }) => {
+export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, onCancel, isLoading, language }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
 
@@ -36,7 +39,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, o
     <div className="fixed inset-0 bg-black z-40 flex flex-col">
       <div className="flex justify-between items-center p-4 text-white">
         <button onClick={onCancel} className="p-2"><i className="fa-solid fa-times text-2xl"></i></button>
-        <span className="font-bold text-lg">Snap Routine Items</span>
+        <span className="font-bold text-lg">{t(language, 'snapRoutine')}</span>
         <div className="w-8"></div>
       </div>
 
@@ -44,15 +47,15 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, o
         {isLoading ? (
           <div className="text-center text-white p-8">
             <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <h3 className="text-xl font-bold mb-2">Thinking...</h3>
-            <p className="text-gray-400">Gemini is analyzing your photo to build a schedule.</p>
+            <h3 className="text-xl font-bold mb-2">{t(language, 'cameraThinking')}</h3>
+            <p className="text-gray-400">{t(language, 'cameraAnalyzing')}</p>
           </div>
         ) : preview ? (
           <img src={preview} alt="Preview" className="max-w-full max-h-full object-contain" />
         ) : (
           <div className="text-center text-gray-500">
             <i className="fa-solid fa-camera text-6xl mb-4"></i>
-            <p>Tap button below to capture</p>
+            <p>{t(language, 'tapToCapture')}</p>
           </div>
         )}
       </div>
@@ -72,13 +75,13 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, o
                 onClick={() => setPreview(null)}
                 className="px-6 py-3 bg-gray-700 text-white rounded-full font-bold"
               >
-                Retake
+                {t(language, 'retake')}
               </button>
               <button 
                 onClick={handleConfirm}
                 className="px-8 py-3 bg-primary text-white rounded-full font-bold shadow-lg hover:bg-secondary flex items-center gap-2"
               >
-                Generate Schedule <i className="fa-solid fa-magic"></i>
+                {t(language, 'generate')} <i className="fa-solid fa-magic"></i>
               </button>
             </>
           )}

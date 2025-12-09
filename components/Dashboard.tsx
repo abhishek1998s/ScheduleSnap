@@ -2,6 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { Schedule, ChildProfile, BehaviorLog, MoodEntry, BehaviorAnalysis, VoiceMessage } from '../types';
 import { analyzeBehaviorLogs, analyzeBehaviorVideo, optimizeSchedule } from '../services/geminiService';
+import { t } from '../utils/translations';
 
 interface DashboardProps {
   schedules: Schedule[];
@@ -27,6 +28,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pin, setPin] = useState('');
   const [activeTab, setActiveTab] = useState<'overview' | 'routines' | 'behavior' | 'messages'>('overview');
+  const lang = profile.language;
   
   // Behavior Form State
   const [newLogBehavior, setNewLogBehavior] = useState('Meltdown');
@@ -224,7 +226,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <button onClick={onExit} className="p-2 hover:bg-gray-100 rounded-full">
                 <i className="fa-solid fa-arrow-left"></i>
             </button>
-            <h1 className="text-xl font-bold">Caregiver Dashboard</h1>
+            <h1 className="text-xl font-bold">{t(lang, 'dashboard')}</h1>
         </div>
 
         {/* Tabs */}
@@ -239,7 +241,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             : (isHighContrast ? 'bg-gray-800 text-yellow-200' : 'bg-gray-100 text-gray-500')
                     }`}
                 >
-                    {tab}
+                    {t(lang, tab)}
                 </button>
             ))}
         </div>
@@ -250,41 +252,46 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <>
                     <div className={`${isHighContrast ? 'bg-gray-900 border-2 border-yellow-400' : 'bg-white border-gray-100'} p-6 rounded-2xl shadow-sm border`}>
                         <div className="flex justify-between items-start mb-4">
-                             <h2 className="text-lg font-bold">Child Profile</h2>
+                             <h2 className="text-lg font-bold">{t(lang, 'childProfile')}</h2>
                              <button 
                                 onClick={() => setIsEditingProfile(!isEditingProfile)}
                                 className={`${isHighContrast ? 'text-yellow-300' : 'text-primary'} text-sm font-bold`}
                              >
-                                {isEditingProfile ? 'Cancel' : 'Edit'}
+                                {isEditingProfile ? t(lang, 'cancel') : t(lang, 'edit')}
                              </button>
                         </div>
                         
                         {isEditingProfile ? (
                             <div className="space-y-4">
                                 <div>
-                                    <label className="text-xs opacity-70">Name</label>
+                                    <label className="text-xs opacity-70">{t(lang, 'name')}</label>
                                     <input value={editName} onChange={e => setEditName(e.target.value)} className="w-full border-b p-1 bg-transparent" />
                                 </div>
                                 <div>
-                                    <label className="text-xs opacity-70">Age</label>
+                                    <label className="text-xs opacity-70">{t(lang, 'age')}</label>
                                     <input type="number" value={editAge} onChange={e => setEditAge(Number(e.target.value))} className="w-full border-b p-1 bg-transparent" />
                                 </div>
                                 <div>
-                                    <label className="text-xs opacity-70">Interests</label>
+                                    <label className="text-xs opacity-70">{t(lang, 'interests')}</label>
                                     <input value={editInterests} onChange={e => setEditInterests(e.target.value)} className="w-full border-b p-1 bg-transparent" />
                                 </div>
                                 <div>
-                                    <label className="text-xs opacity-70">Language</label>
+                                    <label className="text-xs opacity-70">{t(lang, 'language')}</label>
                                     <select value={editLanguage} onChange={(e) => setEditLanguage(e.target.value)} className="w-full border-b p-1 bg-transparent">
                                         <option value="English">English</option>
                                         <option value="Spanish">Spanish</option>
                                         <option value="French">French</option>
                                         <option value="German">German</option>
-                                        <option value="Chinese">Chinese</option>
+                                        <option value="Chinese">Chinese (Simplified)</option>
+                                        <option value="Japanese">Japanese</option>
+                                        <option value="Korean">Korean</option>
+                                        <option value="Italian">Italian</option>
+                                        <option value="Portuguese">Portuguese</option>
+                                        <option value="Arabic">Arabic</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="text-xs opacity-70">Voice Speed ({editSpeechRate}x)</label>
+                                    <label className="text-xs opacity-70">{t(lang, 'voiceSpeed')} ({editSpeechRate}x)</label>
                                     <input 
                                         type="range" 
                                         min="0.5" max="1.5" step="0.1"
@@ -302,11 +309,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                         className="w-5 h-5"
                                     />
                                     <label htmlFor="thinking" className="text-sm font-bold">
-                                        Enable AI Thinking Mode
+                                        {t(lang, 'thinkingMode')}
                                         <span className="block text-xs opacity-60 font-normal">Slower, but smarter reasoning for complex schedules.</span>
                                     </label>
                                 </div>
-                                <button onClick={saveProfile} className={`w-full ${isHighContrast ? 'bg-yellow-400 text-black' : 'bg-primary text-white'} py-2 rounded-lg font-bold`}>Save Changes</button>
+                                <button onClick={saveProfile} className={`w-full ${isHighContrast ? 'bg-yellow-400 text-black' : 'bg-primary text-white'} py-2 rounded-lg font-bold`}>{t(lang, 'save')}</button>
                             </div>
                         ) : (
                             <div>
@@ -328,7 +335,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <div className={`${isHighContrast ? 'bg-gray-900 border-2 border-yellow-400' : 'bg-white border-gray-100'} p-6 rounded-2xl shadow-sm border flex flex-col gap-6`}>
                         {/* High Contrast */}
                         <div className="flex items-center justify-between">
-                            <span className="font-bold">High Contrast Mode</span>
+                            <span className="font-bold">{t(lang, 'highContrast')}</span>
                             <button 
                                 onClick={onToggleHighContrast}
                                 className={`w-12 h-6 rounded-full p-1 transition-colors ${isHighContrast ? 'bg-yellow-400' : 'bg-gray-300'}`}
@@ -354,7 +361,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                          {/* Security - Change PIN */}
                          <div className="pt-4 border-t border-gray-100">
                              <div className="flex justify-between items-center mb-2">
-                                <span className="font-bold text-sm">Security</span>
+                                <span className="font-bold text-sm">{t(lang, 'security')}</span>
                              </div>
                              <div className="flex gap-2">
                                 <input 
@@ -372,7 +379,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                     disabled={newPinInput.length !== 4}
                                     className={`px-4 py-2 rounded-lg font-bold text-sm ${isHighContrast ? 'bg-gray-800 text-yellow-300' : 'bg-primary text-white disabled:opacity-50'}`}
                                 >
-                                    Update PIN
+                                    {t(lang, 'updatePin')}
                                 </button>
                              </div>
                         </div>
@@ -381,11 +388,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <div className="grid grid-cols-2 gap-4">
                         <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 text-blue-900">
                             <div className="text-3xl font-bold text-blue-600 mb-1">{schedules.length}</div>
-                            <div className="text-xs text-blue-400 font-bold uppercase">Routines</div>
+                            <div className="text-xs text-blue-400 font-bold uppercase">{t(lang, 'routines')}</div>
                         </div>
                         <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100 text-orange-900">
                             <div className="text-3xl font-bold text-orange-600 mb-1">{moodLogs.length}</div>
-                            <div className="text-xs text-orange-400 font-bold uppercase">Mood Logs</div>
+                            <div className="text-xs text-orange-400 font-bold uppercase">{t(lang, 'logs')}</div>
                         </div>
                     </div>
                 </>
@@ -400,7 +407,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                     <span className="text-2xl">{schedule.steps[0]?.emoji}</span>
                                     <div>
                                         <h4 className="font-bold">{schedule.title}</h4>
-                                        <p className="text-xs opacity-50">{schedule.steps.length} steps</p>
+                                        <p className="text-xs opacity-50">{schedule.steps.length} {t(lang, 'steps')}</p>
                                     </div>
                                 </div>
                                 <button onClick={() => onDeleteSchedule(schedule.id)} className="text-red-400 p-2"><i className="fa-solid fa-trash"></i></button>
@@ -441,7 +448,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
             {activeTab === 'messages' && (
                 <div className="space-y-4">
-                     <h3 className="font-bold">Voice Messages</h3>
+                     <h3 className="font-bold">{t(lang, 'messages')}</h3>
                      {voiceMessages.length === 0 ? <p className="opacity-50">No messages yet.</p> : 
                         voiceMessages.map(msg => (
                             <div key={msg.id} className="bg-white text-black p-4 rounded-2xl shadow-sm">
@@ -462,7 +469,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {activeTab === 'behavior' && (
                 <div className="space-y-6">
                      <div className={`${isHighContrast ? 'bg-gray-900 border-2 border-yellow-400' : 'bg-white border-gray-100'} p-6 rounded-2xl shadow-sm border`}>
-                        <h3 className="font-bold mb-4">Quick Log</h3>
+                        <h3 className="font-bold mb-4">{t(lang, 'quickLog')}</h3>
                         <div className="flex flex-col gap-6 text-black">
                             <select 
                                 value={newLogBehavior}
@@ -500,7 +507,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 onClick={submitBehavior} 
                                 className="w-full bg-red-500 hover:bg-red-600 text-white py-4 rounded-xl font-bold shadow-lg mt-2 active:scale-95 transition-transform"
                             >
-                                Log Incident
+                                {t(lang, 'logIncident')}
                             </button>
                         </div>
                      </div>
@@ -508,7 +515,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                      {/* AI Analysis Section */}
                      <div className={`${isHighContrast ? 'bg-purple-900' : 'bg-purple-50'} p-6 rounded-2xl shadow-sm border border-purple-100`}>
                         <div className="flex justify-between items-center mb-4">
-                             <h3 className="font-bold"><i className="fa-solid fa-wand-magic-sparkles mr-2"></i>AI Insights</h3>
+                             <h3 className="font-bold"><i className="fa-solid fa-wand-magic-sparkles mr-2"></i>{t(lang, 'aiInsights')}</h3>
                              <div className="flex gap-2">
                                 <button 
                                     onClick={() => videoInputRef.current?.click()}
@@ -521,7 +528,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                     disabled={isAnalyzing || behaviorLogs.length < 2}
                                     className="px-3 py-2 bg-purple-600 text-white text-xs font-bold rounded-lg disabled:opacity-50"
                                 >
-                                    {isAnalyzing ? 'Analyzing...' : 'Log Analysis'}
+                                    {isAnalyzing ? t(lang, 'analyzing') : t(lang, 'analyze')}
                                 </button>
                              </div>
                              <input type="file" ref={videoInputRef} accept="video/*" className="hidden" onChange={handleVideoUpload} />
