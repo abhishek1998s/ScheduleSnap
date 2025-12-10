@@ -12,9 +12,7 @@ export const LiveVoiceCoach: React.FC<LiveVoiceCoachProps> = ({ profile, onExit 
   const [status, setStatus] = useState<'connecting' | 'connected' | 'error' | 'disconnected'>('connecting');
   const [volume, setVolume] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
+  
   // Audio Context Refs
   const inputAudioContextRef = useRef<AudioContext | null>(null);
   const outputAudioContextRef = useRef<AudioContext | null>(null);
@@ -22,92 +20,107 @@ export const LiveVoiceCoach: React.FC<LiveVoiceCoachProps> = ({ profile, onExit 
   const outputNodeRef = useRef<GainNode | null>(null);
   const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
   
-  // Session & Streams
+  // Session Cursor
   const nextStartTimeRef = useRef<number>(0);
-  const sessionRef = useRef<any>(null); // To hold the session object if needed, though we use closures
   
   useEffect(() => {
-    let cleanup = () => {};
+    let isMounted = true;
+    let cleanupSession = () => {};
 
     const startSession = async () => {
       try {
         if (!process.env.API_KEY) {
-            alert("API Key required for Live Coach");
-            setStatus('error');
+            // If no key, show error but don't crash
+            console.warn("API Key missing for Live Coach");
+            if (isMounted) setStatus('error');
             return;
         }
 
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         
         // Setup Audio Contexts
-        inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-        outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        inputAudioContextRef.current = new AudioContextClass({ sampleRate: 16000 });
+        outputAudioContextRef.current = new AudioContextClass({ sampleRate: 24000 });
         outputNodeRef.current = outputAudioContextRef.current.createGain();
         outputNodeRef.current.connect(outputAudioContextRef.current.destination);
 
-        // Get User Media (Audio + Video for "Vision" capabilities if we want to add later, using audio for now)
+        // Get User Media
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
         
         // Video Preview
         if (videoRef.current) {
             videoRef.current.srcObject = stream;
-            videoRef.current.play();
+            videoRef.current.play().catch(e => console.warn("Video play failed", e));
         }
 
         const sessionPromise = ai.live.connect({
           model: 'gemini-2.5-flash-native-audio-preview-09-2025',
           callbacks: {
             onopen: () => {
+              if (!isMounted) return;
               setStatus('connected');
               
               // Process Input Audio
-              const source = inputAudioContextRef.current!.createMediaStreamSource(stream);
-              const scriptProcessor = inputAudioContextRef.current!.createScriptProcessor(4096, 1, 1);
-              inputNodeRef.current = scriptProcessor;
+              if (inputAudioContextRef.current) {
+                  const source = inputAudioContextRef.current.createMediaStreamSource(stream);
+                  const scriptProcessor = inputAudioContextRef.current.createScriptProcessor(4096, 1, 1);
+                  inputNodeRef.current = scriptProcessor;
 
-              scriptProcessor.onaudioprocess = (e) => {
-                const inputData = e.inputBuffer.getChannelData(0);
-                
-                // Simple volume visualization logic
-                let sum = 0;
-                for(let i=0; i<inputData.length; i++) sum += inputData[i] * inputData[i];
-                setVolume(Math.sqrt(sum / inputData.length) * 5);
+                  scriptProcessor.onaudioprocess = (e) => {
+                    if (!isMounted) return;
+                    const inputData = e.inputBuffer.getChannelData(0);
+                    
+                    // Volume visualization
+                    let sum = 0;
+                    for(let i=0; i<inputData.length; i++) sum += inputData[i] * inputData[i];
+                    setVolume(Math.sqrt(sum / inputData.length) * 5);
 
-                const pcmBlob = createBlob(inputData);
-                sessionPromise.then(session => session.sendRealtimeInput({ media: pcmBlob }));
-              };
-              
-              source.connect(scriptProcessor);
-              scriptProcessor.connect(inputAudioContextRef.current!.destination);
-            },
-            onmessage: async (msg: LiveServerMessage) => {
-              const base64Audio = msg.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
-              if (base64Audio) {
-                 const ctx = outputAudioContextRef.current!;
-                 nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
-                 
-                 const audioBuffer = await decodeAudioData(
-                    decode(base64Audio),
-                    ctx,
-                    24000,
-                    1
-                 );
-                 
-                 const source = ctx.createBufferSource();
-                 source.buffer = audioBuffer;
-                 source.connect(outputNodeRef.current!);
-                 source.start(nextStartTimeRef.current);
-                 nextStartTimeRef.current += audioBuffer.duration;
-                 
-                 const sources = sourcesRef.current;
-                 sources.add(source);
-                 source.onended = () => sources.delete(source);
+                    const pcmBlob = createBlob(inputData);
+                    sessionPromise.then(session => session.sendRealtimeInput({ media: pcmBlob })).catch(err => {
+                        console.warn("Failed to send audio", err);
+                    });
+                  };
+                  
+                  source.connect(scriptProcessor);
+                  scriptProcessor.connect(inputAudioContextRef.current.destination);
               }
             },
-            onclose: () => setStatus('disconnected'),
+            onmessage: async (msg: LiveServerMessage) => {
+              if (!isMounted) return;
+              const base64Audio = msg.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
+              if (base64Audio && outputAudioContextRef.current && outputNodeRef.current) {
+                 const ctx = outputAudioContextRef.current;
+                 nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
+                 
+                 try {
+                     const audioBuffer = await decodeAudioData(
+                        decode(base64Audio),
+                        ctx,
+                        24000,
+                        1
+                     );
+                     
+                     const source = ctx.createBufferSource();
+                     source.buffer = audioBuffer;
+                     source.connect(outputNodeRef.current);
+                     source.start(nextStartTimeRef.current);
+                     nextStartTimeRef.current += audioBuffer.duration;
+                     
+                     const sources = sourcesRef.current;
+                     sources.add(source);
+                     source.onended = () => sources.delete(source);
+                 } catch (e) {
+                     console.error("Audio decode error", e);
+                 }
+              }
+            },
+            onclose: () => {
+                if (isMounted) setStatus('disconnected');
+            },
             onerror: (err) => {
-                console.error(err);
-                setStatus('error');
+                console.error("Live API Error:", err);
+                if (isMounted) setStatus('error');
             }
           },
           config: {
@@ -122,8 +135,14 @@ export const LiveVoiceCoach: React.FC<LiveVoiceCoachProps> = ({ profile, onExit 
           }
         });
 
-        cleanup = () => {
-            sessionPromise.then(s => s.close()); // Try to close if resolved
+        // Handle connection failure immediately
+        sessionPromise.catch(e => {
+            console.error("Connection failed initially", e);
+            if (isMounted) setStatus('error');
+        });
+
+        cleanupSession = () => {
+            sessionPromise.then(s => s.close()).catch(e => console.warn("Close failed", e));
             inputNodeRef.current?.disconnect();
             inputAudioContextRef.current?.close();
             outputAudioContextRef.current?.close();
@@ -131,13 +150,17 @@ export const LiveVoiceCoach: React.FC<LiveVoiceCoachProps> = ({ profile, onExit 
         };
 
       } catch (e) {
-        console.error(e);
-        setStatus('error');
+        console.error("Session start error", e);
+        if (isMounted) setStatus('error');
       }
     };
 
     startSession();
-    return cleanup;
+
+    return () => {
+        isMounted = false;
+        cleanupSession();
+    };
   }, [profile]);
 
   // --- Helpers for PCM ---
@@ -172,7 +195,6 @@ export const LiveVoiceCoach: React.FC<LiveVoiceCoachProps> = ({ profile, onExit 
      return buffer;
   }
 
-
   return (
     <div className="flex flex-col h-full bg-black relative">
       <video ref={videoRef} className="absolute inset-0 w-full h-full object-cover opacity-50" muted playsInline />
@@ -182,7 +204,7 @@ export const LiveVoiceCoach: React.FC<LiveVoiceCoachProps> = ({ profile, onExit 
             <h2 className="text-xl font-bold bg-black/30 px-4 py-2 rounded-full backdrop-blur-md">
                 AI Coach Snap 🤖
             </h2>
-            <div className={`px-3 py-1 rounded-full text-sm font-bold ${status==='connected' ? 'bg-green-500' : 'bg-red-500'}`}>
+            <div className={`px-3 py-1 rounded-full text-sm font-bold ${status==='connected' ? 'bg-green-500' : status==='error' ? 'bg-red-500' : 'bg-yellow-500'}`}>
                 {status.toUpperCase()}
             </div>
          </div>
@@ -195,8 +217,8 @@ export const LiveVoiceCoach: React.FC<LiveVoiceCoachProps> = ({ profile, onExit 
              >
                 <i className="fa-solid fa-microphone text-4xl text-white"></i>
              </div>
-             <p className="text-white font-bold text-lg bg-black/40 px-4 py-2 rounded-xl backdrop-blur-sm">
-                 {status === 'connected' ? "I'm listening..." : "Connecting..."}
+             <p className="text-white font-bold text-lg bg-black/40 px-4 py-2 rounded-xl backdrop-blur-sm text-center">
+                 {status === 'connected' ? "I'm listening..." : status === 'error' ? "Connection Failed. Try checking network." : "Connecting..."}
              </p>
          </div>
 

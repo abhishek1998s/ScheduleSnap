@@ -15,6 +15,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, o
   const [mimeType, setMimeType] = useState<string>('image/jpeg');
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [cameraError, setCameraError] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -23,21 +24,131 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, o
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
-  // Initialize Camera
+  // Initialize shared AudioContext for sound effects
+  useEffect(() => {
+    try {
+        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioContext) {
+            audioContextRef.current = new AudioContext();
+        }
+    } catch (e) {
+        console.warn("AudioContext not supported");
+    }
+    return () => {
+        audioContextRef.current?.close();
+    };
+  }, []);
+
+  const playShutterSound = () => {
+    try {
+      const ctx = audioContextRef.current;
+      if (!ctx) return;
+      
+      // Resume if suspended (common in browsers)
+      if (ctx.state === 'suspended') ctx.resume();
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      // High pitch click
+      osc.frequency.setValueAtTime(1200, ctx.currentTime);
+      osc.type = 'sine';
+      
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+      
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.08);
+    } catch (e) {
+      console.error("Audio error", e);
+    }
+  };
+
+  const playRecordSound = (isStarting: boolean) => {
+    try {
+      const ctx = audioContextRef.current;
+      if (!ctx) return;
+      if (ctx.state === 'suspended') ctx.resume();
+      
+      const beep = (time: number, freq: number) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          
+          osc.frequency.setValueAtTime(freq, time);
+          gain.gain.setValueAtTime(0.3, time);
+          gain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+          
+          osc.start(time);
+          osc.stop(time + 0.1);
+      };
+
+      if (isStarting) {
+        beep(ctx.currentTime, 600);
+        beep(ctx.currentTime + 0.15, 1000);
+      } else {
+        beep(ctx.currentTime, 1000);
+        beep(ctx.currentTime + 0.15, 600);
+      }
+    } catch (e) {
+      console.error("Audio error", e);
+    }
+  };
+
+  const handleStreamSuccess = (stream: MediaStream) => {
+    streamRef.current = stream;
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
+      setCameraError(null);
+    }
+  };
+
+  // Initialize Camera with Fallbacks
   useEffect(() => {
     const startCamera = async () => {
+      setCameraError(null);
+      
+      if (streamRef.current) {
+         streamRef.current.getTracks().forEach(t => t.stop());
+      }
+
       try {
+        // Attempt 1: Ideal (Back Camera + Audio if video)
         const stream = await navigator.mediaDevices.getUserMedia({ 
             video: { facingMode: 'environment' },
             audio: mode === 'video' 
         });
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
+        handleStreamSuccess(stream);
       } catch (err) {
-        console.error("Camera access error:", err);
+        console.warn("Primary camera request failed, trying fallback...", err);
+        try {
+            // Attempt 2: Relaxed Video (Any Camera) + Audio
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: true,
+                audio: mode === 'video' 
+            });
+            handleStreamSuccess(stream);
+        } catch (err2) {
+            console.warn("Secondary camera request failed...", err2);
+            if (mode === 'video') {
+                 try {
+                    // Attempt 3: Video Only (No Audio)
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    handleStreamSuccess(stream);
+                 } catch (err3) {
+                     console.error("All camera requests failed", err3);
+                     setCameraError("Camera unavailable. Please check permissions or upload a file.");
+                 }
+            } else {
+                 setCameraError("Camera unavailable. Please check permissions or upload a file.");
+            }
+        }
       }
     };
 
@@ -52,7 +163,6 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, o
     };
   }, [mode, preview, isLoading]);
 
-  // Clean up timer
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -61,6 +171,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, o
 
   const handleCapturePhoto = () => {
     if (videoRef.current && canvasRef.current) {
+      playShutterSound();
       const video = videoRef.current;
       const canvas = canvasRef.current;
       
@@ -89,15 +200,23 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, o
 
   const startRecording = () => {
     if (streamRef.current) {
+      playRecordSound(true);
       chunksRef.current = [];
-      const recorder = new MediaRecorder(streamRef.current);
+      
+      const options = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') 
+        ? { mimeType: 'video/webm;codecs=vp9' } 
+        : MediaRecorder.isTypeSupported('video/mp4') 
+             ? { mimeType: 'video/mp4' }
+             : undefined;
+
+      const recorder = new MediaRecorder(streamRef.current, options);
       
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
       };
 
       recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'video/mp4' });
+        const blob = new Blob(chunksRef.current, { type: 'video/mp4' }); 
         const reader = new FileReader();
         reader.onloadend = () => {
            setPreview(reader.result as string);
@@ -120,6 +239,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, o
 
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
+      playRecordSound(false);
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       if (timerRef.current) clearInterval(timerRef.current);
@@ -133,7 +253,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, o
       reader.onloadend = () => {
         setPreview(reader.result as string);
         setMimeType(file.type);
-        // Stop stream
+        // Stop stream if active
         streamRef.current?.getTracks().forEach(t => t.stop());
       };
       reader.readAsDataURL(file);
@@ -151,6 +271,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, o
     setPreview(null);
     setIsRecording(false);
     setRecordingTime(0);
+    setCameraError(null);
     // Camera will restart via useEffect
   };
 
@@ -177,7 +298,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, o
                  setRecordingTime(0);
              }}
              className="px-3 py-1 bg-white/20 rounded-full backdrop-blur-md text-xs font-bold"
-             disabled={!!preview}
+             disabled={!!preview || isRecording}
         >
              {mode === 'photo' ? <i className="fa-solid fa-video"></i> : <i className="fa-solid fa-camera"></i>}
         </button>
@@ -197,6 +318,12 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, o
             ) : (
                  <img src={preview} alt="Preview" className="w-full h-full object-contain" />
             )
+        ) : cameraError ? (
+          <div className="text-center text-white p-6 max-w-xs">
+            <i className="fa-solid fa-triangle-exclamation text-4xl text-yellow-500 mb-4"></i>
+            <p className="font-bold mb-4">{cameraError}</p>
+            <p className="text-sm text-gray-400">Please use the upload button below.</p>
+          </div>
         ) : (
           <video 
             ref={videoRef} 
@@ -210,7 +337,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, o
         
         {/* Recording Indicator */}
         {isRecording && (
-            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-red-500/80 text-white px-4 py-1 rounded-full text-sm font-bold flex items-center gap-2 animate-pulse">
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-red-500/80 text-white px-4 py-1 rounded-full text-sm font-bold flex items-center gap-2 animate-pulse z-20">
                 <div className="w-2 h-2 bg-white rounded-full"></div>
                 {formatTime(recordingTime)}
             </div>
@@ -225,26 +352,31 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, o
                {/* Upload Button */}
                <button 
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center text-white hover:bg-gray-700"
+                  className="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center text-white hover:bg-gray-700 active:scale-95 transition-transform"
+                  title="Upload Photo or Video"
                 >
-                  <i className="fa-solid fa-image text-xl"></i>
+                  <i className="fa-solid fa-folder-open text-xl"></i>
                 </button>
 
-               {/* Shutter Button */}
-               {mode === 'photo' ? (
-                   <button 
-                     onClick={handleCapturePhoto}
-                     className="w-20 h-20 bg-white rounded-full border-4 border-gray-300 flex items-center justify-center active:bg-gray-200 shadow-lg transform active:scale-95 transition-transform"
-                   >
-                     <div className="w-16 h-16 bg-primary rounded-full"></div>
-                   </button>
+               {/* Shutter Button (Disabled if camera error) */}
+               {!cameraError ? (
+                   mode === 'photo' ? (
+                       <button 
+                         onClick={handleCapturePhoto}
+                         className="w-20 h-20 bg-white rounded-full border-4 border-gray-300 flex items-center justify-center active:bg-gray-200 shadow-lg transform active:scale-95 transition-transform"
+                       >
+                         <div className="w-16 h-16 bg-primary rounded-full"></div>
+                       </button>
+                   ) : (
+                       <button 
+                         onClick={toggleRecording}
+                         className={`w-20 h-20 rounded-full border-4 flex items-center justify-center shadow-lg transform active:scale-95 transition-transform ${isRecording ? 'border-red-500 bg-white' : 'border-white bg-red-500'}`}
+                       >
+                         <div className={`rounded-md transition-all ${isRecording ? 'w-8 h-8 bg-red-500' : 'w-8 h-8 bg-white rounded-full'}`}></div>
+                       </button>
+                   )
                ) : (
-                   <button 
-                     onClick={toggleRecording}
-                     className={`w-20 h-20 rounded-full border-4 flex items-center justify-center shadow-lg transform active:scale-95 transition-transform ${isRecording ? 'border-red-500 bg-white' : 'border-white bg-red-500'}`}
-                   >
-                     <div className={`rounded-md transition-all ${isRecording ? 'w-8 h-8 bg-red-500' : 'w-8 h-8 bg-white rounded-full'}`}></div>
-                   </button>
+                   <div className="w-20 h-20"></div> // Spacer
                )}
 
                <div className="w-12"></div> {/* Spacer for symmetry */}
