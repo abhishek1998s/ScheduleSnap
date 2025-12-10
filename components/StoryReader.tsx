@@ -104,8 +104,7 @@ export const StoryReader: React.FC<StoryReaderProps> = ({ story, onClose, langua
 
   return (
     <div className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-4">
-        {/* Book Container */}
-        {/* Removed fixed aspect ratio, using max-h-[85vh] for responsiveness */}
+        {/* Book Container - Changed aspect ratio to max-h to fit screen */}
         <div className="relative w-full max-w-2xl h-full max-h-[85vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col">
             
             {/* Header / Progress */}
