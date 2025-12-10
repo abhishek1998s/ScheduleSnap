@@ -31,6 +31,8 @@ export const LessonActivity: React.FC<LessonActivityProps> = ({ lesson, profile,
                 setContent(data);
             } catch (e) {
                 console.error(e);
+                // Set empty object to trigger fallback view
+                setContent({});
             } finally {
                 setLoading(false);
             }
@@ -65,6 +67,8 @@ export const LessonActivity: React.FC<LessonActivityProps> = ({ lesson, profile,
 
   const renderQuiz = () => {
       // Content: { question, options[], correctAnswer, explanation }
+      if (!content.question || !content.options) return null; // Safety check
+
       return (
           <div className="flex flex-col h-full p-6 bg-yellow-50 justify-center">
               <div className="bg-white p-6 rounded-3xl shadow-sm border-2 border-yellow-100 text-center mb-8">
@@ -129,6 +133,8 @@ export const LessonActivity: React.FC<LessonActivityProps> = ({ lesson, profile,
 
   const renderPractice = () => {
       // Content: { steps: string[], parentTips: string[] }
+      if (!content.steps) return null; // Safety check
+
       return (
           <div className="flex flex-col h-full p-6 bg-green-50 overflow-y-auto">
               <div className="min-h-full flex flex-col justify-center">
@@ -166,14 +172,21 @@ export const LessonActivity: React.FC<LessonActivityProps> = ({ lesson, profile,
             <i className="fa-solid fa-times"></i>
         </button>
         
-        {lesson.type === 'quiz' && renderQuiz()}
-        {lesson.type === 'story' && renderStory()}
-        {lesson.type === 'practice' && renderPractice()}
-        {/* Default / Fallback */}
-        {!['quiz', 'story', 'practice'].includes(lesson.type) && (
+        {lesson.type === 'quiz' && content.question && renderQuiz()}
+        {lesson.type === 'story' && content.pages && renderStory()}
+        {lesson.type === 'practice' && content.steps && renderPractice()}
+        
+        {/* Default / Fallback - Render if no specific type matched OR content missing fields */}
+        {(!['quiz', 'story', 'practice'].includes(lesson.type) || 
+          (lesson.type === 'quiz' && !content.question) ||
+          (lesson.type === 'story' && !content.pages) ||
+          (lesson.type === 'practice' && !content.steps)) && (
             <div className="flex flex-col items-center justify-center h-full p-6 text-center">
                 <h2 className="text-2xl font-bold mb-4">{lesson.title}</h2>
-                <p className="mb-8">{lesson.description}</p>
+                <p className="mb-8">{lesson.description || "Activity Ready!"}</p>
+                {/* Visual Placeholder if content failed */}
+                <div className="text-6xl mb-8 animate-bounce">{lesson.emoji || '✨'}</div>
+                
                 <button onClick={onComplete} className="bg-primary text-white px-8 py-3 rounded-xl font-bold">Complete Lesson</button>
             </div>
         )}

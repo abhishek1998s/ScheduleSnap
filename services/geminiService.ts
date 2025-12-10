@@ -290,7 +290,22 @@ export const generateLearningPath = async (profile: ChildProfile, skillArea: str
                 responseMimeType: "application/json",
                 responseSchema: {
                     type: Type.OBJECT,
-                    properties: { lessons: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, description: { type: Type.STRING }, type: { type: Type.STRING }, estimatedTime: { type: Type.STRING }, emoji: { type: Type.STRING } } } } }
+                    properties: { 
+                        lessons: { 
+                            type: Type.ARRAY, 
+                            items: { 
+                                type: Type.OBJECT, 
+                                properties: { 
+                                    title: { type: Type.STRING }, 
+                                    description: { type: Type.STRING }, 
+                                    type: { type: Type.STRING, enum: ['quiz', 'story', 'practice'] }, 
+                                    estimatedTime: { type: Type.STRING }, 
+                                    emoji: { type: Type.STRING } 
+                                },
+                                required: ['title', 'type', 'emoji']
+                            } 
+                        } 
+                    }
                 }
             }
         });
@@ -303,16 +318,84 @@ export const generateLearningPath = async (profile: ChildProfile, skillArea: str
 export const generateLessonContent = async (lesson: Lesson, profile: ChildProfile): Promise<any> => {
     if (!process.env.API_KEY) return { text: "Mock content" };
     try {
+        let schema;
+        let promptContext = "";
+
+        switch (lesson.type) {
+            case 'quiz':
+                schema = {
+                    type: Type.OBJECT,
+                    properties: {
+                        question: { type: Type.STRING },
+                        options: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        correctAnswer: { type: Type.STRING },
+                        explanation: { type: Type.STRING }
+                    },
+                    required: ['question', 'options', 'correctAnswer', 'explanation']
+                };
+                promptContext = "Generate a multiple choice quiz question suitable for the child's age.";
+                break;
+            case 'story':
+                schema = {
+                    type: Type.OBJECT,
+                    properties: {
+                        title: { type: Type.STRING },
+                        pages: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    text: { type: Type.STRING },
+                                    emoji: { type: Type.STRING }
+                                },
+                                required: ['text', 'emoji']
+                            }
+                        }
+                    },
+                    required: ['title', 'pages']
+                };
+                promptContext = "Generate a short social story with simple text and emojis per page.";
+                break;
+            case 'practice':
+                schema = {
+                    type: Type.OBJECT,
+                    properties: {
+                        title: { type: Type.STRING },
+                        steps: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        parentTips: { type: Type.ARRAY, items: { type: Type.STRING } }
+                    },
+                    required: ['title', 'steps', 'parentTips']
+                };
+                promptContext = "Generate a step-by-step practice activity for the child and parent.";
+                break;
+            default:
+                // If type is unknown, default to practice schema
+                schema = {
+                    type: Type.OBJECT,
+                    properties: {
+                        title: { type: Type.STRING },
+                        steps: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        parentTips: { type: Type.ARRAY, items: { type: Type.STRING } }
+                    },
+                    required: ['title', 'steps', 'parentTips']
+                };
+                promptContext = "Generate a step-by-step activity.";
+        }
+
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-preview',
-            contents: `Generate content for lesson ${lesson.title} (${lesson.type}).`,
+            contents: `Generate content for lesson: ${lesson.title}. Type: ${lesson.type}. Profile: ${JSON.stringify(profile)}. ${promptContext}`,
             config: { 
                 ...getThinkingConfig('medium'),
-                responseMimeType: "application/json" 
+                responseMimeType: "application/json",
+                responseSchema: schema
             }
         });
         return JSON.parse(response.text || '{}');
-    } catch (e) { return {}; }
+    } catch (e) { 
+        console.error("Lesson generation failed", e);
+        return {}; 
+    }
 };
 
 export const generateAACSymbol = async (label: string, language: string): Promise<AACButton> => {

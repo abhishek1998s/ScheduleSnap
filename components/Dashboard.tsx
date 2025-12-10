@@ -222,22 +222,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const unreadCount = voiceMessages.filter(m => !m.read).length;
 
-  const getMoodPoints = () => {
-    const logs = moodLogs.slice(-7);
-    if (logs.length < 2) return "0,50 100,50";
-    const moods = logs.map((l, i) => {
-        let val = 3;
-        if(l.mood === 'Happy') val = 5;
-        else if(l.mood === 'Okay') val = 3;
-        else if(l.mood === 'Tired') val = 2;
-        else val = 1;
-        const x = (i / (logs.length - 1)) * 100;
-        const y = 100 - (val * 20);
-        return `${x},${y}`;
-    }).join(' ');
-    return moods;
-  };
-
   const getBehaviorStats = () => {
       const counts: Record<string, number> = {};
       behaviorLogs.forEach(l => {
@@ -303,52 +287,59 @@ export const Dashboard: React.FC<DashboardProps> = ({
     );
   }
 
+  // UPDATED LAYOUT: Single scroll container with Sticky Header to fix clipping/access issues on small screens
   return (
-    <div className={`flex flex-col h-full ${isHighContrast ? 'bg-black text-yellow-300' : 'bg-background'}`}>
-        <div className={`${isHighContrast ? 'bg-gray-900 border-gray-700' : 'bg-white'} p-4 shadow-sm flex items-center gap-4`}>
-            <button onClick={onExit} className="p-3 hover:bg-gray-100 rounded-full w-12 h-12 flex items-center justify-center" aria-label="Exit Dashboard">
-                <i className="fa-solid fa-arrow-left"></i>
-            </button>
-            <h1 className="text-xl font-bold">{t(lang, 'dashboard')}</h1>
-            {/* Audio Toggle */}
-            <button 
-                onClick={onToggleAudio}
-                className={`ml-auto px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 ${audioEnabled ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
-                aria-label={audioEnabled ? "Mute Audio" : "Enable Audio"}
-            >
-                {audioEnabled ? <><i className="fa-solid fa-volume-high"></i> ON</> : <><i className="fa-solid fa-volume-xmark"></i> OFF</>}
-            </button>
-        </div>
-
-        {/* Tabs */}
-        <div className={`flex p-2 ${isHighContrast ? 'bg-black border-gray-700' : 'bg-white border-b'} gap-2 overflow-x-auto`} role="tablist">
-            {['overview', 'analytics', 'routines', 'behavior', 'messages'].map(tab => (
-                <button 
-                    key={tab}
-                    role="tab"
-                    aria-selected={activeTab === tab}
-                    onClick={() => {
-                        setActiveTab(tab as any);
-                        if (tab === 'messages') onMarkMessagesRead();
-                    }}
-                    className={`px-4 py-2 rounded-full text-sm font-bold capitalize whitespace-nowrap relative ${
-                        activeTab === tab 
-                            ? (isHighContrast ? 'bg-yellow-400 text-black' : 'bg-primary text-white') 
-                            : (isHighContrast ? 'bg-gray-800 text-yellow-200' : 'bg-gray-100 text-gray-500')
-                    }`}
-                >
-                    {t(lang, tab)}
-                    {tab === 'messages' && unreadCount > 0 && activeTab !== 'messages' && (
-                        <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                        </span>
-                    )}
+    <div className={`h-full ${isHighContrast ? 'bg-black text-yellow-300' : 'bg-background'} overflow-y-auto`}>
+        
+        {/* Sticky Header Container */}
+        <div className="sticky top-0 z-30 shadow-sm">
+            {/* Main Header */}
+            <div className={`${isHighContrast ? 'bg-gray-900 border-gray-700' : 'bg-white'} p-4 flex items-center gap-4`}>
+                <button onClick={onExit} className="p-3 hover:bg-gray-100 rounded-full w-12 h-12 flex items-center justify-center" aria-label="Exit Dashboard">
+                    <i className="fa-solid fa-arrow-left"></i>
                 </button>
-            ))}
+                <h1 className="text-xl font-bold">{t(lang, 'dashboard')}</h1>
+                {/* Audio Toggle */}
+                <button 
+                    onClick={onToggleAudio}
+                    className={`ml-auto px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 ${audioEnabled ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
+                    aria-label={audioEnabled ? "Mute Audio" : "Enable Audio"}
+                >
+                    {audioEnabled ? <><i className="fa-solid fa-volume-high"></i> ON</> : <><i className="fa-solid fa-volume-xmark"></i> OFF</>}
+                </button>
+            </div>
+
+            {/* Tabs */}
+            <div className={`flex p-2 ${isHighContrast ? 'bg-black border-gray-700' : 'bg-white border-b'} gap-2 overflow-x-auto`} role="tablist">
+                {['overview', 'analytics', 'routines', 'behavior', 'messages'].map(tab => (
+                    <button 
+                        key={tab}
+                        role="tab"
+                        aria-selected={activeTab === tab}
+                        onClick={() => {
+                            setActiveTab(tab as any);
+                            if (tab === 'messages') onMarkMessagesRead();
+                        }}
+                        className={`px-4 py-2 rounded-full text-sm font-bold capitalize whitespace-nowrap relative ${
+                            activeTab === tab 
+                                ? (isHighContrast ? 'bg-yellow-400 text-black' : 'bg-primary text-white') 
+                                : (isHighContrast ? 'bg-gray-800 text-yellow-200' : 'bg-gray-100 text-gray-500')
+                        }`}
+                    >
+                        {t(lang, tab)}
+                        {tab === 'messages' && unreadCount > 0 && activeTab !== 'messages' && (
+                            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                            </span>
+                        )}
+                    </button>
+                ))}
+            </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        {/* Content Area - Scrollable due to parent overflow-y-auto */}
+        <div className="p-4 space-y-6 pb-32">
             
             {activeTab === 'overview' && (
                 <>
@@ -419,18 +410,43 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         
                         {isEditingProfile ? (
                             <div className="space-y-3 animate-fadeIn">
-                                <input value={editName} onChange={e => setEditName(e.target.value)} className="w-full p-2 border rounded" placeholder={t(lang, 'name')} />
-                                <input value={editAge} onChange={e => setEditAge(Number(e.target.value))} className="w-full p-2 border rounded" placeholder={t(lang, 'age')} type="number" />
-                                <input value={editInterests} onChange={e => setEditInterests(e.target.value)} className="w-full p-2 border rounded" placeholder={t(lang, 'interests')} />
-                                <select value={editLanguage} onChange={e => setEditLanguage(e.target.value)} className="w-full p-2 border rounded">
+                                {/* Explicit styling with !important or inline style to force readability against dark mode UA styles */}
+                                <input 
+                                    value={editName} 
+                                    onChange={e => setEditName(e.target.value)} 
+                                    className="w-full p-2 border border-gray-300 rounded placeholder-gray-400" 
+                                    style={{ backgroundColor: '#ffffff', color: '#111827' }} 
+                                    placeholder={t(lang, 'name')} 
+                                />
+                                <input 
+                                    value={editAge} 
+                                    onChange={e => setEditAge(Number(e.target.value))} 
+                                    className="w-full p-2 border border-gray-300 rounded placeholder-gray-400" 
+                                    style={{ backgroundColor: '#ffffff', color: '#111827' }}
+                                    placeholder={t(lang, 'age')} 
+                                    type="number" 
+                                />
+                                <input 
+                                    value={editInterests} 
+                                    onChange={e => setEditInterests(e.target.value)} 
+                                    className="w-full p-2 border border-gray-300 rounded placeholder-gray-400" 
+                                    style={{ backgroundColor: '#ffffff', color: '#111827' }}
+                                    placeholder={t(lang, 'interests')} 
+                                />
+                                <select 
+                                    value={editLanguage} 
+                                    onChange={e => setEditLanguage(e.target.value)} 
+                                    className="w-full p-2 border border-gray-300 rounded"
+                                    style={{ backgroundColor: '#ffffff', color: '#111827' }}
+                                >
                                     <option value="English">English</option>
                                     <option value="Spanish">Spanish</option>
                                     <option value="Hindi">Hindi</option>
                                 </select>
                                 
                                 <div className="flex items-center gap-2">
-                                    <input type="checkbox" checked={editDefaultCamera} onChange={e => setEditDefaultCamera(e.target.checked)} />
-                                    <span className="text-sm">{t(lang, 'defaultCamera')}</span>
+                                    <input type="checkbox" checked={editDefaultCamera} onChange={e => setEditDefaultCamera(e.target.checked)} className="accent-primary" />
+                                    <span className="text-sm text-gray-700">{t(lang, 'defaultCamera')}</span>
                                 </div>
 
                                 <button onClick={saveProfile} className="w-full bg-primary text-white py-2 rounded font-bold">{t(lang, 'save')}</button>
@@ -488,12 +504,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <div className="space-y-6">
                     <div className="bg-white p-4 rounded-2xl shadow-sm">
                         <h3 className="font-bold mb-4">{t(lang, 'quickLog')}</h3>
-                        <div className="flex gap-2 mb-4 overflow-x-auto">
+                        <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
                             {['Meltdown', 'Aggression', 'Elopement', 'Stimming', 'Refusal'].map(b => (
                                 <button 
                                     key={b}
                                     onClick={() => setNewLogBehavior(b)}
-                                    className={`px-3 py-1 rounded-full text-sm border ${newLogBehavior === b ? 'bg-primary text-white border-primary' : 'border-gray-200'}`}
+                                    className={`px-3 py-1 rounded-full text-sm border whitespace-nowrap ${newLogBehavior === b ? 'bg-primary text-white border-primary' : 'border-gray-200'}`}
                                 >
                                     {b}
                                 </button>
@@ -503,7 +519,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             placeholder={t(lang, 'triggerOptional')}
                             value={newLogTrigger}
                             onChange={e => setNewLogTrigger(e.target.value)}
-                            className="w-full p-3 bg-gray-50 rounded-xl mb-3 text-sm"
+                            className="w-full p-3 bg-gray-50 rounded-xl mb-3 text-sm border border-gray-200"
                         />
                         <div className="flex gap-2">
                             {(['Mild', 'Moderate', 'Severe'] as const).map(i => (
@@ -570,11 +586,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
                         <h3 className="font-bold text-gray-700 mb-4">{t(lang, 'scheduleMessage')}</h3>
                         
+                        {/* Explicit style for textarea */}
                         <textarea 
                             value={msgContent}
                             onChange={(e) => setMsgContent(e.target.value)}
                             placeholder={t(lang, 'typeMessage')}
-                            className="w-full p-3 bg-gray-50 rounded-xl mb-3 text-sm min-h-[80px]"
+                            className="w-full p-3 bg-white text-gray-900 border border-gray-300 rounded-xl mb-3 text-sm min-h-[80px] placeholder-gray-400"
                         />
                         
                         {msgMedia && (
