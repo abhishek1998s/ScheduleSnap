@@ -103,7 +103,7 @@ export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, language, stats, 
     <div className="h-full bg-yellow-50 flex flex-col relative overflow-hidden">
         
         {/* Header with Stats */}
-        <div className="flex justify-between items-center p-4 bg-white/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="flex justify-between items-center p-4 bg-white/50 backdrop-blur-sm sticky top-0 z-10 shrink-0">
             <button onClick={onExit} className="bg-white p-2 rounded-full shadow-sm">
                 <i className="fa-solid fa-times"></i>
             </button>
@@ -126,9 +126,9 @@ export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, language, stats, 
             </div>
         </div>
 
-        {/* Content Area */}
+        {/* Content Area - Centered vertically */}
         <div className="flex-1 overflow-y-auto w-full p-4 pb-24">
-            <div className="flex flex-col items-center gap-6">
+            <div className="min-h-full flex flex-col items-center justify-center gap-6">
                 
                 {/* Visual Type Selector */}
                 <div className="flex gap-2 mb-2">

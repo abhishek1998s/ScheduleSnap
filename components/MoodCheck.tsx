@@ -50,7 +50,7 @@ export const MoodCheck: React.FC<MoodCheckProps> = ({ profile, onSave, onExit })
 
   return (
     <div className="flex flex-col h-full bg-blue-50">
-       <div className="p-6 flex justify-between items-center">
+       <div className="p-6 flex justify-between items-center shrink-0">
          <button onClick={onExit}><i className="fa-solid fa-arrow-left text-2xl text-gray-600"></i></button>
          <h1 className="text-2xl font-bold text-gray-800">{t(lang, 'howFeeling')}</h1>
          <div className="w-8"></div>
@@ -58,20 +58,22 @@ export const MoodCheck: React.FC<MoodCheckProps> = ({ profile, onSave, onExit })
 
        <div className="flex-1 overflow-y-auto p-6">
           {!selectedMood ? (
-             <div className="grid grid-cols-2 gap-4">
-               {MOODS.map(m => (
-                 <button 
-                   key={m.label}
-                   onClick={() => handleSelect(m.label)}
-                   className={`aspect-square rounded-3xl border-4 ${m.color} flex flex-col items-center justify-center gap-2 shadow-sm hover:scale-105 transition-transform`}
-                 >
-                    <span className="text-6xl">{m.emoji}</span>
-                    <span className="text-lg font-bold text-gray-700">{m.label}</span>
-                 </button>
-               ))}
+             <div className="min-h-full flex flex-col justify-center">
+                 <div className="grid grid-cols-2 gap-4">
+                   {MOODS.map(m => (
+                     <button 
+                       key={m.label}
+                       onClick={() => handleSelect(m.label)}
+                       className={`aspect-square rounded-3xl border-4 ${m.color} flex flex-col items-center justify-center gap-2 shadow-sm hover:scale-105 transition-transform`}
+                     >
+                        <span className="text-6xl">{m.emoji}</span>
+                        <span className="text-lg font-bold text-gray-700">{m.label}</span>
+                     </button>
+                   ))}
+                 </div>
              </div>
           ) : (
-             <div className="flex flex-col items-center gap-6 animate-fadeIn">
+             <div className="min-h-full flex flex-col items-center justify-center gap-6 animate-fadeIn">
                 <div className="text-8xl bounce">
                     {MOODS.find(m => m.label === selectedMood)?.emoji}
                 </div>

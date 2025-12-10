@@ -56,7 +56,7 @@ export const SocialScenarioPractice: React.FC<SocialScenarioProps> = ({ age, lan
 
   return (
     <div className="h-full bg-purple-50 flex flex-col p-6">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-6 shrink-0">
             <button onClick={onExit} className="bg-white p-2 rounded-full shadow-sm">
                 <i className="fa-solid fa-times"></i>
             </button>
@@ -67,46 +67,48 @@ export const SocialScenarioPractice: React.FC<SocialScenarioProps> = ({ age, lan
         </div>
 
         <div className="flex-1 overflow-y-auto pb-8">
-            <div className="bg-white p-6 rounded-3xl shadow-sm mb-6 text-center">
-                <div className="text-6xl mb-4">{scenario.emoji}</div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">{scenario.title}</h2>
-                <p className="text-lg text-gray-600">{scenario.description}</p>
-            </div>
+            <div className="min-h-full flex flex-col justify-center">
+                <div className="bg-white p-6 rounded-3xl shadow-sm mb-6 text-center">
+                    <div className="text-6xl mb-4">{scenario.emoji}</div>
+                    <h2 className="text-2xl font-bold text-gray-800 mb-2">{scenario.title}</h2>
+                    <p className="text-lg text-gray-600">{scenario.description}</p>
+                </div>
 
-            <div className="space-y-4">
-                <p className="font-bold text-gray-500 ml-2">{t(language, 'whatDo')}</p>
-                {scenario.options.map((opt, idx) => (
-                    <button
-                        key={idx}
-                        onClick={() => handleOptionSelect(idx)}
-                        disabled={showFeedback}
-                        className={`w-full p-4 rounded-2xl text-left shadow-sm border-2 transition-all
-                            ${selectedOption === idx 
-                                ? (opt.isAppropriate ? 'bg-green-50 border-green-500' : 'bg-red-50 border-red-500') 
-                                : 'bg-white border-transparent hover:border-purple-200'
-                            }
-                        `}
-                    >
-                        <div className="flex justify-between items-center">
-                            <span className="font-bold text-gray-700 text-lg">{opt.text}</span>
-                            {selectedOption === idx && (
-                                <i className={`fa-solid ${opt.isAppropriate ? 'fa-check text-green-500' : 'fa-xmark text-red-500'} text-xl`}></i>
-                            )}
-                        </div>
-                        {selectedOption === idx && (
-                            <div className={`mt-2 text-sm font-bold ${opt.isAppropriate ? 'text-green-600' : 'text-red-600'} animate-fadeIn`}>
-                                {opt.feedback}
+                <div className="space-y-4">
+                    <p className="font-bold text-gray-500 ml-2">{t(language, 'whatDo')}</p>
+                    {scenario.options.map((opt, idx) => (
+                        <button
+                            key={idx}
+                            onClick={() => handleOptionSelect(idx)}
+                            disabled={showFeedback}
+                            className={`w-full p-4 rounded-2xl text-left shadow-sm border-2 transition-all
+                                ${selectedOption === idx 
+                                    ? (opt.isAppropriate ? 'bg-green-50 border-green-500' : 'bg-red-50 border-red-500') 
+                                    : 'bg-white border-transparent hover:border-purple-200'
+                                }
+                            `}
+                        >
+                            <div className="flex justify-between items-center">
+                                <span className="font-bold text-gray-700 text-lg">{opt.text}</span>
+                                {selectedOption === idx && (
+                                    <i className={`fa-solid ${opt.isAppropriate ? 'fa-check text-green-500' : 'fa-xmark text-red-500'} text-xl`}></i>
+                                )}
                             </div>
-                        )}
-                    </button>
-                ))}
+                            {selectedOption === idx && (
+                                <div className={`mt-2 text-sm font-bold ${opt.isAppropriate ? 'text-green-600' : 'text-red-600'} animate-fadeIn`}>
+                                    {opt.feedback}
+                                </div>
+                            )}
+                        </button>
+                    ))}
+                </div>
             </div>
         </div>
 
         {showFeedback && scenario.options[selectedOption!].isAppropriate && (
              <button 
                 onClick={loadScenario}
-                className="w-full bg-primary text-white py-4 rounded-xl font-bold shadow-lg animate-slideUp"
+                className="w-full bg-primary text-white py-4 rounded-xl font-bold shadow-lg animate-slideUp shrink-0"
              >
                 {t(language, 'tryAnother')}
              </button>

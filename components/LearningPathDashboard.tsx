@@ -83,7 +83,7 @@ export const LearningPathDashboard: React.FC<LearningPathDashboardProps> = ({ pr
 
   return (
     <div className="flex flex-col h-full bg-slate-50">
-        <div className="bg-white p-4 shadow-sm border-b flex items-center justify-between sticky top-0 z-10">
+        <div className="bg-white p-4 shadow-sm border-b flex items-center justify-between sticky top-0 z-10 shrink-0">
             <button onClick={activeArea ? () => setActiveArea(null) : onExit} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200">
                 <i className="fa-solid fa-arrow-left text-gray-600"></i>
             </button>
@@ -94,50 +94,52 @@ export const LearningPathDashboard: React.FC<LearningPathDashboardProps> = ({ pr
         <div className="flex-1 overflow-y-auto p-4">
             
             {loading && (
-                <div className="flex flex-col items-center justify-center h-64">
+                <div className="flex flex-col items-center justify-center h-full">
                     <i className="fa-solid fa-rocket text-4xl text-blue-500 fa-bounce mb-4"></i>
                     <p className="font-bold text-gray-500">{t(lang, 'buildingPath')}</p>
                 </div>
             )}
 
             {!activeArea && !loading && (
-                <div className="grid grid-cols-1 gap-4">
-                    {AREAS.map(area => {
-                        const path = paths.find(p => p.skillArea === area.id);
-                        return (
-                            <button 
-                                key={area.id}
-                                onClick={() => handleAreaSelect(area.id)}
-                                className="bg-white p-4 rounded-2xl shadow-sm border-b-4 border-gray-100 flex items-center gap-4 hover:border-gray-200 transition-all active:scale-95"
-                            >
-                                <div className={`w-16 h-16 rounded-xl ${area.color} flex items-center justify-center text-white text-2xl shadow-md`}>
-                                    <i className={`fa-solid ${area.icon}`}></i>
-                                </div>
-                                <div className="flex-1 text-left">
-                                    <h3 className="font-bold text-lg text-slate-800">{t(lang, `area${area.id.split(' ')[0]}`)}</h3>
-                                    {path ? (
-                                        <div className="mt-2">
-                                            <div className="flex justify-between text-xs font-bold text-gray-400 mb-1">
-                                                <span>Level {path.currentLevel}</span>
-                                                <span>{path.progress}%</span>
+                <div className="min-h-full flex flex-col justify-center">
+                    <div className="grid grid-cols-1 gap-4">
+                        {AREAS.map(area => {
+                            const path = paths.find(p => p.skillArea === area.id);
+                            return (
+                                <button 
+                                    key={area.id}
+                                    onClick={() => handleAreaSelect(area.id)}
+                                    className="bg-white p-4 rounded-2xl shadow-sm border-b-4 border-gray-100 flex items-center gap-4 hover:border-gray-200 transition-all active:scale-95"
+                                >
+                                    <div className={`w-16 h-16 rounded-xl ${area.color} flex items-center justify-center text-white text-2xl shadow-md`}>
+                                        <i className={`fa-solid ${area.icon}`}></i>
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <h3 className="font-bold text-lg text-slate-800">{t(lang, `area${area.id.split(' ')[0]}`)}</h3>
+                                        {path ? (
+                                            <div className="mt-2">
+                                                <div className="flex justify-between text-xs font-bold text-gray-400 mb-1">
+                                                    <span>Level {path.currentLevel}</span>
+                                                    <span>{path.progress}%</span>
+                                                </div>
+                                                <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                                                    <div className={`h-full ${area.color}`} style={{width: `${path.progress}%`}}></div>
+                                                </div>
                                             </div>
-                                            <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                                                <div className={`h-full ${area.color}`} style={{width: `${path.progress}%`}}></div>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <p className="text-xs text-gray-400 mt-1 font-bold">Tap to start</p>
-                                    )}
-                                </div>
-                                <i className="fa-solid fa-chevron-right text-gray-300"></i>
-                            </button>
-                        );
-                    })}
+                                        ) : (
+                                            <p className="text-xs text-gray-400 mt-1 font-bold">Tap to start</p>
+                                        )}
+                                    </div>
+                                    <i className="fa-solid fa-chevron-right text-gray-300"></i>
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
             )}
 
             {activeArea && currentPath && !loading && (
-                <div className="relative py-8 px-4 flex flex-col items-center gap-8">
+                <div className="relative py-8 px-4 flex flex-col items-center gap-8 min-h-full justify-center">
                     {/* Visual Path Line */}
                     <div className="absolute top-8 bottom-8 left-1/2 w-2 bg-gray-200 rounded-full -translate-x-1/2 z-0"></div>
 

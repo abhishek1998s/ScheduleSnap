@@ -59,14 +59,14 @@ export const LessonActivity: React.FC<LessonActivityProps> = ({ lesson, profile,
       );
   }
 
-  if (!content) return <div className="p-4 text-center">Error loading lesson.</div>;
+  if (!content) return <div className="p-4 text-center h-full flex items-center justify-center">Error loading lesson.</div>;
 
   // --- Renderers based on Lesson Type ---
 
   const renderQuiz = () => {
       // Content: { question, options[], correctAnswer, explanation }
       return (
-          <div className="flex flex-col h-full p-6 bg-yellow-50">
+          <div className="flex flex-col h-full p-6 bg-yellow-50 justify-center">
               <div className="bg-white p-6 rounded-3xl shadow-sm border-2 border-yellow-100 text-center mb-8">
                   <h2 className="text-2xl font-bold text-gray-800 mb-4">{content.question}</h2>
               </div>
@@ -131,29 +131,31 @@ export const LessonActivity: React.FC<LessonActivityProps> = ({ lesson, profile,
       // Content: { steps: string[], parentTips: string[] }
       return (
           <div className="flex flex-col h-full p-6 bg-green-50 overflow-y-auto">
-              <h2 className="text-2xl font-bold text-green-800 mb-6 text-center">{lesson.title}</h2>
-              
-              <div className="space-y-4 mb-8">
-                  {content.steps?.map((s: string, i: number) => (
-                      <div key={i} className="flex items-start gap-4 bg-white p-4 rounded-2xl shadow-sm">
-                          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold shrink-0">{i+1}</div>
-                          <p className="text-lg font-medium text-gray-700">{s}</p>
-                      </div>
-                  ))}
-              </div>
-
-              {content.parentTips && (
-                  <div className="bg-blue-50 p-4 rounded-2xl border border-blue-200 mb-6">
-                      <h3 className="font-bold text-blue-800 mb-2"><i className="fa-solid fa-circle-info mr-2"></i>Parent Tips</h3>
-                      <ul className="list-disc list-inside text-sm text-blue-900 space-y-1">
-                          {content.parentTips.map((tip: string, i: number) => <li key={i}>{tip}</li>)}
-                      </ul>
+              <div className="min-h-full flex flex-col justify-center">
+                  <h2 className="text-2xl font-bold text-green-800 mb-6 text-center">{lesson.title}</h2>
+                  
+                  <div className="space-y-4 mb-8">
+                      {content.steps?.map((s: string, i: number) => (
+                          <div key={i} className="flex items-start gap-4 bg-white p-4 rounded-2xl shadow-sm">
+                              <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold shrink-0">{i+1}</div>
+                              <p className="text-lg font-medium text-gray-700">{s}</p>
+                          </div>
+                      ))}
                   </div>
-              )}
 
-              <button onClick={onComplete} className="w-full bg-green-600 text-white py-4 rounded-2xl font-bold text-xl shadow-lg">
-                  I Did It!
-              </button>
+                  {content.parentTips && (
+                      <div className="bg-blue-50 p-4 rounded-2xl border border-blue-200 mb-6">
+                          <h3 className="font-bold text-blue-800 mb-2"><i className="fa-solid fa-circle-info mr-2"></i>Parent Tips</h3>
+                          <ul className="list-disc list-inside text-sm text-blue-900 space-y-1">
+                              {content.parentTips.map((tip: string, i: number) => <li key={i}>{tip}</li>)}
+                          </ul>
+                      </div>
+                  )}
+
+                  <button onClick={onComplete} className="w-full bg-green-600 text-white py-4 rounded-2xl font-bold text-xl shadow-lg">
+                      I Did It!
+                  </button>
+              </div>
           </div>
       );
   };
