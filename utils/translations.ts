@@ -1,5 +1,4 @@
 
-
 // Supported languages matching PRD
 export type SupportedLanguage = 'English' | 'Spanish' | 'French' | 'German' | 'Chinese' | 'Japanese' | 'Korean' | 'Italian' | 'Portuguese' | 'Arabic' | 'Hindi';
 
@@ -10,7 +9,7 @@ export const translations: Record<string, Record<string, string>> = {
     calmMode: "Calm Mode",
     feelings: "Feelings",
     aiCoach: "AI Coach",
-    waitTimer: "Wait Timer",
+    // waitTimer is defined in Tools section below
     tellParents: "Tell Parents",
     research: "Research",
     social: "Social",
@@ -106,6 +105,7 @@ export const translations: Record<string, Record<string, string>> = {
     whatDo: "What should you do?",
     tryAnother: "Try Another One",
     // Tools
+    waitTimer: "Wait Timer", 
     setTime: "Set Time",
     waiting: "Waiting...",
     done: "DONE!",
@@ -141,7 +141,6 @@ export const translations: Record<string, Record<string, string>> = {
     calmMode: "शांत मोड",
     feelings: "भावनाएं",
     aiCoach: "AI कोच",
-    waitTimer: "टाइमर",
     tellParents: "संदेश भेजें",
     research: "खोज",
     social: "सामाजिक",
@@ -231,6 +230,7 @@ export const translations: Record<string, Record<string, string>> = {
     settingScene: "दृश्य तैयार...",
     whatDo: "आपको क्या करना चाहिए?",
     tryAnother: "दूसरा प्रयास",
+    waitTimer: "टाइमर",
     setTime: "समय सेट करें",
     waiting: "प्रतीक्षा...",
     done: "हो गया!",
@@ -266,7 +266,6 @@ export const translations: Record<string, Record<string, string>> = {
     calmMode: "Modo Calma",
     feelings: "Sentimientos",
     aiCoach: "Entrenador IA",
-    waitTimer: "Temporizador",
     tellParents: "Mensaje a Papás",
     research: "Investigar",
     social: "Social",
@@ -356,6 +355,7 @@ export const translations: Record<string, Record<string, string>> = {
     settingScene: "Preparando escena...",
     whatDo: "¿Qué deberías hacer?",
     tryAnother: "Otra vez",
+    waitTimer: "Temporizador",
     setTime: "Fijar Tiempo",
     waiting: "Esperando...",
     done: "¡LISTO!",
