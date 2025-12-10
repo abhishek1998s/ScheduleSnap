@@ -213,15 +213,47 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const unreadCount = voiceMessages.filter(m => !m.read).length;
 
   const getMoodPoints = () => {
-    const moods = moodLogs.slice(-7).map((l, i) => {
+    const logs = moodLogs.slice(-7);
+    if (logs.length < 2) return "0,50 100,50";
+
+    const moods = logs.map((l, i) => {
         let val = 3;
         if(l.mood === 'Happy') val = 5;
         else if(l.mood === 'Okay') val = 3;
         else if(l.mood === 'Tired') val = 2;
         else val = 1; // Sad, Angry, Scared
-        return `${i * (100/6)},${100 - (val * 20)}`;
+        
+        const x = (i / (logs.length - 1)) * 100;
+        const y = 100 - (val * 20); // 5->0, 1->80 roughly
+        return `${x},${y}`;
     }).join(' ');
     return moods;
+  };
+
+  const getBehaviorStats = () => {
+      const counts: Record<string, number> = {};
+      behaviorLogs.forEach(l => {
+          counts[l.behavior] = (counts[l.behavior] || 0) + 1;
+      });
+      const max = Math.max(...Object.values(counts), 1);
+      return Object.entries(counts).map(([name, count]) => ({
+          name, count, percent: (count / max) * 100
+      })).sort((a,b) => b.count - a.count);
+  };
+
+  const getTimeOfDayStats = () => {
+      const buckets = { Morning: 0, Midday: 0, Evening: 0, Night: 0 };
+      behaviorLogs.forEach(l => {
+          const h = new Date(l.timestamp).getHours();
+          if (h >= 5 && h < 11) buckets.Morning++;
+          else if (h >= 11 && h < 17) buckets.Midday++;
+          else if (h >= 17 && h < 22) buckets.Evening++;
+          else buckets.Night++;
+      });
+      const max = Math.max(...Object.values(buckets), 1);
+      return Object.entries(buckets).map(([time, count]) => ({
+          time, count, height: (count / max) * 100
+      }));
   };
 
   const getCompletionDistribution = () => {
@@ -538,7 +570,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
             {activeTab === 'analytics' && (
                 <div className="space-y-6">
-                    {/* Weekly Goals Section - NEW */}
+                    {/* Weekly Goals Section */}
                     <div className="bg-white p-4 rounded-2xl shadow-sm">
                         <h3 className="font-bold text-gray-700 mb-4">Weekly Goals</h3>
                         <div className="space-y-4">
@@ -585,6 +617,46 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             <div className="absolute bottom-0 w-full flex justify-between text-xs text-gray-400 px-4">
                                 <span>Start</span><span>Now</span>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Behavior Frequency Chart */}
+                    <div className="bg-white p-4 rounded-2xl shadow-sm">
+                        <h3 className="font-bold text-gray-700 mb-4">Behavior Frequency</h3>
+                        <div className="space-y-3">
+                            {getBehaviorStats().length > 0 ? getBehaviorStats().map(stat => (
+                                <div key={stat.name} className="flex items-center gap-2 text-xs">
+                                    <span className="w-20 font-bold text-gray-500 truncate">{stat.name}</span>
+                                    <div className="flex-1 bg-gray-100 rounded-full h-3 overflow-hidden">
+                                        <div 
+                                            className="h-full bg-red-400 rounded-full" 
+                                            style={{ width: `${stat.percent}%` }}
+                                        ></div>
+                                    </div>
+                                    <span className="w-6 text-right font-bold text-gray-400">{stat.count}</span>
+                                </div>
+                            )) : (
+                                <p className="text-gray-400 text-sm text-center py-4">No data yet</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Time of Day Chart */}
+                    <div className="bg-white p-4 rounded-2xl shadow-sm">
+                        <h3 className="font-bold text-gray-700 mb-4">Time of Day Patterns</h3>
+                        <div className="h-32 flex items-end justify-between px-4 gap-2 border-b border-gray-100 pb-1">
+                            {getTimeOfDayStats().map(stat => (
+                                <div key={stat.time} className="flex flex-col items-center gap-1 w-full h-full justify-end">
+                                    <div 
+                                        className="w-full bg-indigo-400 rounded-t-lg transition-all hover:bg-indigo-500"
+                                        style={{ height: `${Math.max(stat.height, 5)}%` }}
+                                        title={`${stat.time}: ${stat.count}`}
+                                    ></div>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="flex justify-between text-[10px] font-bold text-gray-400 px-4 mt-2">
+                             <span>Morn</span><span>Mid</span><span>Eve</span><span>Night</span>
                         </div>
                     </div>
 
