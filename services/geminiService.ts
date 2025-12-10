@@ -42,10 +42,19 @@ export const generateScheduleFromImage = async (
       contents: {
         parts: [
           { inlineData: { mimeType, data: base64 } },
-          { text: `Create a routine based on this image for a ${profile.age} year old child who loves ${profile.interests.join(', ')}. 
-                   Consider past behaviors: ${history.map(h => h.behavior).join(', ')}.
-                   Break down steps clearly. 
-                   For 'encouragementOptions', provide 3 different fun, interest-based phrases.` }
+          { text: `
+            Generate a personalized schedule for ${profile.name}, age ${profile.age}, who loves ${profile.interests.join(', ')}.
+            
+            Based on the image and child's profile, include:
+            - 4-8 clear steps with logical dependencies.
+            - 3 different encouragement phrases per step (rotate them in 'encouragementOptions').
+            - Sensory warnings/tips where relevant (e.g., loud noises, texture alerts) in 'sensoryTip'.
+            - Suggested break points if the routine is long (add as a step).
+            - An interest-themed celebration message.
+            - Identify missing items needed for the routine.
+
+            Consider past behaviors: ${history.map(h => h.behavior).join(', ')}.
+          ` }
         ]
       },
       config: {
@@ -91,9 +100,6 @@ export const generateScheduleFromImage = async (
   }
 };
 
-// ... [Existing methods: generateMicroSteps, predictMeltdownRisk, analyzeBehaviorLogs, analyzeBehaviorVideo, generateWeeklyReport, generateScheduleOptimization, analyzeTherapySession, generateLearningPath, generateLessonContent, generateAACSymbol, generateCopingStrategy, generateEmotionQuiz, generateRewards, generateSocialScenario, analyzeChildSpeech, searchAutismResources, analyzeRoutineFrame, generateCompanionComment, validateBuilderRoutine, generateMagicStory] are assumed to be here unchanged ... 
-// Since we are updating the file, I will include the NEW scanEnvironment method and standard existing ones briefly for context or reference.
-
 export const generateMicroSteps = async (instruction: string, profile: ChildProfile): Promise<string[]> => {
     if (!process.env.API_KEY) return ["Step 1", "Step 2", "Step 3"];
     try {
@@ -110,7 +116,6 @@ export const generateMicroSteps = async (instruction: string, profile: ChildProf
 };
 
 export const predictMeltdownRisk = async (profile: ChildProfile, behaviorLogs: BehaviorLog[], moodLogs: MoodEntry[], scheduleContext?: string): Promise<MeltdownPrediction> => {
-    // ... implementation same as before ...
     if (!process.env.API_KEY || behaviorLogs.length === 0) return { riskLevel: 'low', confidence: 0, timeEstimate: '', riskFactors: [], preventionStrategies: [], recommendedAction: 'monitor' };
     try {
         const response = await ai.models.generateContent({
@@ -135,12 +140,6 @@ export const predictMeltdownRisk = async (profile: ChildProfile, behaviorLogs: B
         return JSON.parse(response.text || '{}');
     } catch(e) { return { riskLevel: 'low', confidence: 0, timeEstimate: '', riskFactors: [], preventionStrategies: [], recommendedAction: 'monitor' }; }
 };
-
-// ... All other existing functions (analyzeBehaviorLogs to generateMagicStory) ...
-// To save space in this response, I'm skipping re-writing the unchanged functions unless necessary. 
-// Assuming the user's file content is preserved if I don't touch it? 
-// No, I must output the full file content if I change it. So I will include everything briefly or use placeholders if allowed?
-// The prompt says "Full content of file". I must include EVERYTHING.
 
 export const analyzeBehaviorLogs = async (logs: BehaviorLog[], profile: ChildProfile): Promise<BehaviorAnalysis> => {
     if (!process.env.API_KEY) return getMockAnalysis();
