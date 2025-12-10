@@ -1,5 +1,4 @@
 
-
 export interface ScheduleStep {
   id: string;
   emoji: string;
@@ -104,11 +103,27 @@ export interface WeeklyReport {
   wins: string[];
 }
 
+// NEW: Speech Interpretation Types
+export interface AACSymbol {
+  label: string;
+  emoji: string;
+}
+
+export interface SpeechAnalysis {
+  rawTranscription: string;      // What was literally said/heard
+  interpretedMeaning: string;    // What child likely means
+  confidence: number;            // How sure AI is
+  aacSymbols: AACSymbol[];       // Visual symbols for the message
+  suggestedResponses: string[];  // How parent might respond
+  emotionalTone: string;         // Happy, frustrated, urgent, etc.
+}
+
 export interface VoiceMessage {
   id: string;
   timestamp: number;
   audioBlob: Blob; 
-  transcription?: string;
+  transcription?: string; // Keeping for backward compatibility
+  analysis?: SpeechAnalysis; // Full AI analysis
   read: boolean; // Track if parent has viewed the message
 }
 

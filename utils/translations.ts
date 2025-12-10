@@ -1,5 +1,4 @@
 
-
 // Supported languages matching PRD
 export type SupportedLanguage = 'English' | 'Spanish' | 'French' | 'German' | 'Chinese' | 'Japanese' | 'Korean' | 'Italian' | 'Portuguese' | 'Arabic' | 'Hindi';
 
@@ -79,6 +78,12 @@ export const translations: Record<string, Record<string, string>> = {
     send: "Send",
     retry: "Retry",
     converting: "Converting speech to text...",
+    tapToTalk: "Tap to Talk",
+    iWillHelp: "I will help you say it.",
+    analyzingSpeech: "Listening & Thinking...",
+    iHeard: "I Heard",
+    iThinkYouMean: "I Think You Mean",
+    speakForMe: "Speak For Me",
     // Runner
     iDidIt: "I Did It!",
     holdExit: "Hold to Exit",
@@ -302,6 +307,12 @@ export const translations: Record<string, Record<string, string>> = {
     send: "भेजें",
     retry: "पुनः प्रयास",
     converting: "परिवर्तन...",
+    tapToTalk: "बात करने के लिए टैप करें",
+    iWillHelp: "मैं आपको कहने में मदद करूँगा।",
+    analyzingSpeech: "सुन रहा हूँ और सोच रहा हूँ...",
+    iHeard: "मैंने सुना",
+    iThinkYouMean: "मुझे लगता है कि आपका मतलब है",
+    speakForMe: "मेरे लिए बोलो",
     iDidIt: "मैंने किया!",
     holdExit: "दबाए रखें",
     now: "अभी:",
@@ -517,6 +528,12 @@ export const translations: Record<string, Record<string, string>> = {
     send: "Enviar",
     retry: "Reintentar",
     converting: "Convirtiendo...",
+    tapToTalk: "Toca para Hablar",
+    iWillHelp: "Te ayudaré a decirlo.",
+    analyzingSpeech: "Escuchando y Pensando...",
+    iHeard: "Escuché",
+    iThinkYouMean: "Creo que quieres decir",
+    speakForMe: "Hablar por Mí",
     iDidIt: "¡Lo Hice!",
     holdExit: "Mantén para Salir",
     now: "AHORA:",

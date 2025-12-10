@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { Schedule, ChildProfile, QuizQuestion, SocialScenario, BehaviorLog, BehaviorAnalysis, ResearchResult, RewardItem, AACButton, MoodEntry, CompletionLog, WeeklyReport, VideoAnalysisResult, MeltdownPrediction } from "../types";
+import { Schedule, ChildProfile, QuizQuestion, SocialScenario, BehaviorLog, BehaviorAnalysis, ResearchResult, RewardItem, AACButton, MoodEntry, CompletionLog, WeeklyReport, VideoAnalysisResult, MeltdownPrediction, SpeechAnalysis } from "../types";
 
 // Initialize Gemini Client
 // Use a dummy key if missing to prevent initialization errors, checking process.env.API_KEY before calls.
@@ -878,6 +878,102 @@ export const predictMeltdownRisk = async (
             riskFactors: [],
             preventionStrategies: [],
             recommendedAction: 'monitor'
+        };
+    }
+};
+
+export const analyzeChildSpeech = async (
+    audioBlob: Blob,
+    profile: ChildProfile
+): Promise<SpeechAnalysis> => {
+    if (!process.env.API_KEY) {
+        // Mock Data
+        return new Promise(resolve => setTimeout(() => resolve({
+            rawTranscription: "wa... wa... pease",
+            interpretedMeaning: "I want water please",
+            confidence: 85,
+            aacSymbols: [
+                { label: "Water", emoji: "💧" },
+                { label: "Drink", emoji: "🥤" },
+                { label: "Please", emoji: "🙏" }
+            ],
+            suggestedResponses: ["Here is some water.", "Do you want your cup?"],
+            emotionalTone: "Calm"
+        }), 1500));
+    }
+
+    try {
+        // Convert Blob to Base64
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve, reject) => {
+            reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(audioBlob);
+        });
+        const base64Audio = await base64Promise;
+
+        const prompt = `
+            You are an expert speech therapist analyzing audio from a ${profile.age} year old child with autism.
+            The child may have limited verbal communication, unclear speech, or use echolalia.
+            
+            Analyze the audio:
+            1. Transcribe what was literally heard (even if broken).
+            2. Interpret the INTENT (what do they actually want/mean?).
+            3. Suggest 1-3 AAC symbols (emoji + label) that represent this message.
+            4. Detect emotional tone.
+            5. Suggest 2 short responses for the caregiver.
+            
+            Language: ${profile.language || 'English'}.
+        `;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: {
+                parts: [
+                    { inlineData: { mimeType: 'audio/webm', data: base64Audio } }, // Ensure recorder uses correct mime
+                    { text: prompt }
+                ]
+            },
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        rawTranscription: { type: Type.STRING },
+                        interpretedMeaning: { type: Type.STRING },
+                        confidence: { type: Type.NUMBER },
+                        aacSymbols: { 
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    label: { type: Type.STRING },
+                                    emoji: { type: Type.STRING }
+                                },
+                                required: ['label', 'emoji']
+                            }
+                        },
+                        suggestedResponses: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        emotionalTone: { type: Type.STRING }
+                    },
+                    required: ['rawTranscription', 'interpretedMeaning', 'confidence', 'aacSymbols', 'suggestedResponses', 'emotionalTone']
+                }
+            }
+        });
+
+        const text = response.text;
+        if (!text) throw new Error("No speech analysis");
+        return JSON.parse(text);
+
+    } catch (e) {
+        console.warn("Speech Analysis Failed", e);
+        return {
+            rawTranscription: "Audio processing failed",
+            interpretedMeaning: "Could not interpret speech",
+            confidence: 0,
+            aacSymbols: [{ label: "Error", emoji: "⚠️" }],
+            suggestedResponses: [],
+            emotionalTone: "Unknown"
         };
     }
 };
