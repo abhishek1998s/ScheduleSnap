@@ -429,6 +429,13 @@ const App: React.FC = () => {
       }));
   };
 
+  const handleMessageOpened = (messageId: string) => {
+      setState(prev => ({
+          ...prev,
+          parentMessages: prev.parentMessages.map(m => m.id === messageId ? { ...m, isRead: true } : m)
+      }));
+  };
+
   // --- Therapy Handlers ---
   const handleSaveTherapySession = (session: TherapySession) => {
       setState(prev => ({ ...prev, therapySessions: [...prev.therapySessions, session] }));
@@ -684,7 +691,7 @@ const App: React.FC = () => {
       {(state.view === ViewState.CALM) && <CalmMode onExit={() => navigateTo(ViewState.HOME)} language={lang} audioEnabled={audioEnabled} profile={state.profile} />}
       {state.view === ViewState.KIDS_BUILDER && <KidsRoutineBuilder profile={state.profile} onSave={handleBuilderSave} onExit={() => navigateTo(ViewState.HOME)} audioEnabled={audioEnabled} />}
       {state.view === ViewState.MAGIC_BOOKS && <MagicBookLibrary stories={state.stories} profile={state.profile} onSaveStory={handleSaveStory} onDeleteStory={handleDeleteStory} onExit={() => navigateTo(ViewState.HOME)} audioEnabled={audioEnabled} />}
-      {state.view === ViewState.PARENT_INBOX && <ParentMessageInbox messages={state.parentMessages} profile={state.profile} onRespond={handleChildRespond} onExit={() => navigateTo(ViewState.HOME)} onRecordReply={() => navigateTo(ViewState.VOICE_RECORDER)} audioEnabled={audioEnabled} />}
+      {state.view === ViewState.PARENT_INBOX && <ParentMessageInbox messages={state.parentMessages} profile={state.profile} onRespond={handleChildRespond} onRead={handleMessageOpened} onExit={() => navigateTo(ViewState.HOME)} onRecordReply={() => navigateTo(ViewState.VOICE_RECORDER)} audioEnabled={audioEnabled} />}
       {state.view === ViewState.THERAPY && <TherapyManager sessions={state.therapySessions} profile={state.profile} onSaveSession={handleSaveTherapySession} onExit={() => navigateTo(ViewState.DASHBOARD)} />}
       {state.view === ViewState.LEARNING && <LearningPathDashboard profile={state.profile} paths={state.learningPaths} onUpdatePath={handleUpdateLearningPath} onExit={() => navigateTo(ViewState.HOME)} audioEnabled={audioEnabled} />}
       {state.view === ViewState.SCANNER && <EnvironmentScanner profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} />}

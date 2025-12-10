@@ -7,18 +7,27 @@ interface ParentMessageInboxProps {
   messages: ParentMessage[];
   profile: ChildProfile;
   onRespond: (messageId: string, response: string) => void;
+  onRead?: (messageId: string) => void; // New prop
   onExit: () => void;
   onRecordReply: () => void;
-  audioEnabled?: boolean; // New prop
+  audioEnabled?: boolean;
 }
 
-export const ParentMessageInbox: React.FC<ParentMessageInboxProps> = ({ messages, profile, onRespond, onExit, onRecordReply, audioEnabled = true }) => {
+export const ParentMessageInbox: React.FC<ParentMessageInboxProps> = ({ messages, profile, onRespond, onRead, onExit, onRecordReply, audioEnabled = true }) => {
   const [activeMessageId, setActiveMessageId] = useState<string | null>(null);
   
   // Show newest delivered messages first
   const deliveredMessages = messages.filter(m => m.isDelivered).sort((a,b) => b.timestamp - a.timestamp);
   
   const activeMessage = deliveredMessages.find(m => m.id === activeMessageId);
+
+  const handleOpenMessage = (id: string) => {
+      setActiveMessageId(id);
+      // Mark as read immediately when opened
+      if (onRead) {
+          onRead(id);
+      }
+  };
 
   const handleEmojiResponse = (emoji: string) => {
       if (activeMessageId) {
@@ -56,7 +65,7 @@ export const ParentMessageInbox: React.FC<ParentMessageInboxProps> = ({ messages
                     {deliveredMessages.map(msg => (
                         <button 
                             key={msg.id}
-                            onClick={() => setActiveMessageId(msg.id)}
+                            onClick={() => handleOpenMessage(msg.id)}
                             className={`bg-white p-4 rounded-3xl shadow-md text-left transition-transform active:scale-95 border-2 ${!msg.isRead ? 'border-pink-400 ring-2 ring-pink-100' : 'border-transparent'} relative`}
                         >
                              {!msg.isRead && (
