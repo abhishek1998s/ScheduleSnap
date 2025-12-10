@@ -116,11 +116,12 @@ const App: React.FC = () => {
     setState(prev => ({ ...prev, activeScheduleId: id, view: ViewState.RUNNER }));
   };
 
-  const handleImageSelected = async (base64: string) => {
+  const handleImageSelected = async (base64: string, mimeType: string) => {
     setIsProcessing(true);
     try {
       // Pass behaviorLogs so the AI can sequence smartly based on history
-      const newScheduleData = await generateScheduleFromImage(base64, state.profile, state.behaviorLogs);
+      // Also pass mimeType to handle video or image
+      const newScheduleData = await generateScheduleFromImage(base64, mimeType, state.profile, state.behaviorLogs);
       setGeneratedSchedule(newScheduleData);
       navigateTo(ViewState.PREVIEW);
     } catch (error) {

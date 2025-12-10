@@ -13,7 +13,8 @@ Keep language simple, direct, and positive. Use emojis heavily.
 `;
 
 export const generateScheduleFromImage = async (
-  imageBase64: string, 
+  base64Data: string, 
+  mimeType: string,
   profile: ChildProfile,
   behaviorLogs: BehaviorLog[] = []
 ): Promise<Omit<Schedule, 'id' | 'createdAt'>> => {
@@ -45,9 +46,14 @@ export const generateScheduleFromImage = async (
     ? `PAST BEHAVIORAL HISTORY: The child has recently experienced ${relevantLogs.map(l => l.behavior + ' during ' + (l.trigger || 'tasks')).join(', ')}. Please structure the schedule to avoid these triggers or add calming steps if needed.`
     : "PAST BEHAVIORAL HISTORY: No recent incidents logged.";
 
+  const isVideo = mimeType.startsWith('video');
+  const mediaContext = isVideo 
+    ? "VIDEO ANALYSIS: You are analyzing a video of a routine or environment. Watch the video to identify the sequence of actions or the setting layout."
+    : "IMAGE ANALYSIS: Deeply analyze the image. Identify the setting and objects present.";
+
   const prompt = `
     Act as an expert pediatric occupational therapist using the "ScheduleSnap" methodology.
-    Analyze the provided image to create a highly personalized visual schedule for ${profile.name}, age ${profile.age}.
+    Analyze the provided media to create a highly personalized visual schedule for ${profile.name}, age ${profile.age}.
 
     Child Profile:
     - Interests: ${profile.interests.join(', ')} (IMPORTANT: Use these to theme the encouragements!)
@@ -57,9 +63,9 @@ export const generateScheduleFromImage = async (
     ${behavioralContext}
 
     TASK:
-    1. IMAGE ANALYSIS: Deeply analyze the image. Identify the setting and objects present.
-    2. MISSING ITEMS: Explicitly list important objects for this routine that are NOT visible in the photo (e.g., if it's a brushing routine but no toothpaste is visible).
-    3. SEQUENCING: Create a logical sequence of 4-8 steps.
+    1. ${mediaContext}
+    2. MISSING ITEMS: Explicitly list important objects for this routine that are NOT visible (e.g., if it's a brushing routine but no toothpaste is visible).
+    3. SEQUENCING: Create a logical sequence of 4-8 steps based on the visual evidence.
        - Consider the behavioral history. If there's a history of meltdowns with transitions, add "Check-in" or "Breathing" steps.
     4. STEP CONTENT:
        - Instruction: Clear, simple, action-oriented text.
@@ -80,7 +86,7 @@ export const generateScheduleFromImage = async (
       model: 'gemini-2.5-flash',
       contents: {
         parts: [
-          { inlineData: { mimeType: 'image/jpeg', data: imageBase64 } },
+          { inlineData: { mimeType: mimeType, data: base64Data } },
           { text: prompt }
         ]
       },

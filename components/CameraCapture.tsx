@@ -1,27 +1,140 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { t } from '../utils/translations';
 
 interface CameraCaptureProps {
-  onImageSelected: (base64: string) => void;
+  onImageSelected: (base64: string, mimeType: string) => void;
   onCancel: () => void;
   isLoading: boolean;
   language?: string;
 }
 
 export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, onCancel, isLoading, language }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [mode, setMode] = useState<'photo' | 'video'>('photo');
   const [preview, setPreview] = useState<string | null>(null);
+  const [mimeType, setMimeType] = useState<string>('image/jpeg');
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Initialize Camera
+  useEffect(() => {
+    const startCamera = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: 'environment' },
+            audio: mode === 'video' 
+        });
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      } catch (err) {
+        console.error("Camera access error:", err);
+      }
+    };
+
+    if (!preview && !isLoading) {
+      startCamera();
+    }
+
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [mode, preview, isLoading]);
+
+  // Clean up timer
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
+  const handleCapturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        setPreview(dataUrl);
+        setMimeType('image/jpeg');
+        // Stop stream to save battery
+        streamRef.current?.getTracks().forEach(t => t.stop());
+      }
+    }
+  };
+
+  const toggleRecording = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
+  const startRecording = () => {
+    if (streamRef.current) {
+      chunksRef.current = [];
+      const recorder = new MediaRecorder(streamRef.current);
+      
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: 'video/mp4' });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+           setPreview(reader.result as string);
+           setMimeType('video/mp4');
+        };
+        reader.readAsDataURL(blob);
+        // Stop stream
+        streamRef.current?.getTracks().forEach(t => t.stop());
+      };
+
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+      setRecordingTime(0);
+      timerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        const base64 = reader.result as string;
-        // Strip prefix for API if needed, but Gemini usually takes full data url or base64 part.
-        // The service handles formatting.
-        setPreview(base64);
+        setPreview(reader.result as string);
+        setMimeType(file.type);
+        // Stop stream
+        streamRef.current?.getTracks().forEach(t => t.stop());
       };
       reader.readAsDataURL(file);
     }
@@ -29,53 +142,120 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, o
 
   const handleConfirm = () => {
     if (preview) {
-      // Remove data URL prefix for cleaner API usage if service requires it
-      const base64Clean = preview.split(',')[1]; 
-      onImageSelected(base64Clean);
+      const base64Clean = preview.split(',')[1];
+      onImageSelected(base64Clean, mimeType);
     }
+  };
+
+  const handleRetake = () => {
+    setPreview(null);
+    setIsRecording(false);
+    setRecordingTime(0);
+    // Camera will restart via useEffect
+  };
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
   return (
     <div className="fixed inset-0 bg-black z-40 flex flex-col">
-      <div className="flex justify-between items-center p-4 text-white">
-        <button onClick={onCancel} className="p-2"><i className="fa-solid fa-times text-2xl"></i></button>
-        <span className="font-bold text-lg">{t(language, 'snapRoutine')}</span>
-        <div className="w-8"></div>
+      {/* Header */}
+      <div className="flex justify-between items-center p-4 text-white z-10 bg-gradient-to-b from-black/50 to-transparent">
+        <button onClick={onCancel} className="p-2 w-10 h-10 bg-black/20 rounded-full backdrop-blur-md flex items-center justify-center">
+            <i className="fa-solid fa-times text-xl"></i>
+        </button>
+        <span className="font-bold text-lg drop-shadow-md">
+            {mode === 'photo' ? t(language, 'snapRoutine') : "Record Video"}
+        </span>
+        <button 
+             onClick={() => {
+                 setMode(prev => prev === 'photo' ? 'video' : 'photo');
+                 setIsRecording(false);
+                 setRecordingTime(0);
+             }}
+             className="px-3 py-1 bg-white/20 rounded-full backdrop-blur-md text-xs font-bold"
+             disabled={!!preview}
+        >
+             {mode === 'photo' ? <i className="fa-solid fa-video"></i> : <i className="fa-solid fa-camera"></i>}
+        </button>
       </div>
 
-      <div className="flex-1 bg-gray-900 relative flex items-center justify-center overflow-hidden">
+      {/* Viewport */}
+      <div className="flex-1 relative flex items-center justify-center overflow-hidden bg-gray-900">
         {isLoading ? (
-          <div className="text-center text-white p-8">
+          <div className="text-center text-white p-8 z-20">
             <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             <h3 className="text-xl font-bold mb-2">{t(language, 'cameraThinking')}</h3>
             <p className="text-gray-400">{t(language, 'cameraAnalyzing')}</p>
           </div>
         ) : preview ? (
-          <img src={preview} alt="Preview" className="max-w-full max-h-full object-contain" />
+            mode === 'video' || mimeType.startsWith('video') ? (
+                 <video src={preview} controls className="w-full h-full object-contain bg-black" />
+            ) : (
+                 <img src={preview} alt="Preview" className="w-full h-full object-contain" />
+            )
         ) : (
-          <div className="text-center text-gray-500">
-            <i className="fa-solid fa-camera text-6xl mb-4"></i>
-            <p>{t(language, 'tapToCapture')}</p>
-          </div>
+          <video 
+            ref={videoRef} 
+            autoPlay 
+            playsInline 
+            muted 
+            className="w-full h-full object-cover" 
+          />
+        )}
+        <canvas ref={canvasRef} className="hidden" />
+        
+        {/* Recording Indicator */}
+        {isRecording && (
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-red-500/80 text-white px-4 py-1 rounded-full text-sm font-bold flex items-center gap-2 animate-pulse">
+                <div className="w-2 h-2 bg-white rounded-full"></div>
+                {formatTime(recordingTime)}
+            </div>
         )}
       </div>
 
+      {/* Controls */}
       {!isLoading && (
-        <div className="bg-black p-8 flex justify-center gap-8 items-center pb-12">
+        <div className="bg-black/80 backdrop-blur-sm p-8 flex justify-between items-center pb-12">
           {!preview ? (
-            <button 
-              onClick={() => fileInputRef.current?.click()}
-              className="w-20 h-20 bg-white rounded-full border-4 border-gray-300 flex items-center justify-center active:bg-gray-200"
-            >
-              <div className="w-16 h-16 bg-primary rounded-full"></div>
-            </button>
-          ) : (
             <>
+               {/* Upload Button */}
+               <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center text-white hover:bg-gray-700"
+                >
+                  <i className="fa-solid fa-image text-xl"></i>
+                </button>
+
+               {/* Shutter Button */}
+               {mode === 'photo' ? (
+                   <button 
+                     onClick={handleCapturePhoto}
+                     className="w-20 h-20 bg-white rounded-full border-4 border-gray-300 flex items-center justify-center active:bg-gray-200 shadow-lg transform active:scale-95 transition-transform"
+                   >
+                     <div className="w-16 h-16 bg-primary rounded-full"></div>
+                   </button>
+               ) : (
+                   <button 
+                     onClick={toggleRecording}
+                     className={`w-20 h-20 rounded-full border-4 flex items-center justify-center shadow-lg transform active:scale-95 transition-transform ${isRecording ? 'border-red-500 bg-white' : 'border-white bg-red-500'}`}
+                   >
+                     <div className={`rounded-md transition-all ${isRecording ? 'w-8 h-8 bg-red-500' : 'w-8 h-8 bg-white rounded-full'}`}></div>
+                   </button>
+               )}
+
+               <div className="w-12"></div> {/* Spacer for symmetry */}
+            </>
+          ) : (
+            <div className="flex w-full gap-4 justify-center">
               <button 
-                onClick={() => setPreview(null)}
-                className="px-6 py-3 bg-gray-700 text-white rounded-full font-bold"
+                onClick={handleRetake}
+                className="px-6 py-3 bg-gray-700 text-white rounded-full font-bold flex items-center gap-2"
               >
-                {t(language, 'retake')}
+                <i className="fa-solid fa-rotate-left"></i> {t(language, 'retake')}
               </button>
               <button 
                 onClick={handleConfirm}
@@ -83,16 +263,15 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, o
               >
                 {t(language, 'generate')} <i className="fa-solid fa-magic"></i>
               </button>
-            </>
+            </div>
           )}
           
           <input 
             type="file" 
             ref={fileInputRef} 
-            accept="image/*" 
-            capture="environment"
+            accept="image/*,video/*"
             className="hidden" 
-            onChange={handleFileChange} 
+            onChange={handleFileUpload} 
           />
         </div>
       )}
