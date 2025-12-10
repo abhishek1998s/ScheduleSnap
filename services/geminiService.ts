@@ -4,7 +4,7 @@ import { Schedule, ChildProfile, QuizQuestion, SocialScenario, BehaviorLog, Beha
 
 // Initialize Gemini Client
 // Use a dummy key if missing to prevent initialization errors, checking process.env.API_KEY before calls.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || 'AIzaSyAMRn21PI2JnU765_Vrpcc0g9OCMy5ObEA' });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || 'dummy_key_for_init' });
 
 const getSystemInstruction = (lang: string) => `
 You are an expert pediatric occupational therapist specializing in autism. 

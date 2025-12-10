@@ -30,7 +30,6 @@ export const LiveVoiceCoach: React.FC<LiveVoiceCoachProps> = ({ profile, onExit 
     const startSession = async () => {
       try {
         if (!process.env.API_KEY) {
-            // If no key, show error but don't crash
             console.warn("API Key missing for Live Coach");
             if (isMounted) setStatus('error');
             return;
