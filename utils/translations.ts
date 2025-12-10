@@ -65,6 +65,10 @@ export const translations: Record<string, Record<string, string>> = {
     agentOptimizing: "Agent Optimizing...",
     agentThinking: "Deep thinking agent is analyzing behavioral logs to reduce friction...",
     newMessageNotification: "New Message from Child!",
+    // Analytics
+    analytics: "Analytics",
+    wins: "Wins",
+    concerns: "Concerns",
     // Recorder
     recordMessage: "Record a message",
     recording: "Recording...",
@@ -270,6 +274,9 @@ export const translations: Record<string, Record<string, string>> = {
     agentOptimizing: "अनुकूलन...",
     agentThinking: "AI बेहतर बनाने के लिए सोच रहा है...",
     newMessageNotification: "बच्चे का नया संदेश!",
+    analytics: "एनालिटिक्स",
+    wins: "जीत",
+    concerns: "चिंताएं",
     recordMessage: "रिकॉर्ड करें",
     recording: "रिकॉर्डिंग...",
     tapStart: "शुरू करें",
@@ -334,7 +341,6 @@ export const translations: Record<string, Record<string, string>> = {
     hold: "रोकें...",
     breatheOut: "सांस छोड़ें...",
     followCircle: "सर्कल का पालन करें",
-    // Hindi New
     breathingPattern: "श्वसन पैटर्न",
     visualTheme: "दृश्य थीम",
     soundscape: "ध्वनि परिदृश्य",
@@ -468,6 +474,9 @@ export const translations: Record<string, Record<string, string>> = {
     agentOptimizing: "Optimizando...",
     agentThinking: "Agente pensando para mejorar rutina...",
     newMessageNotification: "¡Nuevo mensaje del niño!",
+    analytics: "Analítica",
+    wins: "Logros",
+    concerns: "Preocupaciones",
     recordMessage: "Grabar mensaje",
     recording: "Grabando...",
     tapStart: "Toca para Iniciar",
