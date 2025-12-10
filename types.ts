@@ -282,8 +282,6 @@ export interface TherapySession {
   id: string;
   timestamp: number;
   type: 'Audio' | 'Video';
-  // Note: We do NOT persist the heavy mediaBlob in localStorage to avoid quota limits. 
-  // It is analyzed transiently and then discarded, or could be uploaded to cloud in a real app.
   analysis: TherapySessionAnalysis;
   therapistName?: string;
   notes?: string;
