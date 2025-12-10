@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Schedule, ChildProfile, BehaviorLog, MoodEntry, BehaviorAnalysis, VoiceMessage, CompletionLog, WeeklyReport } from '../types';
-import { analyzeBehaviorLogs, analyzeBehaviorVideo, optimizeSchedule, generateWeeklyReport } from '../services/geminiService';
+import { Schedule, ChildProfile, BehaviorLog, MoodEntry, BehaviorAnalysis, VoiceMessage, CompletionLog, WeeklyReport, ScheduleOptimization } from '../types';
+import { analyzeBehaviorLogs, analyzeBehaviorVideo, generateScheduleOptimization, generateWeeklyReport } from '../services/geminiService';
 import { t } from '../utils/translations';
 
 interface DashboardProps {
@@ -50,6 +50,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // Agentic Optimization State
   const [optimizingId, setOptimizingId] = useState<string | null>(null);
+  const [optimizationProposal, setOptimizationProposal] = useState<ScheduleOptimization | null>(null);
 
   // Profile Edit State
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -140,17 +141,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
       }
   };
 
-  const handleOptimizeSchedule = async (schedule: Schedule) => {
+  const handleOptimizeRequest = async (schedule: Schedule) => {
     setOptimizingId(schedule.id);
     try {
-        const optimized = await optimizeSchedule(schedule, behaviorLogs, profile);
-        onUpdateSchedule(optimized);
-        alert(`Successfully optimized "${schedule.title}" based on behavioral data.`);
+        const proposal = await generateScheduleOptimization(schedule, behaviorLogs, completionLogs, profile);
+        setOptimizationProposal(proposal);
     } catch (e) {
         alert("Optimization failed. Please try again.");
     } finally {
         setOptimizingId(null);
     }
+  };
+
+  const applyOptimization = () => {
+      if (optimizationProposal) {
+          onUpdateSchedule(optimizationProposal.optimizedSchedule);
+          setOptimizationProposal(null);
+          alert('Optimization applied successfully!');
+      }
   };
 
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -545,7 +553,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             {/* Agentic Optimization Button */}
                             <div className="flex gap-2">
                                 <button
-                                    onClick={() => handleOptimizeSchedule(schedule)}
+                                    onClick={() => handleOptimizeRequest(schedule)}
                                     disabled={optimizingId === schedule.id}
                                     className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-colors flex items-center justify-center gap-2
                                         ${optimizingId === schedule.id 
@@ -930,6 +938,89 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <i className="fa-solid fa-check-circle"></i> {t(lang, 'applyExit')}
              </button>
         </div>
+
+        {/* Agentic Optimization Modal */}
+        {optimizationProposal && (
+            <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 animate-fadeIn">
+                <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 shadow-2xl relative">
+                    <button 
+                        onClick={() => setOptimizationProposal(null)}
+                        className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                    >
+                        <i className="fa-solid fa-times text-xl"></i>
+                    </button>
+
+                    <div className="text-center mb-6">
+                        <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3 text-purple-600 text-3xl">
+                            <i className="fa-solid fa-wand-magic-sparkles"></i>
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-800">{t(lang, 'optTitle')}</h2>
+                    </div>
+
+                    {/* Predicted Improvements */}
+                    <div className="grid grid-cols-3 gap-3 mb-6">
+                        <div className="bg-green-50 p-3 rounded-xl text-center border border-green-100">
+                            <div className="text-green-600 font-bold text-lg">{optimizationProposal.predictedImprovement.completionRate}</div>
+                            <div className="text-xs text-gray-500 uppercase font-bold">{t(lang, 'optCompletion')}</div>
+                        </div>
+                        <div className="bg-blue-50 p-3 rounded-xl text-center border border-blue-100">
+                            <div className="text-blue-600 font-bold text-lg">{optimizationProposal.predictedImprovement.avgTime}</div>
+                            <div className="text-xs text-gray-500 uppercase font-bold">{t(lang, 'optTime')}</div>
+                        </div>
+                        <div className="bg-purple-50 p-3 rounded-xl text-center border border-purple-100">
+                            <div className="text-purple-600 font-bold text-lg">{optimizationProposal.predictedImprovement.stressLevel}</div>
+                            <div className="text-xs text-gray-500 uppercase font-bold">{t(lang, 'optStress')}</div>
+                        </div>
+                    </div>
+
+                    {/* Recommendations List */}
+                    <div className="space-y-4 mb-8">
+                        <h3 className="font-bold text-gray-700 border-b pb-2">{t(lang, 'optChanges')}</h3>
+                        {optimizationProposal.recommendations.map((rec, i) => (
+                            <div key={i} className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                                <div className="flex items-start gap-3">
+                                    <div className={`mt-1 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs ${
+                                        rec.type === 'add_break' ? 'bg-blue-500' : 
+                                        rec.type === 'reorder' ? 'bg-orange-500' : 'bg-purple-500'
+                                    }`}>
+                                        <i className={`fa-solid ${
+                                            rec.type === 'add_break' ? 'fa-coffee' : 
+                                            rec.type === 'reorder' ? 'fa-sort' : 'fa-wrench'
+                                        }`}></i>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-gray-800">{rec.description}</h4>
+                                        <p className="text-sm text-gray-600 mt-1">
+                                            <span className="font-bold text-purple-600">{t(lang, 'optReason')}: </span> 
+                                            {rec.reason}
+                                        </p>
+                                        <p className="text-xs text-gray-500 mt-1 italic">
+                                            <i className="fa-solid fa-microscope mr-1"></i>
+                                            {t(lang, 'optEvidence')}: {rec.evidence}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="flex gap-3">
+                        <button 
+                            onClick={() => setOptimizationProposal(null)}
+                            className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200"
+                        >
+                            {t(lang, 'optDiscard')}
+                        </button>
+                        <button 
+                            onClick={applyOptimization}
+                            className="flex-1 py-3 bg-purple-600 text-white rounded-xl font-bold shadow-lg hover:bg-purple-700 flex items-center justify-center gap-2"
+                        >
+                            <i className="fa-solid fa-check"></i> {t(lang, 'optApply')}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
     </div>
   );
 };

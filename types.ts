@@ -187,6 +187,29 @@ export interface MeltdownPrediction {
   recommendedAction: 'monitor' | 'intervene' | 'calm_mode' | 'break';
 }
 
+// NEW: Agentic Optimization Types
+export type OptimizationType = 'reorder' | 'add_break' | 'split_step' | 'combine_steps' | 'adjust_time' | 'add_warning' | 'remove_step';
+
+export interface ScheduleOptimization {
+  scheduleId: string;
+  originalSchedule: Schedule;
+  optimizedSchedule: Schedule;
+  
+  recommendations: {
+    type: OptimizationType;
+    description: string;       // "Move 'Get Dressed' before 'Brush Teeth'"
+    reason: string;            // "Alex completes faster when dressed first"
+    evidence: string;          // "3 of 5 faster completions had this order"
+    confidence: number;        // 85%
+  }[];
+
+  predictedImprovement: {
+    completionRate: string;    // "+15% likely"
+    avgTime: string;           // "-5 minutes estimated"
+    stressLevel: string;       // "Lower stress predicted"
+  };
+}
+
 export interface AppState {
   view: 'home' | 'camera' | 'schedule-runner' | 'dashboard' | 'calm' | 'preview' | 'mood' | 'quiz' | 'store' | 'coach' | 'social' | 'voice-recorder' | 'timer' | 'research';
   activeScheduleId: string | null;
@@ -203,7 +226,7 @@ export interface AppState {
   meltdownRisk?: 'Low' | 'Medium' | 'High'; // Simple legacy flag, kept for backward compatibility
   caregiverPin?: string;
   customAACButtons: AACButton[]; 
-  latestPrediction?: MeltdownPrediction | null; // NEW
+  latestPrediction?: MeltdownPrediction | null; 
 }
 
 export enum ViewState {
