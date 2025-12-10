@@ -134,11 +134,14 @@ export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, c
           // Render Scene Selection
           if (!activeScene) {
              return (
-                 <div className="grid grid-cols-2 gap-4 p-4">
+                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4">
                      {SCENES.map(scene => (
                          <button 
                             key={scene.id}
-                            onClick={() => setActiveScene(scene)}
+                            onClick={() => {
+                                speak(`${t(language, 'aacIWantToGoTo')} ${scene.name}`);
+                                setActiveScene(scene);
+                            }}
                             className="aspect-square bg-white rounded-2xl shadow-md border-2 border-gray-100 flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform"
                          >
                              <span className="text-6xl">{scene.emoji}</span>
