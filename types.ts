@@ -52,6 +52,14 @@ export interface BehaviorLog {
   trigger?: string;
 }
 
+// New: Track routine completions for analytics
+export interface CompletionLog {
+  id: string;
+  scheduleId: string;
+  scheduleTitle: string;
+  timestamp: number;
+}
+
 export interface QuizQuestion {
   question: string;
   emoji: string;
@@ -85,6 +93,13 @@ export interface BehaviorAnalysis {
   triggers: string[];
   suggestions: string[];
   insight: string;
+}
+
+export interface WeeklyReport {
+  summary: string;
+  improvements: string[];
+  concerns: string[];
+  wins: string[];
 }
 
 export interface VoiceMessage {
@@ -136,6 +151,7 @@ export interface AppState {
   tokens: number;
   moodLogs: MoodEntry[];
   behaviorLogs: BehaviorLog[];
+  completionLogs: CompletionLog[]; // New: For analytics
   voiceMessages: VoiceMessage[];
   quizStats: QuizStats;
   meltdownRisk?: 'Low' | 'Medium' | 'High';

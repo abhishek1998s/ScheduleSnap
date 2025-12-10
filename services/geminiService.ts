@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { Schedule, ChildProfile, QuizQuestion, SocialScenario, BehaviorLog, BehaviorAnalysis, ResearchResult, RewardItem, AACButton } from "../types";
+import { Schedule, ChildProfile, QuizQuestion, SocialScenario, BehaviorLog, BehaviorAnalysis, ResearchResult, RewardItem, AACButton, MoodEntry, CompletionLog, WeeklyReport } from "../types";
 
 // Initialize Gemini Client
 // Use a dummy key if missing to prevent initialization errors, checking process.env.API_KEY before calls.
@@ -659,6 +659,60 @@ export const generateAACSymbol = async (label: string, language: string): Promis
             voice: label,
             color: 'bg-pink-500',
             category: 'Custom'
+        };
+    }
+};
+
+export const generateWeeklyReport = async (
+  moodLogs: MoodEntry[],
+  behaviorLogs: BehaviorLog[],
+  completionLogs: CompletionLog[],
+  profile: ChildProfile
+): Promise<WeeklyReport> => {
+    if (!process.env.API_KEY) {
+        return {
+            summary: "This week showed steady progress. The child seems happier in the mornings.",
+            improvements: ["Morning routine completion up 20%", "Fewer meltdowns reported"],
+            concerns: ["Sleep schedule seems irregular"],
+            wins: ["Completed 'Bedtime' routine 3 times"]
+        };
+    }
+
+    const dataContext = {
+        moods: moodLogs.slice(-20),
+        behaviors: behaviorLogs.slice(-20),
+        completions: completionLogs.slice(-20),
+        profileName: profile.name,
+        age: profile.age
+    };
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: `Generate weekly progress report. Context: ${JSON.stringify(dataContext)}. Language: ${profile.language || 'English'}.`,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        summary: { type: Type.STRING },
+                        improvements: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        concerns: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        wins: { type: Type.ARRAY, items: { type: Type.STRING } }
+                    },
+                    required: ['summary', 'improvements', 'concerns', 'wins']
+                }
+            }
+        });
+        const text = response.text;
+        if (!text) throw new Error("No report");
+        return JSON.parse(text);
+    } catch (e) {
+        return {
+            summary: "Report generation currently unavailable.",
+            improvements: [],
+            concerns: [],
+            wins: []
         };
     }
 };

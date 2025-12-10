@@ -57,6 +57,7 @@ const App: React.FC = () => {
     tokens: 12,
     moodLogs: [],
     behaviorLogs: [],
+    completionLogs: [],
     voiceMessages: [],
     quizStats: { level: 1, xp: 0, totalAnswered: 0 },
     meltdownRisk: 'Low',
@@ -94,7 +95,8 @@ const App: React.FC = () => {
             isHighContrast: parsed.isHighContrast || false,
             caregiverPin: parsed.caregiverPin || '1234',
             quizStats: parsed.quizStats || { level: 1, xp: 0, totalAnswered: 0 },
-            customAACButtons: parsed.customAACButtons || []
+            customAACButtons: parsed.customAACButtons || [],
+            completionLogs: parsed.completionLogs || []
         }));
       } catch (e) {
         console.error("Failed to load save data");
@@ -125,6 +127,23 @@ const App: React.FC = () => {
   
   const startRoutine = (id: string) => {
     setState(prev => ({ ...prev, activeScheduleId: id, view: ViewState.RUNNER }));
+  };
+
+  const handleRoutineComplete = () => {
+    const schedule = state.schedules.find(s => s.id === state.activeScheduleId);
+    if (schedule) {
+        setState(prev => ({ 
+            ...prev, 
+            tokens: prev.tokens + 5,
+            completionLogs: [...prev.completionLogs, {
+                id: Date.now().toString(),
+                scheduleId: schedule.id,
+                scheduleTitle: schedule.title,
+                timestamp: Date.now()
+            }]
+        }));
+    }
+    navigateTo(ViewState.HOME);
   };
 
   const handleImageSelected = async (base64: string, mimeType: string) => {
@@ -326,8 +345,8 @@ const App: React.FC = () => {
 
       {state.view === ViewState.CAMERA && <CameraCapture isLoading={isProcessing} onImageSelected={handleImageSelected} onCancel={() => navigateTo(ViewState.HOME)} language={lang} />}
       {state.view === ViewState.PREVIEW && generatedSchedule && <PreviewSchedule schedule={generatedSchedule} profile={state.profile} onSave={handleSaveSchedule} onCancel={() => { setGeneratedSchedule(null); navigateTo(ViewState.HOME); }} />}
-      {state.view === ViewState.RUNNER && activeSchedule && <ScheduleRunner schedule={activeSchedule} profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} onComplete={() => { setState(prev => ({ ...prev, tokens: prev.tokens + 5 })); navigateTo(ViewState.HOME); }} />}
-      {state.view === ViewState.DASHBOARD && <Dashboard schedules={state.schedules} profile={state.profile} moodLogs={state.moodLogs} behaviorLogs={state.behaviorLogs} voiceMessages={state.voiceMessages} isHighContrast={state.isHighContrast} caregiverPin={state.caregiverPin || '1234'} onUpdatePin={(p) => setState(prev => ({...prev, caregiverPin: p}))} onExit={() => navigateTo(ViewState.HOME)} onSelectSchedule={(id) => startRoutine(id)} onDeleteSchedule={handleDeleteSchedule} onUpdateSchedule={handleUpdateSchedule} onUpdateProfile={(p) => setState(prev => ({ ...prev, profile: p }))} onToggleHighContrast={() => setState(prev => ({ ...prev, isHighContrast: !prev.isHighContrast }))} onLogBehavior={(log) => setState(prev => ({ ...prev, behaviorLogs: [...prev.behaviorLogs, { ...log, id: Date.now().toString(), timestamp: Date.now() }] }))} onMarkMessagesRead={handleMarkMessagesRead} />}
+      {state.view === ViewState.RUNNER && activeSchedule && <ScheduleRunner schedule={activeSchedule} profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} onComplete={handleRoutineComplete} />}
+      {state.view === ViewState.DASHBOARD && <Dashboard schedules={state.schedules} profile={state.profile} moodLogs={state.moodLogs} behaviorLogs={state.behaviorLogs} completionLogs={state.completionLogs} voiceMessages={state.voiceMessages} isHighContrast={state.isHighContrast} caregiverPin={state.caregiverPin || '1234'} onUpdatePin={(p) => setState(prev => ({...prev, caregiverPin: p}))} onExit={() => navigateTo(ViewState.HOME)} onSelectSchedule={(id) => startRoutine(id)} onDeleteSchedule={handleDeleteSchedule} onUpdateSchedule={handleUpdateSchedule} onUpdateProfile={(p) => setState(prev => ({ ...prev, profile: p }))} onToggleHighContrast={() => setState(prev => ({ ...prev, isHighContrast: !prev.isHighContrast }))} onLogBehavior={(log) => setState(prev => ({ ...prev, behaviorLogs: [...prev.behaviorLogs, { ...log, id: Date.now().toString(), timestamp: Date.now() }] }))} onMarkMessagesRead={handleMarkMessagesRead} />}
       {state.view === ViewState.MOOD && <MoodCheck profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} onSave={(entry) => setState(prev => ({ ...prev, moodLogs: [...prev.moodLogs, entry] }))} />}
       {state.view === ViewState.QUIZ && <EmotionQuiz age={state.profile.age} language={lang} stats={state.quizStats} onUpdateStats={(s) => setState(prev => ({ ...prev, quizStats: s, tokens: prev.tokens + (s.xp > prev.quizStats.xp ? 1 : 0) }))} onExit={() => navigateTo(ViewState.HOME)} />}
       {state.view === ViewState.SOCIAL && <SocialScenarioPractice age={state.profile.age} language={lang} onExit={() => navigateTo(ViewState.HOME)} onComplete={(success) => { if(success) setState(prev => ({ ...prev, tokens: prev.tokens + 2 })); }} />}

@@ -1,7 +1,7 @@
 
-import React, { useState, useRef } from 'react';
-import { Schedule, ChildProfile, BehaviorLog, MoodEntry, BehaviorAnalysis, VoiceMessage } from '../types';
-import { analyzeBehaviorLogs, analyzeBehaviorVideo, optimizeSchedule } from '../services/geminiService';
+import React, { useState, useRef, useEffect } from 'react';
+import { Schedule, ChildProfile, BehaviorLog, MoodEntry, BehaviorAnalysis, VoiceMessage, CompletionLog, WeeklyReport } from '../types';
+import { analyzeBehaviorLogs, analyzeBehaviorVideo, optimizeSchedule, generateWeeklyReport } from '../services/geminiService';
 import { t } from '../utils/translations';
 
 interface DashboardProps {
@@ -9,6 +9,7 @@ interface DashboardProps {
   profile: ChildProfile;
   moodLogs: MoodEntry[];
   behaviorLogs: BehaviorLog[];
+  completionLogs: CompletionLog[];
   voiceMessages: VoiceMessage[];
   isHighContrast: boolean;
   caregiverPin: string;
@@ -24,11 +25,11 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
-  schedules, profile, moodLogs, behaviorLogs, voiceMessages, isHighContrast, caregiverPin, onExit, onSelectSchedule, onDeleteSchedule, onUpdateSchedule, onLogBehavior, onUpdateProfile, onToggleHighContrast, onUpdatePin, onMarkMessagesRead
+  schedules, profile, moodLogs, behaviorLogs, completionLogs, voiceMessages, isHighContrast, caregiverPin, onExit, onSelectSchedule, onDeleteSchedule, onUpdateSchedule, onLogBehavior, onUpdateProfile, onToggleHighContrast, onUpdatePin, onMarkMessagesRead
 }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pin, setPin] = useState('');
-  const [activeTab, setActiveTab] = useState<'overview' | 'routines' | 'behavior' | 'messages'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'routines' | 'behavior' | 'analytics' | 'messages'>('overview');
   const lang = profile.language;
   
   // Behavior Form State
@@ -40,6 +41,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [analysis, setAnalysis] = useState<BehaviorAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const videoInputRef = useRef<HTMLInputElement>(null);
+
+  // Weekly Report State
+  const [weeklyReport, setWeeklyReport] = useState<WeeklyReport | null>(null);
+  const [generatingReport, setGeneratingReport] = useState(false);
 
   // Agentic Optimization State
   const [optimizingId, setOptimizingId] = useState<string | null>(null);
@@ -56,6 +61,25 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // Pin Change State
   const [newPinInput, setNewPinInput] = useState('');
+
+  // Goals (Simple local state for now)
+  const [goals, setGoals] = useState([
+      { id: 1, text: "Complete Morning Routine 5x", target: 5, current: 0, icon: "fa-sun" },
+      { id: 2, text: "Log Mood daily", target: 7, current: 0, icon: "fa-face-smile" }
+  ]);
+
+  useEffect(() => {
+    // Update Goals based on logs
+    const weekStart = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const recentCompletions = completionLogs.filter(l => l.timestamp > weekStart && l.scheduleTitle.includes("Morning")).length;
+    const recentMoods = moodLogs.filter(l => l.timestamp > weekStart).length;
+    
+    setGoals(prev => prev.map(g => {
+        if(g.id === 1) return { ...g, current: recentCompletions };
+        if(g.id === 2) return { ...g, current: recentMoods };
+        return g;
+    }));
+  }, [completionLogs, moodLogs]);
 
   const handleNumpadPress = (num: number) => {
     if (pin.length < 4) {
@@ -100,6 +124,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
     } finally {
         setIsAnalyzing(false);
     }
+  };
+
+  const handleGenerateReport = async () => {
+      setGeneratingReport(true);
+      try {
+          const report = await generateWeeklyReport(moodLogs, behaviorLogs, completionLogs, profile);
+          setWeeklyReport(report);
+      } catch(e) {
+          alert("Could not generate report");
+      } finally {
+          setGeneratingReport(false);
+      }
   };
 
   const handleOptimizeSchedule = async (schedule: Schedule) => {
@@ -177,6 +213,32 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const unreadCount = voiceMessages.filter(m => !m.read).length;
 
+  // Analytics Logic
+  const getMoodPoints = () => {
+    const moods = moodLogs.slice(-7).map((l, i) => {
+        let val = 3;
+        if(l.mood === 'Happy') val = 5;
+        else if(l.mood === 'Okay') val = 3;
+        else if(l.mood === 'Sad') val = 1;
+        else if(l.mood === 'Angry') val = 1;
+        else if(l.mood === 'Tired') val = 2;
+        else if(l.mood === 'Scared') val = 1;
+        return `${i * 40},${100 - (val * 20)}`;
+    }).join(' ');
+    return moods;
+  };
+
+  const getBehaviorStats = () => {
+      const counts: Record<string, number> = {};
+      behaviorLogs.forEach(l => {
+          counts[l.behavior] = (counts[l.behavior] || 0) + 1;
+      });
+      const max = Math.max(...Object.values(counts), 1);
+      return Object.entries(counts).map(([name, count]) => ({
+          name, count, percent: (count / max) * 100
+      }));
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="flex flex-col h-full bg-background items-center justify-center p-6 overflow-y-auto">
@@ -243,7 +305,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         {/* Tabs */}
         <div className={`flex p-2 ${isHighContrast ? 'bg-black border-gray-700' : 'bg-white border-b'} gap-2 overflow-x-auto`}>
-            {['overview', 'routines', 'behavior', 'messages'].map(tab => (
+            {['overview', 'analytics', 'routines', 'behavior', 'messages'].map(tab => (
                 <button 
                     key={tab}
                     onClick={() => {
@@ -425,6 +487,126 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         </div>
                     </div>
                 </>
+            )}
+
+            {activeTab === 'analytics' && (
+                <div className="space-y-6">
+                    {/* Goal Tracking */}
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <i className="fa-solid fa-bullseye text-primary"></i> Weekly Goals
+                        </h3>
+                        <div className="space-y-4">
+                            {goals.map(goal => {
+                                const percent = Math.min((goal.current / goal.target) * 100, 100);
+                                return (
+                                    <div key={goal.id}>
+                                        <div className="flex justify-between text-sm mb-1">
+                                            <span className="font-bold text-gray-700 flex items-center gap-2">
+                                                <i className={`fa-solid ${goal.icon} text-gray-400`}></i> {goal.text}
+                                            </span>
+                                            <span className="text-gray-500 font-bold">{goal.current}/{goal.target}</span>
+                                        </div>
+                                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                            <div 
+                                                className={`h-full transition-all ${percent >= 100 ? 'bg-green-500' : 'bg-blue-500'}`} 
+                                                style={{ width: `${percent}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Mood Chart */}
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                         <h3 className="font-bold text-gray-800 mb-4">Mood Trends (Last 7 Entries)</h3>
+                         {moodLogs.length > 1 ? (
+                             <div className="h-40 w-full relative border-l border-b border-gray-200">
+                                 <svg viewBox="0 0 240 100" className="w-full h-full overflow-visible" preserveAspectRatio="none">
+                                     <polyline 
+                                         fill="none" 
+                                         stroke="#3b82f6" 
+                                         strokeWidth="3" 
+                                         points={getMoodPoints()} 
+                                     />
+                                     {moodLogs.slice(-7).map((l, i) => (
+                                         <circle 
+                                            key={i}
+                                            cx={i * 40} 
+                                            cy={100 - ((l.mood === 'Happy' ? 5 : l.mood === 'Okay' ? 3 : 1) * 20)} 
+                                            r="4" 
+                                            fill="#fff" 
+                                            stroke="#3b82f6" 
+                                            strokeWidth="2" 
+                                         />
+                                     ))}
+                                 </svg>
+                             </div>
+                         ) : (
+                             <p className="text-gray-400 text-sm italic">Not enough mood data yet.</p>
+                         )}
+                    </div>
+
+                    {/* Behavior Chart */}
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                         <h3 className="font-bold text-gray-800 mb-4">Behavior Frequency</h3>
+                         <div className="space-y-3">
+                             {getBehaviorStats().length > 0 ? getBehaviorStats().map(stat => (
+                                 <div key={stat.name} className="flex items-center gap-3">
+                                     <div className="w-24 text-xs font-bold text-gray-600 truncate">{stat.name}</div>
+                                     <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                                         <div 
+                                            className="h-full bg-orange-400" 
+                                            style={{ width: `${stat.percent}%` }}
+                                         />
+                                     </div>
+                                     <div className="w-6 text-xs font-bold text-gray-500">{stat.count}</div>
+                                 </div>
+                             )) : <p className="text-gray-400 text-sm italic">No behavior logs recorded.</p>}
+                         </div>
+                    </div>
+
+                    {/* AI Weekly Report */}
+                    <div className="bg-indigo-50 p-6 rounded-2xl shadow-sm border border-indigo-100">
+                         <div className="flex justify-between items-center mb-4">
+                             <h3 className="font-bold text-indigo-900"><i className="fa-solid fa-file-contract mr-2"></i>AI Weekly Report</h3>
+                             <button 
+                                onClick={handleGenerateReport}
+                                disabled={generatingReport}
+                                className="px-3 py-1 bg-indigo-600 text-white text-xs font-bold rounded-lg shadow-sm disabled:opacity-50"
+                             >
+                                {generatingReport ? <i className="fa-solid fa-circle-notch fa-spin"></i> : "Generate"}
+                             </button>
+                         </div>
+                         
+                         {weeklyReport ? (
+                             <div className="space-y-4 text-sm">
+                                 <p className="text-indigo-800 italic bg-white p-3 rounded-xl border border-indigo-100">
+                                     "{weeklyReport.summary}"
+                                 </p>
+                                 
+                                 <div className="grid grid-cols-2 gap-2">
+                                     <div className="bg-green-100 p-3 rounded-xl border border-green-200">
+                                         <h4 className="font-bold text-green-800 mb-1 text-xs uppercase">Wins</h4>
+                                         <ul className="list-disc list-inside text-green-700 text-xs">
+                                             {weeklyReport.wins.map((w,i) => <li key={i}>{w}</li>)}
+                                         </ul>
+                                     </div>
+                                     <div className="bg-yellow-100 p-3 rounded-xl border border-yellow-200">
+                                         <h4 className="font-bold text-yellow-800 mb-1 text-xs uppercase">Concerns</h4>
+                                         <ul className="list-disc list-inside text-yellow-700 text-xs">
+                                             {weeklyReport.concerns.map((w,i) => <li key={i}>{w}</li>)}
+                                         </ul>
+                                     </div>
+                                 </div>
+                             </div>
+                         ) : (
+                             <p className="text-indigo-400 text-sm text-center">Tap generate to analyze this week's progress.</p>
+                         )}
+                    </div>
+                </div>
             )}
 
             {activeTab === 'routines' && (
