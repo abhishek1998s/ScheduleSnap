@@ -132,6 +132,7 @@ export interface ParentMessage {
     content: string; // text
     type: 'text' | 'audio' | 'video';
     mediaBase64?: string; // For audio/video content
+    mimeType?: string; // New: Store specific mime type (e.g. 'video/webm')
     scheduledTime?: string; // "14:00", if null sends immediately
     timestamp: number;
     isDelivered: boolean;

@@ -73,7 +73,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Parent Message Scheduling State
   const [msgContent, setMsgContent] = useState('');
   const [msgTime, setMsgTime] = useState('');
-  const [msgMedia, setMsgMedia] = useState<{ base64: string, type: 'video' | 'audio' } | null>(null);
+  // Added mimeType to state to preserve it
+  const [msgMedia, setMsgMedia] = useState<{ base64: string, type: 'video' | 'audio', mimeType: string } | null>(null);
   const msgFileInputRef = useRef<HTMLInputElement>(null);
 
   // Goals (Simple local state for now)
@@ -199,7 +200,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
           reader.onloadend = () => {
               const base64 = (reader.result as string).split(',')[1];
               const type = file.type.startsWith('video') ? 'video' : 'audio';
-              setMsgMedia({ base64, type });
+              // Save mimeType explicitly
+              setMsgMedia({ base64, type, mimeType: file.type });
           };
           reader.readAsDataURL(file);
       }
@@ -214,6 +216,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               content,
               type: msgMedia ? msgMedia.type : 'text',
               mediaBase64: msgMedia?.base64,
+              mimeType: msgMedia?.mimeType, // Pass mimeType
               scheduledTime: msgTime || undefined
           });
           

@@ -101,7 +101,7 @@ export const ParentMessageInbox: React.FC<ParentMessageInboxProps> = ({ messages
                         {activeMessage.mediaBase64 ? (
                              activeMessage.type === 'video' ? (
                                  <video 
-                                    src={`data:video/mp4;base64,${activeMessage.mediaBase64}`} 
+                                    src={`data:${activeMessage.mimeType || 'video/mp4'};base64,${activeMessage.mediaBase64}`} 
                                     controls 
                                     autoPlay 
                                     className="w-full rounded-2xl shadow-sm bg-black max-h-64" 
@@ -110,7 +110,7 @@ export const ParentMessageInbox: React.FC<ParentMessageInboxProps> = ({ messages
                                  <div className="bg-pink-50 p-6 rounded-3xl flex flex-col items-center gap-4 w-full">
                                      <i className="fa-solid fa-headphones text-6xl text-pink-300"></i>
                                      <audio 
-                                        src={`data:audio/mp3;base64,${activeMessage.mediaBase64}`} 
+                                        src={`data:${activeMessage.mimeType || 'audio/mp3'};base64,${activeMessage.mediaBase64}`} 
                                         controls 
                                         className="w-full"
                                      />

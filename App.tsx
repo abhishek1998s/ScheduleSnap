@@ -20,7 +20,7 @@ import { MeltdownPredictionAlert } from './components/MeltdownPredictionAlert';
 import { VoiceCompanion } from './components/VoiceCompanion';
 import { KidsRoutineBuilder } from './components/KidsRoutineBuilder';
 import { MagicBookLibrary } from './components/MagicBookLibrary';
-import { ParentMessageInbox } from './components/ParentMessageInbox'; // New Component
+import { ParentMessageInbox } from './components/ParentMessageInbox';
 import { t } from './utils/translations';
 
 const INITIAL_PROFILE: ChildProfile = {
@@ -39,7 +39,7 @@ const INITIAL_SCHEDULES: Schedule[] = [
     title: 'Morning Routine',
     type: 'Morning',
     socialStory: "Mornings are for getting ready. We follow steps so we can play sooner!",
-    scheduledTime: "07:30", // Added default time
+    scheduledTime: "07:30",
     createdAt: Date.now(),
     steps: [
       { id: 's1', emoji: '🛏️', instruction: 'Wake up', encouragement: 'Rise and shine!', completed: false },
@@ -68,10 +68,10 @@ const App: React.FC = () => {
     quizStats: { level: 1, xp: 0, totalAnswered: 0 },
     meltdownRisk: 'Low',
     caregiverPin: '1234',
-    customAACButtons: [], // Initial empty
+    customAACButtons: [],
     latestPrediction: null,
-    stories: [], // Initial empty
-    parentMessages: [] // New initial state
+    stories: [],
+    parentMessages: []
   });
 
   const [generatedSchedule, setGeneratedSchedule] = useState<Omit<Schedule, 'id' | 'createdAt'> | null>(null);
@@ -97,7 +97,6 @@ const App: React.FC = () => {
             ...parsed, 
             view: ViewState.HOME, 
             isAACOpen: false,
-            // Migrate voice messages to include read property if missing
             voiceMessages: (parsed.voiceMessages || []).map((m: any) => ({ ...m, read: m.read ?? true })),
             profile: { 
                 ...prev.profile, 
@@ -129,7 +128,7 @@ const App: React.FC = () => {
     }
   }, [state, isLoaded]);
 
-  // --- NEW: Parent Message Delivery Logic ---
+  // --- Parent Message Delivery Logic ---
   useEffect(() => {
       const interval = setInterval(() => {
           const now = new Date();
@@ -137,18 +136,15 @@ const App: React.FC = () => {
           
           let hasUpdates = false;
           const updatedMessages = state.parentMessages.map(msg => {
-              // If not delivered yet AND (no schedule time OR schedule time reached)
               if (!msg.isDelivered) {
                    if (!msg.scheduledTime || msg.scheduledTime <= currentTimeStr) {
                        hasUpdates = true;
-                       // Trigger Notification
                        if ('Notification' in window && Notification.permission === 'granted') {
                            new Notification(t(state.profile.language, 'messageFromParent'), {
                                body: msg.content || "New Message!",
                                icon: 'https://cdn-icons-png.flaticon.com/512/2665/2665038.png'
                            });
                        }
-                       // Play Sound
                        try {
                            const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
                            audio.play().catch(() => {});
@@ -164,18 +160,17 @@ const App: React.FC = () => {
               setState(prev => ({ ...prev, parentMessages: updatedMessages }));
           }
 
-      }, 10000); // Check every 10 seconds
+      }, 10000);
 
       return () => clearInterval(interval);
   }, [state.parentMessages, state.profile.language]);
 
 
-  // --- NEW: Continuous Meltdown Risk Prediction Logic ---
+  // --- Continuous Meltdown Risk Prediction Logic ---
   useEffect(() => {
      if (!isLoaded) return;
 
      const runPrediction = async () => {
-         // Optimization: Only predict if we have enough data (at least 2 logs total)
          if (state.behaviorLogs.length + state.moodLogs.length < 2) return;
          
          const activeScheduleTitle = state.schedules.find(s => s.id === state.activeScheduleId)?.title;
@@ -183,14 +178,11 @@ const App: React.FC = () => {
          try {
              const prediction = await predictMeltdownRisk(state.profile, state.behaviorLogs, state.moodLogs, activeScheduleTitle);
              
-             // Check for High/Imminent Risk to Alert & Log
              if (prediction.riskLevel === 'high' || prediction.riskLevel === 'imminent') {
                  const now = Date.now();
-                 // Only alert/log if we haven't done so in the last 30 minutes to prevent loops/spam
                  if (now - lastPredictionLogTime.current > 30 * 60 * 1000) {
                      lastPredictionLogTime.current = now;
 
-                     // 1. Audio/Visual Alert
                      try {
                          const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
                          audio.play().catch(() => {});
@@ -202,7 +194,6 @@ const App: React.FC = () => {
                          }
                      } catch(e) { console.warn("Alert failed", e); }
 
-                     // 2. Auto-Log Incident
                      const autoLog: BehaviorLog = {
                          id: now.toString(),
                          timestamp: now,
@@ -226,7 +217,6 @@ const App: React.FC = () => {
          }
      };
 
-     // Run prediction when logs change
      runPrediction();
   }, [state.behaviorLogs, state.moodLogs, state.activeScheduleId, state.profile, isLoaded]);
 
@@ -255,10 +245,8 @@ const App: React.FC = () => {
 
   const handleImageSelected = async (base64: string, mimeType: string) => {
     setIsProcessing(true);
-    setEditingScheduleId(null); // Ensure we are not in edit mode
+    setEditingScheduleId(null);
     try {
-      // Pass behaviorLogs so the AI can sequence smartly based on history
-      // Also pass mimeType to handle video or image
       const newScheduleData = await generateScheduleFromImage(base64, mimeType, state.profile, state.behaviorLogs);
       setGeneratedSchedule(newScheduleData);
       navigateTo(ViewState.PREVIEW);
@@ -293,7 +281,6 @@ const App: React.FC = () => {
   const handleEditScheduleRequest = (id: string) => {
       const schedule = state.schedules.find(s => s.id === id);
       if (schedule) {
-          // Strip ID and createdAt to match the PreviewSchedule props expectations for editing
           const { id: _, createdAt: __, ...editableData } = schedule;
           setGeneratedSchedule(editableData);
           setEditingScheduleId(id);
@@ -305,14 +292,12 @@ const App: React.FC = () => {
     const source = scheduleToSave || generatedSchedule;
     if (source) {
       if (editingScheduleId) {
-          // Update Existing
           setState(prev => ({
               ...prev,
               schedules: prev.schedules.map(s => s.id === editingScheduleId ? { ...source, id: editingScheduleId, createdAt: s.createdAt } : s),
-              view: ViewState.DASHBOARD // Go back to dashboard after edit
+              view: ViewState.DASHBOARD
           }));
       } else {
-          // Create New
           const newSchedule: Schedule = {
             ...source,
             id: `sched-${Date.now()}`,
@@ -348,7 +333,6 @@ const App: React.FC = () => {
 
   const handleSaveVoiceMessage = (msg: VoiceMessage) => {
       setState(prev => ({ ...prev, voiceMessages: [msg, ...prev.voiceMessages] }));
-      // Notification handled in VoiceRecorder/Service, or here if needed
   };
 
   const handleMarkMessagesRead = () => {
@@ -366,7 +350,6 @@ const App: React.FC = () => {
       if (action === 'calm_mode') {
           navigateTo(ViewState.CALM);
       }
-      // In a real app, we might log the intervention taken here
       setState(prev => ({ ...prev, latestPrediction: null }));
   };
 
@@ -417,7 +400,7 @@ const App: React.FC = () => {
       const msg: VoiceMessage = {
           id: `missyou-${Date.now()}`,
           timestamp: Date.now(),
-          audioBlob: new Blob(), // Empty blob as placeholder
+          audioBlob: new Blob(),
           transcription: "❤️ I miss you! ❤️",
           read: false,
           analysis: {
@@ -451,7 +434,7 @@ const App: React.FC = () => {
   return (
     <div className={`h-full w-full relative ${themeClass} overflow-hidden`}>
       
-      {/* Voice Companion "Snap" */}
+      {/* Voice Companion */}
       {state.view !== ViewState.COACH && state.view !== ViewState.CAMERA && state.view !== ViewState.KIDS_BUILDER && state.view !== ViewState.MAGIC_BOOKS && state.view !== ViewState.PARENT_INBOX && (
           <VoiceCompanion 
               profile={state.profile}
@@ -463,7 +446,7 @@ const App: React.FC = () => {
           />
       )}
       
-      {/* Meltdown Risk Alert - Persistent Overlay */}
+      {/* Meltdown Risk Alert */}
       {state.latestPrediction && state.view !== ViewState.CALM && (
           <MeltdownPredictionAlert 
               prediction={state.latestPrediction} 
