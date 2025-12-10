@@ -8,9 +8,10 @@ interface VideoGuidedStepProps {
     step: ScheduleStep;
     profile: ChildProfile;
     onComplete: () => void;
+    audioEnabled?: boolean; // New prop
 }
 
-export const VideoGuidedStep: React.FC<VideoGuidedStepProps> = ({ step, profile, onComplete }) => {
+export const VideoGuidedStep: React.FC<VideoGuidedStepProps> = ({ step, profile, onComplete, audioEnabled = true }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [result, setResult] = useState<VideoAnalysisResult | null>(null);
@@ -35,7 +36,8 @@ export const VideoGuidedStep: React.FC<VideoGuidedStepProps> = ({ step, profile,
 
     // TTS Helper
     const speak = (text: string) => {
-        // Safety Check: Block if child has high sound sensitivity
+        // Safety Check: Block if audio disabled or child has high sound sensitivity
+        if (!audioEnabled) return;
         if (profileRef.current.sensoryProfile.soundSensitivity === 'high') return;
 
         window.speechSynthesis.cancel();

@@ -1,10 +1,13 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { t } from '../utils/translations';
+import { ChildProfile } from '../types';
 
 interface CalmModeProps {
   onExit: () => void;
   language?: string;
+  audioEnabled?: boolean; // New
+  profile?: ChildProfile; // New
 }
 
 type BreathingPattern = 'Balanced' | 'Relax' | 'Box' | 'Quick';
@@ -18,7 +21,7 @@ const PATTERNS: Record<BreathingPattern, { in: number; hold: number; out: number
   Quick: { in: 3, hold: 0, out: 3, holdEmpty: 0 },
 };
 
-export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language }) => {
+export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language, audioEnabled = true, profile }) => {
   const [phase, setPhase] = useState<'In' | 'Hold' | 'Out' | 'HoldEmpty'>('In');
   const [text, setText] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -67,6 +70,11 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language }) => {
 
       masterGain.gain.cancelScheduledValues(ctx.currentTime);
       masterGain.gain.setValueAtTime(0, ctx.currentTime);
+
+      // SAFETY CHECK: Force silence if audio off or sensitive
+      if (!audioEnabled || profile?.sensoryProfile?.soundSensitivity === 'high') {
+          return;
+      }
 
       if (sound === 'None') return;
       
@@ -135,7 +143,7 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language }) => {
           oscillatorsRef.current.push(osc, lfo);
       }
 
-  }, [sound]);
+  }, [sound, audioEnabled, profile]);
 
   // Visual Particle Generator
   useEffect(() => {

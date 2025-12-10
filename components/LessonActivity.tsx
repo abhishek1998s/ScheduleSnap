@@ -9,9 +9,10 @@ interface LessonActivityProps {
   profile: ChildProfile;
   onComplete: () => void;
   onExit: () => void;
+  audioEnabled?: boolean; // New prop
 }
 
-export const LessonActivity: React.FC<LessonActivityProps> = ({ lesson, profile, onComplete, onExit }) => {
+export const LessonActivity: React.FC<LessonActivityProps> = ({ lesson, profile, onComplete, onExit, audioEnabled = true }) => {
   const [content, setContent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState(0); // For multi-step content
@@ -39,7 +40,8 @@ export const LessonActivity: React.FC<LessonActivityProps> = ({ lesson, profile,
   }, [lesson, profile]);
 
   const speak = (text: string) => {
-      // Safety Check: Block if child has high sound sensitivity
+      // Safety Check: Block if child has high sound sensitivity or audio is off
+      if (!audioEnabled) return;
       if (profile.sensoryProfile.soundSensitivity === 'high') return;
 
       window.speechSynthesis.cancel();

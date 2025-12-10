@@ -7,9 +7,10 @@ interface StoryReaderProps {
   story: StoryBook;
   onClose: () => void;
   profile: ChildProfile; // Changed to accept full profile for sensory checks
+  audioEnabled?: boolean; // New prop
 }
 
-export const StoryReader: React.FC<StoryReaderProps> = ({ story, onClose, profile }) => {
+export const StoryReader: React.FC<StoryReaderProps> = ({ story, onClose, profile, audioEnabled = true }) => {
   const [currentPage, setCurrentPage] = useState(-1); // -1 is Cover
   const [isFlipping, setIsFlipping] = useState(false);
 
@@ -17,7 +18,8 @@ export const StoryReader: React.FC<StoryReaderProps> = ({ story, onClose, profil
   const language = profile.language;
 
   const speak = (text: string) => {
-    // Safety Check: Block if child has high sound sensitivity
+    // Safety Check: Block if child has high sound sensitivity OR audio off
+    if (!audioEnabled) return;
     if (profile.sensoryProfile.soundSensitivity === 'high') return;
 
     window.speechSynthesis.cancel();

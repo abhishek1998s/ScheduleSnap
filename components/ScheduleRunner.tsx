@@ -194,6 +194,7 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
                 step={currentStep} 
                 profile={profile} 
                 onComplete={handleNext}
+                audioEnabled={audioEnabled} // Passed here
             />
         ) : (
             <div className="h-full overflow-y-auto w-full">

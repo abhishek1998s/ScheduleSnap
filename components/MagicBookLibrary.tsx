@@ -11,9 +11,10 @@ interface MagicBookLibraryProps {
   onSaveStory: (story: StoryBook) => void;
   onDeleteStory: (id: string) => void;
   onExit: () => void;
+  audioEnabled?: boolean; // New prop
 }
 
-export const MagicBookLibrary: React.FC<MagicBookLibraryProps> = ({ stories, profile, onSaveStory, onDeleteStory, onExit }) => {
+export const MagicBookLibrary: React.FC<MagicBookLibraryProps> = ({ stories, profile, onSaveStory, onDeleteStory, onExit, audioEnabled = true }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [topic, setTopic] = useState('');
   const [concern, setConcern] = useState('');
@@ -46,6 +47,7 @@ export const MagicBookLibrary: React.FC<MagicBookLibraryProps> = ({ stories, pro
                 story={readingStory} 
                 onClose={() => setReadingStory(null)} 
                 profile={profile}
+                audioEnabled={audioEnabled} // Passed here
             />
         )}
 

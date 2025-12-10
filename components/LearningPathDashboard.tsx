@@ -10,6 +10,7 @@ interface LearningPathDashboardProps {
   paths: LearningPath[];
   onUpdatePath: (path: LearningPath) => void;
   onExit: () => void;
+  audioEnabled?: boolean; // New prop
 }
 
 const AREAS = [
@@ -20,7 +21,7 @@ const AREAS = [
     { id: 'Safety', icon: 'fa-shield-halved', color: 'bg-orange-500' },
 ];
 
-export const LearningPathDashboard: React.FC<LearningPathDashboardProps> = ({ profile, paths, onUpdatePath, onExit }) => {
+export const LearningPathDashboard: React.FC<LearningPathDashboardProps> = ({ profile, paths, onUpdatePath, onExit, audioEnabled = true }) => {
   const [activeArea, setActiveArea] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
@@ -75,6 +76,7 @@ export const LearningPathDashboard: React.FC<LearningPathDashboardProps> = ({ pr
             profile={profile} 
             onComplete={handleLessonComplete} 
             onExit={() => setActiveLesson(null)} 
+            audioEnabled={audioEnabled} // Passed here
           />
       );
   }
