@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Schedule, ChildProfile } from '../types';
+import { Schedule, ChildProfile, ScheduleStep } from '../types';
 import { generateMicroSteps } from '../services/geminiService';
 import { t } from '../utils/translations';
 
@@ -9,9 +9,10 @@ interface PreviewScheduleProps {
   profile: ChildProfile;
   onSave: (schedule: Omit<Schedule, 'id' | 'createdAt'>) => void;
   onCancel: () => void;
+  isEditing?: boolean;
 }
 
-export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, profile, onSave, onCancel }) => {
+export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, profile, onSave, onCancel, isEditing }) => {
   const [localSchedule, setLocalSchedule] = useState(schedule);
   const [loadingStepId, setLoadingStepId] = useState<string | null>(null);
   const lang = profile.language;
@@ -42,11 +43,48 @@ export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, prof
     }
   };
 
+  const handleStepChange = (index: number, field: keyof ScheduleStep, value: string) => {
+      const newSteps = [...localSchedule.steps];
+      // @ts-ignore
+      newSteps[index][field] = value;
+      setLocalSchedule({ ...localSchedule, steps: newSteps });
+  };
+
+  const moveStep = (index: number, direction: 'up' | 'down') => {
+      const newSteps = [...localSchedule.steps];
+      if (direction === 'up' && index > 0) {
+          [newSteps[index], newSteps[index - 1]] = [newSteps[index - 1], newSteps[index]];
+      } else if (direction === 'down' && index < newSteps.length - 1) {
+          [newSteps[index], newSteps[index + 1]] = [newSteps[index + 1], newSteps[index]];
+      }
+      setLocalSchedule({ ...localSchedule, steps: newSteps });
+  };
+
+  const deleteStep = (index: number) => {
+      if (confirm('Delete this step?')) {
+          const newSteps = localSchedule.steps.filter((_, i) => i !== index);
+          setLocalSchedule({ ...localSchedule, steps: newSteps });
+      }
+  };
+
+  const addStep = () => {
+      const newStep: ScheduleStep = {
+          id: `manual-${Date.now()}`,
+          emoji: '✨',
+          instruction: 'New Step',
+          encouragement: 'You can do it!',
+          completed: false
+      };
+      setLocalSchedule({ ...localSchedule, steps: [...localSchedule.steps, newStep] });
+  };
+
   return (
     <div className="flex flex-col h-full bg-background">
-      <div className="bg-white p-4 shadow-sm border-b flex justify-between items-center">
+      <div className="bg-white p-4 shadow-sm border-b flex justify-between items-center shrink-0">
         <button onClick={onCancel} className="text-gray-500">{t(lang, 'cancel')}</button>
-        <h2 className="font-bold text-lg text-gray-700">{t(lang, 'previewRoutine')}</h2>
+        <h2 className="font-bold text-lg text-gray-700">
+            {isEditing ? t(lang, 'editRoutine') : t(lang, 'previewRoutine')}
+        </h2>
         <div className="w-10"></div>
       </div>
 
@@ -61,7 +99,8 @@ export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, prof
                 <input 
                     value={localSchedule.title}
                     onChange={(e) => setLocalSchedule({...localSchedule, title: e.target.value})}
-                    className="text-2xl font-bold text-gray-800 text-center bg-transparent border-b-2 border-transparent focus:border-primary outline-none"
+                    className="text-2xl font-bold text-gray-800 text-center bg-transparent border-b-2 border-transparent focus:border-primary outline-none w-full"
+                    placeholder="Routine Title"
                 />
                 
                 <div className="flex items-center gap-2 bg-gray-100 px-3 py-1 rounded-lg">
@@ -92,51 +131,46 @@ export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, prof
             )}
             
             {/* Social Story */}
-            {localSchedule.socialStory && (
-                <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-100 text-left">
-                    <h3 className="text-yellow-800 font-bold text-sm uppercase mb-1 flex items-center gap-2">
-                        <i className="fa-solid fa-book-open"></i> {t(lang, 'socialStory')}
-                    </h3>
-                    <p className="text-yellow-900 font-medium leading-relaxed">
-                        {localSchedule.socialStory}
-                    </p>
-                </div>
-            )}
+            <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-100 text-left">
+                <h3 className="text-yellow-800 font-bold text-sm uppercase mb-1 flex items-center gap-2">
+                    <i className="fa-solid fa-book-open"></i> {t(lang, 'socialStory')}
+                </h3>
+                <textarea 
+                    value={localSchedule.socialStory}
+                    onChange={(e) => setLocalSchedule({...localSchedule, socialStory: e.target.value})}
+                    className="w-full bg-transparent text-yellow-900 font-medium leading-relaxed outline-none resize-none min-h-[60px]"
+                />
+            </div>
         </div>
 
         <div className="space-y-4">
             {localSchedule.steps.map((step, index) => (
-                <div key={index} className="bg-white p-4 rounded-2xl shadow-sm relative overflow-hidden">
-                    {/* Sensory Tip Marker */}
-                    {step.sensoryTip && (
-                        <div className="absolute top-0 right-0 bg-yellow-100 text-yellow-700 px-2 py-1 text-[10px] font-bold rounded-bl-lg">
-                            <i className="fa-solid fa-hand-sparkles mr-1"></i> {step.sensoryTip}
-                        </div>
-                    )}
+                <div key={index} className="bg-white p-4 rounded-2xl shadow-sm relative overflow-hidden group border border-transparent hover:border-gray-200">
                     
-                    <div className="flex items-start gap-4">
-                        <div className="text-3xl bg-gray-50 w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0">
-                            {step.emoji}
+                    <div className="flex items-start gap-3">
+                        {/* Emoji Input */}
+                        <div className="relative">
+                            <input 
+                                value={step.emoji}
+                                onChange={(e) => handleStepChange(index, 'emoji', e.target.value)}
+                                className="text-3xl bg-gray-50 w-12 h-12 rounded-xl flex items-center justify-center text-center outline-none focus:ring-2 focus:ring-primary/20"
+                            />
                         </div>
-                        <div className="flex-1">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <h4 className="font-bold text-gray-800">{step.instruction}</h4>
-                                    <p className="text-sm text-primary italic font-bold">"{step.encouragement}"</p>
-                                </div>
-                                <button 
-                                    onClick={() => handleMagicWand(index)}
-                                    disabled={loadingStepId === step.id || (step.subSteps && step.subSteps.length > 0)}
-                                    className={`p-2 rounded-full transition-all ${step.subSteps?.length ? 'bg-purple-100 text-purple-400' : 'bg-purple-100 text-purple-600 hover:scale-110 active:scale-95'}`}
-                                    title="Breakdown step with AI"
-                                >
-                                    {loadingStepId === step.id ? (
-                                        <i className="fa-solid fa-circle-notch fa-spin"></i>
-                                    ) : (
-                                        <i className="fa-solid fa-wand-magic-sparkles"></i>
-                                    )}
-                                </button>
-                            </div>
+
+                        {/* Text Inputs */}
+                        <div className="flex-1 space-y-1">
+                            <input 
+                                value={step.instruction}
+                                onChange={(e) => handleStepChange(index, 'instruction', e.target.value)}
+                                className="font-bold text-gray-800 w-full outline-none border-b border-transparent focus:border-gray-200 placeholder-gray-300"
+                                placeholder="Step Instruction"
+                            />
+                            <input
+                                value={step.encouragement}
+                                onChange={(e) => handleStepChange(index, 'encouragement', e.target.value)}
+                                className="text-sm text-primary italic font-bold w-full outline-none border-b border-transparent focus:border-primary/20 placeholder-primary/30"
+                                placeholder="Encouragement phrase"
+                            />
                             
                             {step.subSteps && step.subSteps.length > 0 && (
                                 <div className="mt-3 pl-2 border-l-2 border-purple-200 space-y-1">
@@ -149,13 +183,61 @@ export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, prof
                                 </div>
                             )}
                         </div>
+
+                        {/* Controls */}
+                        <div className="flex flex-col gap-1 items-center">
+                            <button 
+                                onClick={() => moveStep(index, 'up')}
+                                disabled={index === 0}
+                                className="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-100 disabled:opacity-30 text-gray-500 flex items-center justify-center text-xs transition-colors"
+                            >
+                                <i className="fa-solid fa-arrow-up"></i>
+                            </button>
+                            <button 
+                                onClick={() => moveStep(index, 'down')}
+                                disabled={index === localSchedule.steps.length - 1}
+                                className="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-100 disabled:opacity-30 text-gray-500 flex items-center justify-center text-xs transition-colors"
+                            >
+                                <i className="fa-solid fa-arrow-down"></i>
+                            </button>
+                        </div>
                     </div>
+
+                    {/* Footer Actions */}
+                    <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-50">
+                        <button 
+                            onClick={() => handleMagicWand(index)}
+                            disabled={loadingStepId === step.id || (step.subSteps && step.subSteps.length > 0)}
+                            className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1 ${step.subSteps?.length ? 'bg-purple-50 text-purple-300' : 'bg-purple-100 text-purple-600 hover:bg-purple-200'}`}
+                        >
+                            {loadingStepId === step.id ? (
+                                <><i className="fa-solid fa-circle-notch fa-spin"></i> Breaking down...</>
+                            ) : (
+                                <><i className="fa-solid fa-wand-magic-sparkles"></i> AI Breakdown</>
+                            )}
+                        </button>
+
+                        <button 
+                            onClick={() => deleteStep(index)}
+                            className="w-8 h-8 rounded-full hover:bg-red-50 text-red-400 hover:text-red-500 flex items-center justify-center transition-colors"
+                        >
+                            <i className="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+
                 </div>
             ))}
+            
+            <button 
+                onClick={addStep}
+                className="w-full py-4 border-2 border-dashed border-gray-300 rounded-2xl text-gray-400 font-bold hover:border-gray-400 hover:text-gray-500 hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
+            >
+                <i className="fa-solid fa-plus"></i> Add Step
+            </button>
         </div>
 
         {/* Celebration Message */}
-        <div className="mt-4 bg-green-50 p-4 rounded-xl border border-green-100">
+        <div className="mt-6 bg-green-50 p-4 rounded-xl border border-green-100">
             <h3 className="text-green-800 font-bold text-sm uppercase mb-1 flex items-center gap-2">
                 <i className="fa-solid fa-trophy"></i> {t(lang, 'celebrationMessage')}
             </h3>
@@ -169,12 +251,12 @@ export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, prof
 
       </div>
 
-      <div className="p-4 bg-white border-t flex gap-4">
+      <div className="p-4 bg-white border-t flex gap-4 shrink-0">
         <button 
             onClick={() => onSave(localSchedule)}
-            className="w-full py-4 bg-primary text-white rounded-xl font-bold shadow-lg flex items-center justify-center gap-2"
+            className="w-full py-4 bg-primary text-white rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 hover:bg-secondary transition-colors"
         >
-            <i className="fa-solid fa-check"></i> {t(lang, 'saveStart')}
+            <i className="fa-solid fa-check"></i> {isEditing ? t(lang, 'saveChanges') : t(lang, 'saveStart')}
         </button>
       </div>
     </div>
