@@ -502,7 +502,7 @@ const App: React.FC = () => {
       </a>
 
       {/* Voice Companion */}
-      {state.view !== ViewState.COACH && state.view !== ViewState.CAMERA && state.view !== ViewState.KIDS_BUILDER && state.view !== ViewState.MAGIC_BOOKS && state.view !== ViewState.PARENT_INBOX && state.view !== ViewState.THERAPY && state.view !== ViewState.LEARNING && state.view !== ViewState.SCANNER && state.view !== ViewState.OPTIMIZER && audioEnabled && (
+      {state.view !== ViewState.COACH && state.view !== ViewState.CAMERA && state.view !== ViewState.KIDS_BUILDER && state.view !== ViewState.MAGIC_BOOKS && state.view !== ViewState.PARENT_INBOX && state.view !== ViewState.THERAPY && state.view !== ViewState.LEARNING && state.view !== ViewState.SCANNER && state.view !== ViewState.OPTIMIZER && (
           <VoiceCompanion 
               profile={state.profile}
               currentView={state.view}
