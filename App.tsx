@@ -321,14 +321,6 @@ const App: React.FC = () => {
                 </div>
             </div>
           </div>
-          
-          <button 
-            onClick={() => setState(s => ({...s, isAACOpen: true}))}
-            className={`fixed bottom-6 right-6 w-16 h-16 rounded-full flex items-center justify-center active:scale-90 transition-transform z-50 ${state.isHighContrast ? 'bg-yellow-400 text-black border-4 border-white' : 'bg-white shadow-2xl text-gray-700'}`}
-            style={{ boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)' }}
-          >
-             <i className="fa-regular fa-comment-dots text-3xl"></i>
-          </button>
         </div>
       )}
 
@@ -345,6 +337,18 @@ const App: React.FC = () => {
       {state.view === ViewState.STORE && <RewardStore tokens={state.tokens} profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} onRedeem={(cost) => setState(prev => ({ ...prev, tokens: prev.tokens - cost }))} />}
       {state.view === ViewState.COACH && <LiveVoiceCoach profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} />}
       {(state.view === ViewState.CALM) && <CalmMode onExit={() => navigateTo(ViewState.HOME)} language={lang} />}
+      
+      {state.view !== ViewState.CAMERA && state.view !== ViewState.CALM && !state.isAACOpen && (
+        <button 
+            onClick={() => setState(s => ({...s, isAACOpen: true}))}
+            className={`fixed bottom-6 right-6 w-16 h-16 rounded-full flex items-center justify-center active:scale-90 transition-transform z-50 ${state.isHighContrast ? 'bg-yellow-400 text-black border-4 border-white' : 'bg-blue-600 shadow-2xl text-white border-2 border-white'}`}
+            style={{ boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)' }}
+            aria-label="Open Communication Board"
+        >
+             <i className="fa-solid fa-comment-dots text-3xl"></i>
+        </button>
+      )}
+
       <AACBoard 
         isOpen={state.isAACOpen} 
         onClose={() => setState(s => ({...s, isAACOpen: false}))} 

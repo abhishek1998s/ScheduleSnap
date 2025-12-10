@@ -36,9 +36,6 @@ export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, c
   };
 
   const getButtons = (cat: AACCategoryType): AACButton[] => {
-      const base: AACButton[] = [];
-      const id = (s: string) => s;
-      
       switch(cat) {
           case 'Core':
               return [
@@ -134,43 +131,47 @@ export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, c
           // Render Scene Selection
           if (!activeScene) {
              return (
-                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4">
-                     {SCENES.map(scene => (
-                         <button 
-                            key={scene.id}
-                            onClick={() => {
-                                speak(`${t(language, 'aacIWantToGoTo')} ${scene.name}`);
-                                setActiveScene(scene);
-                            }}
-                            className="aspect-square bg-white rounded-2xl shadow-md border-2 border-gray-100 flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform"
-                         >
-                             <span className="text-6xl">{scene.emoji}</span>
-                             <span className="font-bold text-lg text-gray-700">{scene.name}</span>
-                         </button>
-                     ))}
+                 <div className="h-full overflow-y-auto p-4 pb-24">
+                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        {SCENES.map(scene => (
+                            <button 
+                                key={scene.id}
+                                onClick={() => {
+                                    speak(`${t(language, 'aacIWantToGoTo')} ${scene.name}`);
+                                    setActiveScene(scene);
+                                }}
+                                className="aspect-square bg-white rounded-2xl shadow-md border-2 border-gray-100 flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform"
+                            >
+                                <span className="text-6xl">{scene.emoji}</span>
+                                <span className="font-bold text-lg text-gray-700">{scene.name}</span>
+                            </button>
+                        ))}
+                     </div>
                  </div>
              );
           } else {
              // Render Active Scene Vocabulary
              return (
                  <div className="flex flex-col h-full">
-                     <div className="p-2 border-b flex items-center gap-2 bg-gray-50">
-                         <button onClick={() => setActiveScene(null)} className="px-3 py-1 bg-white border rounded-lg text-sm font-bold">
+                     <div className="p-2 border-b flex items-center gap-2 bg-gray-50 shrink-0">
+                         <button onClick={() => setActiveScene(null)} className="px-3 py-1 bg-white border rounded-lg text-sm font-bold shadow-sm">
                              <i className="fa-solid fa-arrow-left mr-1"></i> Back
                          </button>
-                         <span className="font-bold">{activeScene.emoji} {activeScene.name}</span>
+                         <span className="font-bold text-lg">{activeScene.emoji} {activeScene.name}</span>
                      </div>
-                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-4 overflow-y-auto">
-                         {activeScene.vocabulary.map(btn => (
-                             <button
-                                 key={btn.id}
-                                 onClick={() => speak(btn.voice)}
-                                 className={`${btn.color} text-white p-2 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-md active:scale-95 transition-transform aspect-square`}
-                             >
-                                 <span className="text-4xl">{btn.emoji}</span>
-                                 <span className="font-bold text-sm text-center leading-tight">{btn.label}</span>
-                             </button>
-                         ))}
+                     <div className="h-full overflow-y-auto p-4 pb-24">
+                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                            {activeScene.vocabulary.map(btn => (
+                                <button
+                                    key={btn.id}
+                                    onClick={() => speak(btn.voice)}
+                                    className={`${btn.color} text-white p-2 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-md active:scale-95 transition-transform aspect-square`}
+                                >
+                                    <span className="text-4xl">{btn.emoji}</span>
+                                    <span className="font-bold text-sm text-center leading-tight w-full break-words">{btn.label}</span>
+                                </button>
+                            ))}
+                         </div>
                      </div>
                  </div>
              );
@@ -180,43 +181,45 @@ export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, c
       }
 
       return (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 p-4 pb-20 overflow-y-auto">
-            {btns.map(btn => (
-                <button
-                    key={btn.id}
-                    onClick={() => speak(btn.voice)}
-                    className={`${btn.color} text-white p-2 rounded-2xl flex flex-col items-center justify-center gap-2 shadow-md active:scale-95 transition-transform aspect-square`}
-                >
-                    <span className="text-4xl sm:text-5xl">{btn.emoji}</span>
-                    <span className="font-bold text-sm sm:text-lg text-center leading-tight">{btn.label}</span>
-                </button>
-            ))}
-            
-            {activeCategory === 'Custom' && (
-                <div className="aspect-square bg-gray-100 rounded-2xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center gap-2 p-2">
-                    <input 
-                        type="text" 
-                        value={newButtonLabel}
-                        onChange={(e) => setNewButtonLabel(e.target.value)}
-                        placeholder={t(language, 'enterWord')}
-                        className="w-full text-center p-1 bg-white rounded border text-sm"
-                        disabled={isAdding}
-                    />
-                    <button 
-                        onClick={handleCreateCustom}
-                        disabled={!newButtonLabel || isAdding}
-                        className="w-full bg-gray-800 text-white py-1 rounded-lg text-xs font-bold"
+        <div className="h-full overflow-y-auto p-4 pb-24">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                {btns.map(btn => (
+                    <button
+                        key={btn.id}
+                        onClick={() => speak(btn.voice)}
+                        className={`${btn.color} text-white p-2 rounded-2xl flex flex-col items-center justify-center gap-2 shadow-md active:scale-95 transition-transform aspect-square`}
                     >
-                        {isAdding ? <i className="fa-solid fa-circle-notch fa-spin"></i> : <i className="fa-solid fa-plus"></i>} {t(language, 'addCustom')}
+                        <span className="text-4xl sm:text-5xl">{btn.emoji}</span>
+                        <span className="font-bold text-sm sm:text-base text-center leading-tight break-words w-full">{btn.label}</span>
                     </button>
-                </div>
-            )}
+                ))}
+                
+                {activeCategory === 'Custom' && (
+                    <div className="aspect-square bg-gray-100 rounded-2xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center gap-2 p-2">
+                        <input 
+                            type="text" 
+                            value={newButtonLabel}
+                            onChange={(e) => setNewButtonLabel(e.target.value)}
+                            placeholder={t(language, 'enterWord')}
+                            className="w-full text-center p-1 bg-white rounded border text-sm"
+                            disabled={isAdding}
+                        />
+                        <button 
+                            onClick={handleCreateCustom}
+                            disabled={!newButtonLabel || isAdding}
+                            className="w-full bg-gray-800 text-white py-2 rounded-lg text-xs font-bold"
+                        >
+                            {isAdding ? <i className="fa-solid fa-circle-notch fa-spin"></i> : <i className="fa-solid fa-plus"></i>} {t(language, 'addCustom')}
+                        </button>
+                    </div>
+                )}
+            </div>
         </div>
       );
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-white sm:inset-4 sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-slideUp">
+    <div className="fixed inset-0 z-[60] bg-white sm:inset-4 sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-slideUp border border-gray-100">
         {/* Header */}
         <div className="bg-gray-100 p-3 flex justify-between items-center border-b shrink-0">
           <h2 className="text-lg font-bold text-gray-700 flex items-center gap-2">
@@ -224,7 +227,7 @@ export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, c
           </h2>
           <button 
             onClick={onClose}
-            className="w-8 h-8 bg-gray-300 rounded-full hover:bg-red-100 hover:text-red-500 transition-colors flex items-center justify-center"
+            className="w-8 h-8 bg-white border border-gray-200 rounded-full hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors flex items-center justify-center shadow-sm"
           >
             <i className="fa-solid fa-times"></i>
           </button>
