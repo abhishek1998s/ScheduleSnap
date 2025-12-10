@@ -38,7 +38,7 @@ export const generateScheduleFromImage = async (
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-pro-preview',
       contents: {
         parts: [
           { inlineData: { mimeType, data: base64 } },
@@ -104,7 +104,7 @@ export const generateMicroSteps = async (instruction: string, profile: ChildProf
     if (!process.env.API_KEY) return ["Step 1", "Step 2", "Step 3"];
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview',
             contents: `Break down the task "${instruction}" into 3-5 very simple micro-steps for a ${profile.age} year old.`,
             config: {
                 responseMimeType: "application/json",
@@ -119,7 +119,7 @@ export const predictMeltdownRisk = async (profile: ChildProfile, behaviorLogs: B
     if (!process.env.API_KEY || behaviorLogs.length === 0) return { riskLevel: 'low', confidence: 0, timeEstimate: '', riskFactors: [], preventionStrategies: [], recommendedAction: 'monitor' };
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview',
             contents: `Analyze risk of meltdown. Profile: ${JSON.stringify(profile)}. Behaviors: ${JSON.stringify(behaviorLogs.slice(-5))}. Context: ${scheduleContext || 'Free'}.`,
             config: {
                 responseMimeType: "application/json",
@@ -145,7 +145,7 @@ export const analyzeBehaviorLogs = async (logs: BehaviorLog[], profile: ChildPro
     if (!process.env.API_KEY) return getMockAnalysis();
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview',
             contents: `Analyze these behavior logs for patterns and triggers for a ${profile.age} year old: ${JSON.stringify(logs)}`,
             config: {
                 responseMimeType: "application/json",
@@ -168,7 +168,7 @@ export const analyzeBehaviorVideo = async (base64: string, profile: ChildProfile
     if (!process.env.API_KEY) return getMockAnalysis();
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview',
             contents: { parts: [{ inlineData: { mimeType, data: base64 } }, { text: "Analyze video for behavioral triggers." }] },
             config: {
                 responseMimeType: "application/json",
@@ -191,7 +191,7 @@ export const generateWeeklyReport = async (moods: MoodEntry[], behaviors: Behavi
     if (!process.env.API_KEY) return { summary: "Great week!", improvements: [], concerns: [], wins: [] };
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview',
             contents: `Generate report. Moods: ${JSON.stringify(moods)}. Behaviors: ${JSON.stringify(behaviors)}.`,
             config: {
                 responseMimeType: "application/json",
@@ -214,7 +214,7 @@ export const generateScheduleOptimization = async (schedule: Schedule, behaviorL
     if (!process.env.API_KEY) return getMockOptimization(schedule);
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview',
             contents: `Optimize schedule. Schedule: ${JSON.stringify(schedule)}. Logs: ${JSON.stringify(behaviorLogs)}.`,
             config: {
                 responseMimeType: "application/json",
@@ -237,7 +237,7 @@ export const analyzeTherapySession = async (mediaBase64: string, mimeType: strin
     if (!process.env.API_KEY) return { duration: 15, summary: "Mock session analysis.", techniquesObserved: [], breakthroughMoments: [], challengingMoments: [], homePractice: [], progressComparedToLastSession: "Stable" };
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview',
             contents: { parts: [{ inlineData: { mimeType, data: mediaBase64 } }, { text: "Analyze therapy session." }] },
             config: {
                 responseMimeType: "application/json",
@@ -263,7 +263,7 @@ export const generateLearningPath = async (profile: ChildProfile, skillArea: str
     if (!process.env.API_KEY) return { id: 'mock', skillArea, currentLevel: 1, progress: 0, colorTheme: 'blue', lessons: [] };
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview',
             contents: `Create learning path for ${skillArea} for ${profile.age}yo.`,
             config: {
                 responseMimeType: "application/json",
@@ -283,7 +283,7 @@ export const generateLessonContent = async (lesson: Lesson, profile: ChildProfil
     if (!process.env.API_KEY) return { text: "Mock content" };
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview',
             contents: `Generate content for lesson ${lesson.title} (${lesson.type}).`,
             config: { responseMimeType: "application/json" }
         });
@@ -295,7 +295,7 @@ export const generateAACSymbol = async (label: string, language: string): Promis
     if (!process.env.API_KEY) return { id: 'mock', label, emoji: '🟦', voice: label, color: 'bg-blue-500', category: 'Custom' };
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview',
             contents: `Create AAC symbol for "${label}".`,
             config: {
                 responseMimeType: "application/json",
@@ -310,7 +310,7 @@ export const generateCopingStrategy = async (mood: string, profile: ChildProfile
     if (!process.env.API_KEY) return ["Breathe", "Hug"];
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview',
             contents: `Strategies for ${mood}.`,
             config: { responseMimeType: "application/json", responseSchema: { type: Type.ARRAY, items: { type: Type.STRING } } }
         });
@@ -322,7 +322,7 @@ export const generateEmotionQuiz = async (age: number, level: number, language: 
     if (!process.env.API_KEY) return getMockQuiz();
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview',
             contents: `Emotion quiz question. Level ${level}.`,
             config: {
                 responseMimeType: "application/json",
@@ -337,7 +337,7 @@ export const generateRewards = async (profile: ChildProfile, tokens: number): Pr
     if (!process.env.API_KEY) return getMockRewards();
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview',
             contents: `Suggest rewards.`,
             config: { responseMimeType: "application/json", responseSchema: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, name: { type: Type.STRING }, emoji: { type: Type.STRING }, cost: { type: Type.NUMBER } } } } }
         });
@@ -349,7 +349,7 @@ export const generateSocialScenario = async (age: number, language: string): Pro
     if (!process.env.API_KEY) return getMockScenario();
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview',
             contents: `Social scenario.`,
             config: {
                 responseMimeType: "application/json",
@@ -365,7 +365,7 @@ export const analyzeChildSpeech = async (audioBlob: Blob, profile: ChildProfile)
     try {
         const base64 = await blobToBase64(audioBlob);
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview',
             contents: { parts: [{ inlineData: { mimeType: 'audio/webm', data: base64 } }, { text: "Analyze speech." }] },
             config: {
                 responseMimeType: "application/json",
@@ -380,7 +380,7 @@ export const searchAutismResources = async (query: string, language: string): Pr
     if (!process.env.API_KEY) return { answer: "Mock answer", sources: [] };
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview',
             contents: `Search: ${query}`,
             config: { tools: [{ googleSearch: {} }] }
         });
@@ -392,7 +392,7 @@ export const analyzeRoutineFrame = async (base64: string, instruction: string, p
     if (!process.env.API_KEY) return { isOnTask: true, taskProgress: 50, isStuck: false, feedback: "Mock", completed: false };
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview',
             contents: { parts: [{ inlineData: { mimeType: 'image/jpeg', data: base64 } }, { text: `Analyze frame vs task: ${instruction}` }] },
             config: {
                 responseMimeType: "application/json",
@@ -407,7 +407,7 @@ export const generateCompanionComment = async (profile: ChildProfile, mode: Conv
     if (!process.env.API_KEY) return "Hello!";
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview',
             contents: `Robot friend comment. Mode: ${mode}. Context: ${JSON.stringify(context)}.`,
             config: { responseMimeType: "text/plain" }
         });
@@ -419,7 +419,7 @@ export const validateBuilderRoutine = async (steps: string[], profile: ChildProf
     if (!process.env.API_KEY) return { isValid: true, message: "Good job!", missingSteps: [] };
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview',
             contents: `Validate routine: ${steps.join(', ')}.`,
             config: { responseMimeType: "application/json", responseSchema: { type: Type.OBJECT, properties: { isValid: { type: Type.BOOLEAN }, message: { type: Type.STRING }, missingSteps: { type: Type.ARRAY, items: { type: Type.STRING } }, suggestedOrder: { type: Type.ARRAY, items: { type: Type.STRING } } } } }
         });
@@ -431,7 +431,7 @@ export const generateMagicStory = async (topic: string, concern: string, profile
     if (!process.env.API_KEY) return { id: 'mock', title: topic, topic, coverEmoji: '📖', pages: [], createdAt: Date.now() };
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview',
             contents: `Social story about ${topic}. Concern: ${concern}.`,
             config: {
                 responseMimeType: "application/json",
@@ -469,7 +469,7 @@ export const scanEnvironment = async (
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview',
             contents: {
                 parts: [
                     { inlineData: { mimeType: 'image/jpeg', data: frameBase64 } },

@@ -1,15 +1,18 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { t } from '../utils/translations';
+import { ChildProfile } from '../types';
 
 interface CameraCaptureProps {
   onImageSelected: (base64: string, mimeType: string) => void;
   onCancel: () => void;
   isLoading: boolean;
   language?: string;
+  audioEnabled?: boolean; // NEW
+  profile?: ChildProfile; // NEW
 }
 
-export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, onCancel, isLoading, language }) => {
+export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, onCancel, isLoading, language, audioEnabled = false, profile }) => {
   const [mode, setMode] = useState<'photo' | 'video'>('photo');
   const [preview, setPreview] = useState<string | null>(null);
   const [mimeType, setMimeType] = useState<string>('image/jpeg');
@@ -41,7 +44,14 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, o
     };
   }, []);
 
+  const shouldPlaySound = () => {
+      if (!audioEnabled) return false;
+      if (profile?.sensoryProfile?.soundSensitivity === 'high') return false;
+      return true;
+  };
+
   const playShutterSound = () => {
+    if (!shouldPlaySound()) return;
     try {
       const ctx = audioContextRef.current;
       if (!ctx) return;
@@ -70,6 +80,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, o
   };
 
   const playRecordSound = (isStarting: boolean) => {
+    if (!shouldPlaySound()) return;
     try {
       const ctx = audioContextRef.current;
       if (!ctx) return;
@@ -285,7 +296,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, o
     <div className="fixed inset-0 bg-black z-40 flex flex-col">
       {/* Header */}
       <div className="flex justify-between items-center p-4 text-white z-10 bg-gradient-to-b from-black/50 to-transparent">
-        <button onClick={onCancel} className="p-2 w-10 h-10 bg-black/20 rounded-full backdrop-blur-md flex items-center justify-center">
+        <button onClick={onCancel} className="p-3 w-12 h-12 bg-black/20 rounded-full backdrop-blur-md flex items-center justify-center" aria-label="Close Camera">
             <i className="fa-solid fa-times text-xl"></i>
         </button>
         <span className="font-bold text-lg drop-shadow-md">
@@ -346,14 +357,15 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, o
 
       {/* Controls */}
       {!isLoading && (
-        <div className="bg-black/80 backdrop-blur-sm p-8 flex justify-between items-center pb-12">
+        <div className="bg-black/80 backdrop-blur-sm p-4 sm:p-8 flex justify-between items-center pb-8 sm:pb-12">
           {!preview ? (
             <>
                {/* Upload Button */}
                <button 
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center text-white hover:bg-gray-700 active:scale-95 transition-transform"
+                  className="w-14 h-14 rounded-full bg-gray-800 flex items-center justify-center text-white hover:bg-gray-700 active:scale-95 transition-transform"
                   title="Upload Photo or Video"
+                  aria-label="Upload file"
                 >
                   <i className="fa-solid fa-folder-open text-xl"></i>
                 </button>
@@ -364,6 +376,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, o
                        <button 
                          onClick={handleCapturePhoto}
                          className="w-20 h-20 bg-white rounded-full border-4 border-gray-300 flex items-center justify-center active:bg-gray-200 shadow-lg transform active:scale-95 transition-transform"
+                         aria-label="Take Photo"
                        >
                          <div className="w-16 h-16 bg-primary rounded-full"></div>
                        </button>
@@ -371,6 +384,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, o
                        <button 
                          onClick={toggleRecording}
                          className={`w-20 h-20 rounded-full border-4 flex items-center justify-center shadow-lg transform active:scale-95 transition-transform ${isRecording ? 'border-red-500 bg-white' : 'border-white bg-red-500'}`}
+                         aria-label={isRecording ? "Stop Recording" : "Start Recording"}
                        >
                          <div className={`rounded-md transition-all ${isRecording ? 'w-8 h-8 bg-red-500' : 'w-8 h-8 bg-white rounded-full'}`}></div>
                        </button>
@@ -379,19 +393,19 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, o
                    <div className="w-20 h-20"></div> // Spacer
                )}
 
-               <div className="w-12"></div> {/* Spacer for symmetry */}
+               <div className="w-14"></div> {/* Spacer for symmetry */}
             </>
           ) : (
             <div className="flex w-full gap-4 justify-center">
               <button 
                 onClick={handleRetake}
-                className="px-6 py-3 bg-gray-700 text-white rounded-full font-bold flex items-center gap-2"
+                className="px-6 py-4 bg-gray-700 text-white rounded-full font-bold flex items-center gap-2"
               >
                 <i className="fa-solid fa-rotate-left"></i> {t(language, 'retake')}
               </button>
               <button 
                 onClick={handleConfirm}
-                className="px-8 py-3 bg-primary text-white rounded-full font-bold shadow-lg hover:bg-secondary flex items-center gap-2"
+                className="px-8 py-4 bg-primary text-white rounded-full font-bold shadow-lg hover:bg-secondary flex items-center gap-2"
               >
                 {t(language, 'generate')} <i className="fa-solid fa-magic"></i>
               </button>

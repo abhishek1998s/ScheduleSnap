@@ -327,8 +327,8 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language }) => {
   const getBgColor = () => {
       if (visual === 'Stars') return 'bg-[#0B1026] text-white';
       if (visual === 'Bubbles') return 'bg-blue-900 text-white';
-      if (visual === 'Waves') return 'bg-blue-50 text-blue-800';
-      return 'bg-[#C8E6C9] text-primary'; 
+      if (visual === 'Waves') return 'bg-blue-50 text-blue-900'; // Darker text for Waves
+      return 'bg-[#C8E6C9] text-gray-800'; // Darker text for Circle (default)
   };
 
   return (
@@ -337,7 +337,8 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language }) => {
       {/* Settings Toggle */}
       <button 
         onClick={() => setSettingsOpen(!settingsOpen)}
-        className="absolute top-6 left-6 bg-black/20 text-white p-3 rounded-full hover:bg-black/30 transition-colors z-30 backdrop-blur-md"
+        className="absolute top-6 left-6 bg-black/20 text-white p-4 rounded-full hover:bg-black/30 transition-colors z-30 backdrop-blur-md"
+        aria-label="Settings"
       >
         <i className="fa-solid fa-sliders"></i>
       </button>
@@ -345,7 +346,8 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language }) => {
       {/* Exit */}
       <button 
         onClick={onExit}
-        className="absolute top-6 right-6 bg-black/20 text-white p-3 rounded-full hover:bg-black/30 transition-colors z-30 backdrop-blur-md"
+        className="absolute top-6 right-6 bg-black/20 text-white p-4 rounded-full hover:bg-black/30 transition-colors z-30 backdrop-blur-md"
+        aria-label="Exit Calm Mode"
       >
         <i className="fa-solid fa-times text-2xl"></i>
       </button>

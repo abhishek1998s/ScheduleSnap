@@ -13,6 +13,7 @@ interface DashboardProps {
   voiceMessages: VoiceMessage[];
   isHighContrast: boolean;
   caregiverPin: string;
+  audioEnabled: boolean; // NEW
   onExit: () => void;
   onSelectSchedule: (id: string) => void;
   onDeleteSchedule: (id: string) => void;
@@ -22,16 +23,18 @@ interface DashboardProps {
   onLogBehavior: (log: Omit<BehaviorLog, 'id' | 'timestamp'>) => void;
   onUpdateProfile: (profile: ChildProfile) => void;
   onToggleHighContrast: () => void;
+  onToggleAudio: () => void; // NEW
   onUpdatePin: (newPin: string) => void;
   onMarkMessagesRead: () => void;
   parentMessages?: ParentMessage[];
   onScheduleMessage?: (msg: Omit<ParentMessage, 'id' | 'timestamp' | 'isDelivered' | 'isRead'>) => void;
-  onOpenTherapy?: () => void; // New prop
+  onOpenTherapy?: () => void;
+  onOpenOptimizer: (scheduleId: string) => void; // NEW
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
-  schedules, profile, moodLogs, behaviorLogs, completionLogs, voiceMessages, isHighContrast, caregiverPin, onExit, onSelectSchedule, onDeleteSchedule, onUpdateSchedule, onEditSchedule, onCreateCustom, onLogBehavior, onUpdateProfile, onToggleHighContrast, onUpdatePin, onMarkMessagesRead,
-  parentMessages = [], onScheduleMessage, onOpenTherapy
+  schedules, profile, moodLogs, behaviorLogs, completionLogs, voiceMessages, isHighContrast, caregiverPin, audioEnabled, onExit, onSelectSchedule, onDeleteSchedule, onUpdateSchedule, onEditSchedule, onCreateCustom, onLogBehavior, onUpdateProfile, onToggleHighContrast, onToggleAudio, onUpdatePin, onMarkMessagesRead,
+  parentMessages = [], onScheduleMessage, onOpenTherapy, onOpenOptimizer
 }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pin, setPin] = useState('');
@@ -52,10 +55,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [weeklyReport, setWeeklyReport] = useState<WeeklyReport | null>(null);
   const [generatingReport, setGeneratingReport] = useState(false);
 
-  // Agentic Optimization State
-  const [optimizingId, setOptimizingId] = useState<string | null>(null);
-  const [optimizationProposal, setOptimizationProposal] = useState<ScheduleOptimization | null>(null);
-
   // Profile Edit State
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editName, setEditName] = useState(profile.name);
@@ -72,11 +71,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Parent Message Scheduling State
   const [msgContent, setMsgContent] = useState('');
   const [msgTime, setMsgTime] = useState('');
-  // Added mimeType to state to preserve it
   const [msgMedia, setMsgMedia] = useState<{ base64: string, type: 'video' | 'audio', mimeType: string } | null>(null);
   const msgFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Goals (Simple local state for now)
+  // Goals
   const [goals, setGoals] = useState([
       { id: 1, text: "Complete Morning Routine 5x", target: 5, current: 0, icon: "fa-sun", badge: "Morning Star" },
       { id: 2, text: "Log Mood daily", target: 7, current: 0, icon: "fa-face-smile", badge: "Emotion Explorer" }
@@ -152,26 +150,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
       }
   };
 
-  const handleOptimizeRequest = async (schedule: Schedule) => {
-    setOptimizingId(schedule.id);
-    try {
-        const proposal = await generateScheduleOptimization(schedule, behaviorLogs, completionLogs, profile);
-        setOptimizationProposal(proposal);
-    } catch (e) {
-        alert("Optimization failed. Please try again.");
-    } finally {
-        setOptimizingId(null);
-    }
-  };
-
-  const applyOptimization = () => {
-      if (optimizationProposal) {
-          onUpdateSchedule(optimizationProposal.optimizedSchedule);
-          setOptimizationProposal(null);
-          alert('Optimization applied successfully!');
-      }
-  };
-
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -180,7 +158,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
         reader.onloadend = async () => {
             const base64 = (reader.result as string).split(',')[1];
             try {
-                // Pass mimeType to service
                 const result = await analyzeBehaviorVideo(base64, profile, file.type);
                 setAnalysis(result);
             } catch (error) {
@@ -200,7 +177,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
           reader.onloadend = () => {
               const base64 = (reader.result as string).split(',')[1];
               const type = file.type.startsWith('video') ? 'video' : 'audio';
-              // Save mimeType explicitly
               setMsgMedia({ base64, type, mimeType: file.type });
           };
           reader.readAsDataURL(file);
@@ -216,7 +192,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               content,
               type: msgMedia ? msgMedia.type : 'text',
               mediaBase64: msgMedia?.base64,
-              mimeType: msgMedia?.mimeType, // Pass mimeType
+              mimeType: msgMedia?.mimeType,
               scheduledTime: msgTime || undefined
           });
           
@@ -244,48 +220,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
     setIsEditingProfile(false);
   };
 
-  const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newLang = e.target.value;
-    onUpdateProfile({
-        ...profile,
-        language: newLang
-    });
-    setEditLanguage(newLang);
-  };
-
-  const handleChangePin = () => {
-      if (newPinInput.length === 4 && /^\d+$/.test(newPinInput)) {
-          onUpdatePin(newPinInput);
-          setNewPinInput('');
-          alert('PIN Updated Successfully');
-      } else {
-          alert('PIN must be 4 digits');
-      }
-  };
-
-  const speakText = (text: string) => {
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    const langCode = profile.language === 'Spanish' ? 'es-ES' : profile.language === 'Hindi' ? 'hi-IN' : 'en-US';
-    u.lang = langCode;
-    window.speechSynthesis.speak(u);
-  };
-
   const unreadCount = voiceMessages.filter(m => !m.read).length;
 
   const getMoodPoints = () => {
     const logs = moodLogs.slice(-7);
     if (logs.length < 2) return "0,50 100,50";
-
     const moods = logs.map((l, i) => {
         let val = 3;
         if(l.mood === 'Happy') val = 5;
         else if(l.mood === 'Okay') val = 3;
         else if(l.mood === 'Tired') val = 2;
-        else val = 1; // Sad, Angry, Scared
-        
+        else val = 1;
         const x = (i / (logs.length - 1)) * 100;
-        const y = 100 - (val * 20); // 5->0, 1->80 roughly
+        const y = 100 - (val * 20);
         return `${x},${y}`;
     }).join(' ');
     return moods;
@@ -300,41 +247,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
       return Object.entries(counts).map(([name, count]) => ({
           name, count, percent: (count / max) * 100
       })).sort((a,b) => b.count - a.count);
-  };
-
-  const getTimeOfDayStats = () => {
-      const buckets = { Morning: 0, Midday: 0, Evening: 0, Night: 0 };
-      behaviorLogs.forEach(l => {
-          const h = new Date(l.timestamp).getHours();
-          if (h >= 5 && h < 11) buckets.Morning++;
-          else if (h >= 11 && h < 17) buckets.Midday++;
-          else if (h >= 17 && h < 22) buckets.Evening++;
-          else buckets.Night++;
-      });
-      const max = Math.max(...Object.values(buckets), 1);
-      return Object.entries(buckets).map(([time, count]) => ({
-          time, count, height: (count / max) * 100
-      }));
-  };
-
-  const getCompletionDistribution = () => {
-      const counts: Record<string, number> = {};
-      let total = 0;
-      completionLogs.forEach(l => {
-          const matchedSchedule = schedules.find(s => s.id === l.scheduleId);
-          const type = matchedSchedule ? matchedSchedule.type : 'General';
-          counts[type] = (counts[type] || 0) + 1;
-          total++;
-      });
-      let currentPercent = 0;
-      const segments = Object.entries(counts).map(([type, count], index) => {
-          const percent = (count / total) * 100;
-          const start = currentPercent;
-          currentPercent += percent;
-          const colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
-          return { type, count, percent, color: colors[index % colors.length], start };
-      });
-      return { total, segments };
   };
 
   if (!isAuthenticated) {
@@ -393,10 +305,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
   return (
     <div className={`flex flex-col h-full ${isHighContrast ? 'bg-black text-yellow-300' : 'bg-background'}`}>
         <div className={`${isHighContrast ? 'bg-gray-900 border-gray-700' : 'bg-white'} p-4 shadow-sm flex items-center gap-4`}>
-            <button onClick={onExit} className="p-2 hover:bg-gray-100 rounded-full">
+            <button onClick={onExit} className="p-3 hover:bg-gray-100 rounded-full" aria-label="Exit Dashboard">
                 <i className="fa-solid fa-arrow-left"></i>
             </button>
             <h1 className="text-xl font-bold">{t(lang, 'dashboard')}</h1>
+            {/* Audio Toggle */}
+            <button 
+                onClick={onToggleAudio}
+                className={`ml-auto px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 ${audioEnabled ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
+                aria-label={audioEnabled ? "Mute Audio" : "Enable Audio"}
+            >
+                {audioEnabled ? <><i className="fa-solid fa-volume-high"></i> ON</> : <><i className="fa-solid fa-volume-xmark"></i> OFF</>}
+            </button>
         </div>
 
         {/* Tabs */}
@@ -427,10 +347,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         <div className="flex-1 overflow-y-auto p-4 space-y-6">
             
-            {/* ... Existing tabs (overview, routines, analytics, behavior) remain unchanged ... */}
             {activeTab === 'overview' && (
                 <>
-                    {/* Therapy Access Card - NEW */}
+                    {/* Therapy Access Card */}
                     {onOpenTherapy && (
                         <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg mb-6 flex items-center justify-between">
                             <div>
@@ -445,6 +364,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             </button>
                         </div>
                     )}
+                    
+                    {/* Weekly Report Section */}
+                     <div className="bg-blue-50 p-4 rounded-2xl border border-blue-200">
+                         <div className="flex justify-between items-center mb-3">
+                             <h3 className="font-bold text-blue-800">Weekly AI Insights</h3>
+                             <button 
+                                onClick={handleGenerateReport}
+                                disabled={generatingReport}
+                                className="bg-white text-blue-600 px-3 py-1 rounded-lg text-sm font-bold shadow-sm"
+                             >
+                                 {generatingReport ? 'Generating...' : 'Generate Report'}
+                             </button>
+                         </div>
+                         {weeklyReport && (
+                             <div className="bg-white p-4 rounded-xl text-sm space-y-2">
+                                 <p className="font-medium text-gray-800">{weeklyReport.summary}</p>
+                                 <div><span className="font-bold text-green-600">Wins:</span> {weeklyReport.wins.join(', ')}</div>
+                                 <div><span className="font-bold text-orange-600">Focus:</span> {weeklyReport.concerns.join(', ')}</div>
+                             </div>
+                         )}
+                     </div>
 
                     <div className={`${isHighContrast ? 'bg-gray-900 border-2 border-yellow-400' : 'bg-white border-gray-100'} p-6 rounded-2xl shadow-sm border`}>
                         <div className="flex justify-between items-start mb-4">
@@ -452,6 +392,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                              <button 
                                 onClick={() => setIsEditingProfile(!isEditingProfile)}
                                 className={`${isHighContrast ? 'text-yellow-300' : 'text-primary'} text-sm font-bold`}
+                                aria-label="Edit Profile"
                              >
                                 {isEditingProfile ? t(lang, 'cancel') : t(lang, 'edit')}
                              </button>
@@ -528,7 +469,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </>
             )}
 
-            {/* ... Rest of tabs remain identical ... */}
             {activeTab === 'routines' && (
                 <div className="space-y-4">
                     <button 
@@ -551,52 +491,37 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 <div className="flex gap-2">
                                     <button 
                                         onClick={() => onEditSchedule(schedule.id)} 
-                                        className="text-blue-500 p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                                        className="text-blue-500 p-3 hover:bg-blue-50 rounded-lg transition-colors"
                                         title="Edit Routine"
+                                        aria-label="Edit"
                                     >
                                         <i className="fa-solid fa-pen"></i>
                                     </button>
-                                    <button onClick={() => onDeleteSchedule(schedule.id)} className="text-red-400 p-2 hover:bg-red-50 rounded-lg transition-colors"><i className="fa-solid fa-trash"></i></button>
+                                    <button 
+                                        onClick={() => onDeleteSchedule(schedule.id)} 
+                                        className="text-red-400 p-3 hover:bg-red-50 rounded-lg transition-colors"
+                                        aria-label="Delete"
+                                    >
+                                        <i className="fa-solid fa-trash"></i>
+                                    </button>
                                 </div>
                             </div>
                             
-                            {/* Agentic Optimization Button */}
                             <div className="flex gap-2">
                                 <button
-                                    onClick={() => handleOptimizeRequest(schedule)}
-                                    disabled={optimizingId === schedule.id}
-                                    className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-colors flex items-center justify-center gap-2
-                                        ${optimizingId === schedule.id 
-                                            ? 'bg-purple-50 text-purple-400 border-purple-100' 
-                                            : 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700'
-                                        }
-                                    `}
+                                    onClick={() => onOpenOptimizer(schedule.id)}
+                                    className="flex-1 py-3 rounded-lg text-xs font-bold border transition-colors flex items-center justify-center gap-2 bg-purple-600 text-white border-purple-600 hover:bg-purple-700"
                                 >
-                                    {optimizingId === schedule.id ? (
-                                        <>
-                                            <i className="fa-solid fa-circle-notch fa-spin"></i> {t(lang, 'agentOptimizing')}
-                                        </>
-                                    ) : (
-                                        <>
-                                            <i className="fa-solid fa-wand-magic-sparkles"></i> {t(lang, 'autoImprove')}
-                                        </>
-                                    )}
+                                    <i className="fa-solid fa-wand-magic-sparkles"></i> {t(lang, 'autoImprove')}
                                 </button>
                             </div>
-                            {optimizingId === schedule.id && (
-                                <p className="text-[10px] text-purple-500 text-center animate-pulse">
-                                    {t(lang, 'agentThinking')}
-                                </p>
-                            )}
                         </div>
                     ))}
                 </div>
             )}
 
-            {/* Analytics Tab - Same as previous */}
             {activeTab === 'analytics' && (
                 <div className="space-y-6">
-                    {/* Weekly Goals Section */}
                     <div className="bg-white p-4 rounded-2xl shadow-sm">
                         <h3 className="font-bold text-gray-700 mb-4">Weekly Goals</h3>
                         <div className="space-y-4">
@@ -617,19 +542,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                             ></div>
                                         </div>
                                     </div>
-                                    {goal.current >= goal.target && (
-                                        <i className="fa-solid fa-medal text-2xl text-yellow-400 animate-bounce"></i>
-                                    )}
                                 </div>
                             ))}
                         </div>
                     </div>
 
-                    {/* Weekly Mood Chart */}
                     <div className="bg-white p-4 rounded-2xl shadow-sm">
                         <h3 className="font-bold text-gray-700 mb-4">{t(lang, 'analytics')} - Mood</h3>
                         <div className="h-40 relative flex items-end justify-between px-2">
-                            {/* Simple Line Chart SVG */}
                             <svg className="absolute inset-0 w-full h-full p-4 overflow-visible" preserveAspectRatio="none">
                                 <polyline 
                                     points={getMoodPoints()} 
@@ -639,14 +559,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                     strokeLinecap="round"
                                 />
                             </svg>
-                            {/* Labels */}
-                            <div className="absolute bottom-0 w-full flex justify-between text-xs text-gray-400 px-4">
-                                <span>Start</span><span>Now</span>
-                            </div>
                         </div>
                     </div>
 
-                    {/* Behavior Frequency Chart */}
                     <div className="bg-white p-4 rounded-2xl shadow-sm">
                         <h3 className="font-bold text-gray-700 mb-4">Behavior Frequency</h3>
                         <div className="space-y-3">
@@ -669,17 +584,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
             )}
 
-            {/* Behavior Tab - Same as previous */}
             {activeTab === 'behavior' && (
                 <div className="space-y-6">
-                    {/* Log Entry Form */}
                     <div className="bg-white p-4 rounded-2xl shadow-sm">
                         <h3 className="font-bold text-gray-700 mb-4">{t(lang, 'logIncident')}</h3>
                         <div className="space-y-3">
                             <select 
                                 value={newLogBehavior}
                                 onChange={(e) => setNewLogBehavior(e.target.value)}
-                                className="w-full p-2 border rounded-lg bg-gray-50"
+                                className="w-full p-3 border rounded-lg bg-gray-50"
                             >
                                 {['Meltdown', 'Aggression', 'Self-Injury', 'Elopement', 'Refusal', 'Anxiety', 'Stimming'].map(b => (
                                     <option key={b} value={b}>{b}</option>
@@ -691,7 +604,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                     <button
                                         key={lvl}
                                         onClick={() => setNewLogIntensity(lvl as any)}
-                                        className={`flex-1 py-2 rounded-lg text-xs font-bold border ${newLogIntensity === lvl ? 'bg-primary text-white border-primary' : 'border-gray-200'}`}
+                                        className={`flex-1 py-3 rounded-lg text-xs font-bold border ${newLogIntensity === lvl ? 'bg-primary text-white border-primary' : 'border-gray-200'}`}
                                     >
                                         {lvl}
                                     </button>
@@ -703,19 +616,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 placeholder={t(lang, 'triggerOptional')}
                                 value={newLogTrigger}
                                 onChange={(e) => setNewLogTrigger(e.target.value)}
-                                className="w-full p-2 border rounded-lg bg-gray-50"
+                                className="w-full p-3 border rounded-lg bg-gray-50"
                             />
 
                             <button 
                                 onClick={submitBehavior}
-                                className="w-full bg-red-500 text-white py-3 rounded-xl font-bold shadow-md"
+                                className="w-full bg-red-500 text-white py-4 rounded-xl font-bold shadow-md"
                             >
                                 {t(lang, 'logIncident')}
                             </button>
                         </div>
                     </div>
 
-                    {/* AI Analysis */}
                     <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="font-bold text-indigo-800"><i className="fa-solid fa-brain mr-2"></i>{t(lang, 'aiInsights')}</h3>
@@ -745,8 +657,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             <div className="text-center py-4 text-indigo-300">
                                 <p className="text-xs">{t(lang, 'needLogs')}</p>
                                 <div className="mt-4 border-t border-indigo-200 pt-4">
-                                    <label className="block text-xs font-bold mb-2 cursor-pointer bg-white p-2 rounded-lg border border-dashed border-indigo-300 hover:bg-indigo-50 transition-colors">
-                                        <i className="fa-solid fa-video mr-1"></i> Upload Behavior Video for Analysis
+                                    <label className="block text-xs font-bold mb-2 cursor-pointer bg-white p-3 rounded-lg border border-dashed border-indigo-300 hover:bg-indigo-50 transition-colors">
+                                        <i className="fa-solid fa-video mr-1"></i> Upload Behavior Video
                                         <input type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} ref={videoInputRef} />
                                     </label>
                                 </div>
@@ -756,16 +668,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
             )}
 
-            {/* Messages Tab logic unchanged, just visually consistent */}
             {activeTab === 'messages' && (
                 <div className="space-y-4">
-                   {/* ... Message content preserved ... */}
-                   {/* Parent-Child Communication Bridge Interface */}
                     <div className="bg-pink-50 p-4 rounded-2xl border border-pink-100">
                         <h3 className="font-bold text-pink-700 mb-4">{t(lang, 'scheduleMessage')}</h3>
                         
                         <div className="space-y-3">
-                            {/* Quick Sends */}
                             <div className="flex gap-2 overflow-x-auto pb-2">
                                 <button onClick={() => handleSendMessage(t(lang, 'proudOfYou'))} className="whitespace-nowrap px-3 py-2 bg-white rounded-full text-xs font-bold text-pink-600 shadow-sm border border-pink-100 hover:bg-pink-100">{t(lang, 'proudOfYou')}</button>
                                 <button onClick={() => handleSendMessage(t(lang, 'loveYou'))} className="whitespace-nowrap px-3 py-2 bg-white rounded-full text-xs font-bold text-pink-600 shadow-sm border border-pink-100 hover:bg-pink-100">{t(lang, 'loveYou')}</button>
@@ -860,7 +768,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
             )}
         </div>
         
-        {/* Apply Changes Button at bottom */}
         <div className={`p-4 border-t shrink-0 ${isHighContrast ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-100'}`}>
              <button 
                 onClick={onExit}
@@ -873,39 +780,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <i className="fa-solid fa-check-circle"></i> {t(lang, 'applyExit')}
              </button>
         </div>
-        
-        {/* Optimization Modal */}
-        {optimizationProposal && (
-            <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 animate-fadeIn">
-                <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 shadow-2xl relative">
-                    <button 
-                        onClick={() => setOptimizationProposal(null)}
-                        className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-                    >
-                        <i className="fa-solid fa-times text-xl"></i>
-                    </button>
-                    {/* ... (rest of modal content omitted for brevity, logic exists in original file) ... */}
-                    {/* To ensure no code loss, simplistic rendering here: */}
-                    <h3 className="text-xl font-bold mb-4">{t(lang, 'optTitle')}</h3>
-                     <div className="mb-4 bg-purple-50 p-4 rounded-xl">
-                        <h4 className="font-bold text-purple-800 text-sm uppercase mb-2">{t(lang, 'optImpact')}</h4>
-                        <div className="flex gap-4 text-sm">
-                            <div><span className="font-bold">{t(lang, 'optCompletion')}:</span> {optimizationProposal.predictedImprovement.completionRate}</div>
-                            <div><span className="font-bold">{t(lang, 'optTime')}:</span> {optimizationProposal.predictedImprovement.avgTime}</div>
-                        </div>
-                    </div>
-                    <div className="space-y-3 mb-6">
-                        {optimizationProposal.recommendations.map((rec, i) => (
-                            <div key={i} className="bg-gray-50 p-3 rounded-lg text-sm">
-                                <div className="font-bold text-gray-800">{rec.description}</div>
-                                <div className="text-gray-500 text-xs mt-1">{rec.reason}</div>
-                            </div>
-                        ))}
-                    </div>
-                    <button onClick={applyOptimization} className="w-full bg-purple-600 text-white py-3 rounded-xl font-bold">{t(lang, 'optApply')}</button>
-                </div>
-            </div>
-        )}
     </div>
   );
 };

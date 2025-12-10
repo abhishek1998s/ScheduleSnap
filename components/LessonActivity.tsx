@@ -39,6 +39,9 @@ export const LessonActivity: React.FC<LessonActivityProps> = ({ lesson, profile,
   }, [lesson, profile]);
 
   const speak = (text: string) => {
+      // Safety Check: Block if child has high sound sensitivity
+      if (profile.sensoryProfile.soundSensitivity === 'high') return;
+
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
       u.rate = profile.audioPreferences?.speechRate || 0.9;

@@ -8,9 +8,10 @@ interface VoiceRecorderProps {
   onSave: (msg: VoiceMessage) => void;
   onExit: () => void;
   profile: ChildProfile; // Changed from language string to full profile for AI context
+  audioEnabled?: boolean; // NEW
 }
 
-export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onSave, onExit, profile }) => {
+export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onSave, onExit, profile, audioEnabled = true }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<SpeechAnalysis | null>(null);
@@ -68,6 +69,10 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onSave, onExit, pr
   };
 
   const speakText = (text: string) => {
+    // Safety Check
+    if (!audioEnabled) return;
+    if (profile.sensoryProfile.soundSensitivity === 'high') return;
+
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     // Simple language mapping

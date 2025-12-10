@@ -36,6 +36,7 @@ export interface ChildProfile {
   };
   useThinkingMode?: boolean; // New: Enable deep reasoning
   defaultCameraOn?: boolean; // New: Default to AI Vision mode
+  showVisualTimer?: boolean; // New: Toggle for visual timer
 }
 
 export interface MoodEntry {
@@ -212,7 +213,7 @@ export interface ScheduleOptimization {
     type: OptimizationType;
     description: string;       // "Move 'Get Dressed' before 'Brush Teeth'"
     reason: string;            // "Alex completes faster when dressed first"
-    evidence: string;          // "3 of 5 faster completions had this order"
+    evidence: string;         // "3 of 5 faster completions had this order"
     confidence: number;        // 85%
   }[];
 
@@ -349,7 +350,8 @@ export enum ViewState {
   PARENT_INBOX = 'parent-inbox',
   THERAPY = 'therapy',
   LEARNING = 'learning',
-  SCANNER = 'scanner' // New
+  SCANNER = 'scanner',
+  OPTIMIZER = 'optimizer' // New
 }
 
 export interface AppState {

@@ -35,6 +35,9 @@ export const VideoGuidedStep: React.FC<VideoGuidedStepProps> = ({ step, profile,
 
     // TTS Helper
     const speak = (text: string) => {
+        // Safety Check: Block if child has high sound sensitivity
+        if (profileRef.current.sensoryProfile.soundSensitivity === 'high') return;
+
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.rate = profileRef.current.audioPreferences?.speechRate || 0.9;

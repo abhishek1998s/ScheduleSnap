@@ -45,8 +45,7 @@ export const MagicBookLibrary: React.FC<MagicBookLibraryProps> = ({ stories, pro
             <StoryReader 
                 story={readingStory} 
                 onClose={() => setReadingStory(null)} 
-                language={profile.language}
-                speechRate={profile.audioPreferences?.speechRate}
+                profile={profile}
             />
         )}
 

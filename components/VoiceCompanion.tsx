@@ -27,6 +27,13 @@ export const VoiceCompanion: React.FC<VoiceCompanionProps> = ({
 
   // Helper to speak text
   const speak = (text: string) => {
+    // Safety Check: Block if child has high sound sensitivity
+    if (profile.sensoryProfile.soundSensitivity === 'high') {
+        setMessage(text); // Only show text, don't speak
+        setTimeout(() => setMessage(null), 5000);
+        return;
+    }
+
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = profile.audioPreferences?.speechRate || 0.9;

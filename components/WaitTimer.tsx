@@ -1,13 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
+import { ChildProfile } from '../types';
 import { t } from '../utils/translations';
 
 interface WaitTimerProps {
   onExit: () => void;
   language?: string;
+  audioEnabled?: boolean;
+  profile?: ChildProfile; // Added to check sensory profile
 }
 
-export const WaitTimer: React.FC<WaitTimerProps> = ({ onExit, language }) => {
+export const WaitTimer: React.FC<WaitTimerProps> = ({ onExit, language, audioEnabled = false, profile }) => {
   const [duration, setDuration] = useState<number | null>(null); // in seconds
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -20,12 +23,14 @@ export const WaitTimer: React.FC<WaitTimerProps> = ({ onExit, language }) => {
       }, 1000);
     } else if (timeLeft === 0 && isRunning) {
       setIsRunning(false);
-      // Play alarm sound or celebrate
-      const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
-      audio.play().catch(() => {});
+      // Play alarm sound only if enabled AND child is not sound sensitive
+      if (audioEnabled && profile?.sensoryProfile?.soundSensitivity !== 'high') {
+          const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+          audio.play().catch(() => {});
+      }
     }
     return () => clearInterval(interval);
-  }, [isRunning, timeLeft]);
+  }, [isRunning, timeLeft, audioEnabled, profile]);
 
   const startTimer = (min: number) => {
     const sec = min * 60;
@@ -44,7 +49,7 @@ export const WaitTimer: React.FC<WaitTimerProps> = ({ onExit, language }) => {
   return (
     <div className="flex flex-col h-full bg-white">
       <div className="p-4 flex items-center justify-between shrink-0">
-         <button onClick={onExit}><i className="fa-solid fa-arrow-left text-2xl text-gray-400"></i></button>
+         <button onClick={onExit} aria-label="Exit"><i className="fa-solid fa-arrow-left text-2xl text-gray-400"></i></button>
          <h2 className="text-xl font-bold text-gray-700">{t(language, 'waitTimer')}</h2>
          <div className="w-8"></div>
       </div>

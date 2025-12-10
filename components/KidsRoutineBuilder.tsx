@@ -8,6 +8,7 @@ interface KidsRoutineBuilderProps {
   profile: ChildProfile;
   onSave: (schedule: Schedule) => void;
   onExit: () => void;
+  audioEnabled?: boolean; // NEW
 }
 
 const AVAILABLE_STEPS = [
@@ -31,7 +32,7 @@ const AVAILABLE_STEPS = [
     { id: 'sleep', emoji: '😴', label: 'Sleep' },
 ];
 
-export const KidsRoutineBuilder: React.FC<KidsRoutineBuilderProps> = ({ profile, onSave, onExit }) => {
+export const KidsRoutineBuilder: React.FC<KidsRoutineBuilderProps> = ({ profile, onSave, onExit, audioEnabled = true }) => {
   const [selectedSteps, setSelectedSteps] = useState<typeof AVAILABLE_STEPS>([]);
   const [snapMessage, setSnapMessage] = useState<string>(t(profile.language, 'builderWelcome'));
   const [isChecking, setIsChecking] = useState(false);
@@ -39,12 +40,17 @@ export const KidsRoutineBuilder: React.FC<KidsRoutineBuilderProps> = ({ profile,
 
   // TTS Helper
   const speak = (text: string) => {
+    setSnapMessage(text);
+    
+    // Safety Check
+    if (!audioEnabled) return;
+    if (profile.sensoryProfile.soundSensitivity === 'high') return;
+
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = profile.audioPreferences?.speechRate || 0.9;
     utterance.pitch = 1.2; // Higher pitch for Snap
     window.speechSynthesis.speak(utterance);
-    setSnapMessage(text);
   };
 
   const handleAddItem = (item: typeof AVAILABLE_STEPS[0]) => {

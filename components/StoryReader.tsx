@@ -1,25 +1,28 @@
 
 import React, { useState, useEffect } from 'react';
-import { StoryBook } from '../types';
+import { StoryBook, ChildProfile } from '../types';
 import { t } from '../utils/translations';
 
 interface StoryReaderProps {
   story: StoryBook;
   onClose: () => void;
-  language?: string;
-  speechRate?: number;
+  profile: ChildProfile; // Changed to accept full profile for sensory checks
 }
 
-export const StoryReader: React.FC<StoryReaderProps> = ({ story, onClose, language, speechRate = 1 }) => {
+export const StoryReader: React.FC<StoryReaderProps> = ({ story, onClose, profile }) => {
   const [currentPage, setCurrentPage] = useState(-1); // -1 is Cover
   const [isFlipping, setIsFlipping] = useState(false);
 
   const totalPages = story.pages.length;
+  const language = profile.language;
 
   const speak = (text: string) => {
+    // Safety Check: Block if child has high sound sensitivity
+    if (profile.sensoryProfile.soundSensitivity === 'high') return;
+
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = speechRate;
+    utterance.rate = profile.audioPreferences?.speechRate || 1;
     window.speechSynthesis.speak(utterance);
   };
 

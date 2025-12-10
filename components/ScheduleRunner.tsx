@@ -10,9 +10,10 @@ interface ScheduleRunnerProps {
   onExit: () => void;
   onComplete: () => void;
   profile?: ChildProfile; // Added profile prop to access settings
+  audioEnabled?: boolean; // NEW: Respect audio settings
 }
 
-export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit, onComplete, profile }) => {
+export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit, onComplete, profile, audioEnabled = false }) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [completedSubSteps, setCompletedSubSteps] = useState<Set<string>>(new Set());
   const [isCompleted, setIsCompleted] = useState(false);
@@ -27,12 +28,17 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
   const [timeLeft, setTimeLeft] = useState(DEFAULT_STEP_DURATION);
   const [isTimerRunning, setIsTimerRunning] = useState(true);
   const lang = profile?.language;
+  const showTimer = profile?.showVisualTimer !== false; // Default to true if undefined
 
   const currentStep = schedule.steps[currentStepIndex];
   const nextStep = schedule.steps[currentStepIndex + 1];
 
-  // Speech function respecting F29 Settings
+  // Speech function respecting F29 Settings & High Priority #7 (Sensory Enforcement)
   const playAudio = (text: string) => {
+    // CRITICAL: Block audio if disabled OR if child has high sound sensitivity
+    if (!audioEnabled) return; 
+    if (profile?.sensoryProfile?.soundSensitivity === 'high') return;
+
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     // Use profile settings or default to 1
@@ -63,7 +69,7 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
      if (currentStep && !isCompleted && activeEncouragement && !isCameraMode) {
         playAudio(`${currentStep.instruction}. ${activeEncouragement}`);
      }
-  }, [currentStepIndex, isCompleted, activeEncouragement, isCameraMode]);
+  }, [currentStepIndex, isCompleted, activeEncouragement, isCameraMode, audioEnabled]);
 
   // Timer Tick & Transition Warnings (F38)
   useEffect(() => {
@@ -73,7 +79,7 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
             setTimeLeft(prev => {
                 const next = prev - 1;
                 // Transition Warnings (skip audio if camera mode to avoid overlap)
-                if (!isCameraMode) {
+                if (!isCameraMode && audioEnabled) {
                     if (next === 60) playAudio("One minute left!");
                     if (next === 10) playAudio("Ten seconds remaining!");
                 }
@@ -82,7 +88,7 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
         }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isTimerRunning, timeLeft, isCompleted, isCameraMode]);
+  }, [isTimerRunning, timeLeft, isCompleted, isCameraMode, audioEnabled]);
 
   const handleSubStepToggle = (subStepId: string) => {
       const newSet = new Set(completedSubSteps);
@@ -147,6 +153,7 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
                 className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border transition-colors ${
                     isCameraMode ? 'bg-purple-100 text-purple-600 border-purple-200' : 'bg-gray-50 text-gray-500 border-gray-200'
                 }`}
+                aria-label={isCameraMode ? "Disable Vision Guide" : "Enable Vision Guide"}
             >
                 <i className={`fa-solid ${isCameraMode ? 'fa-video' : 'fa-video-slash'}`}></i>
                 {isCameraMode ? t(lang, 'cameraGuideOn') : t(lang, 'cameraGuideOff')}
@@ -156,7 +163,7 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
             <LongPressButton 
               onComplete={onExit} 
               duration={3000}
-              className="text-gray-400 hover:text-red-500 text-xs font-bold border rounded-full px-3 py-1 flex items-center gap-2"
+              className="text-gray-400 hover:text-red-500 text-xs font-bold border rounded-full px-4 py-2 flex items-center gap-2"
             >
               <span>{t(lang, 'holdExit')}</span>
             </LongPressButton>
@@ -192,29 +199,33 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
             <div className="h-full overflow-y-auto w-full">
                 <div className="min-h-full flex flex-col items-center justify-center p-6 gap-6">
                     
-                    {/* Pie Timer */}
-                    <div className="flex flex-col items-center justify-center gap-1">
-                        <div className="relative w-16 h-16">
-                            <svg className="w-full h-full transform -rotate-90">
-                                <circle cx="32" cy="32" r="20" stroke="#e5e7eb" strokeWidth="6" fill="none" />
-                                <circle 
-                                    cx="32" cy="32" r="20" 
-                                    stroke={timeLeft < 10 ? '#ef4444' : '#3b82f6'} 
-                                    strokeWidth="6" 
-                                    fill="none" 
-                                    strokeDasharray="126"
-                                    strokeDashoffset={calculateDashOffset()}
-                                    className="transition-all duration-1000 linear"
-                                />
-                            </svg>
-                            <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-500">
-                                {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
-                            </div>
-                        </div>
-                    </div>
+                    {/* Pie Timer - Only show if enabled */}
+                    {showTimer && (
+                      <div className="flex flex-col items-center justify-center gap-1">
+                          <div className="relative w-16 h-16">
+                              <svg className="w-full h-full transform -rotate-90">
+                                  <circle cx="32" cy="32" r="20" stroke="#e5e7eb" strokeWidth="6" fill="none" />
+                                  <circle 
+                                      cx="32" cy="32" r="20" 
+                                      stroke={timeLeft < 10 ? '#ef4444' : '#3b82f6'} 
+                                      strokeWidth="6" 
+                                      fill="none" 
+                                      strokeDasharray="126"
+                                      strokeDashoffset={calculateDashOffset()}
+                                      className="transition-all duration-1000 linear"
+                                  />
+                              </svg>
+                              <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-500">
+                                  {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+                              </div>
+                          </div>
+                      </div>
+                    )}
 
                     <div 
                     onClick={() => playAudio(currentStep.instruction)}
+                    tabIndex={0}
+                    role="button"
                     className="w-full max-w-sm bg-white rounded-3xl shadow-xl p-8 flex flex-col items-center border-4 border-transparent hover:border-primary/30 transition-all cursor-pointer transform hover:scale-[1.02] relative"
                     >
                     {currentStep.sensoryTip && (

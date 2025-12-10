@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { t } from '../utils/translations';
-import { AACButton, AACCategoryType, VisualScene } from '../types';
+import { AACButton, AACCategoryType, VisualScene, ChildProfile } from '../types';
 import { generateAACSymbol } from '../services/geminiService';
 
 interface AACBoardProps {
@@ -10,6 +10,8 @@ interface AACBoardProps {
   language?: string;
   customButtons?: AACButton[];
   onAddCustomButton?: (btn: AACButton) => void;
+  audioEnabled?: boolean; // NEW
+  profile?: ChildProfile; // NEW: For sensory check
 }
 
 const CATEGORIES: { id: AACCategoryType, icon: string }[] = [
@@ -22,7 +24,7 @@ const CATEGORIES: { id: AACCategoryType, icon: string }[] = [
     { id: 'Custom', icon: 'fa-pen-to-square' },
 ];
 
-export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, customButtons = [], onAddCustomButton }) => {
+export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, customButtons = [], onAddCustomButton, audioEnabled = true, profile }) => {
   const [activeCategory, setActiveCategory] = useState<AACCategoryType>('Core');
   const [activeScene, setActiveScene] = useState<VisualScene | null>(null);
   const [newButtonLabel, setNewButtonLabel] = useState('');
@@ -31,7 +33,14 @@ export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, c
   if (!isOpen) return null;
 
   const speak = (text: string) => {
+    // Safety Check: Block if child has high sound sensitivity OR audio disabled
+    if (!audioEnabled) return;
+    if (profile?.sensoryProfile?.soundSensitivity === 'high') return;
+
+    window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
+    // Use profile settings or default to 1
+    utterance.rate = profile?.audioPreferences?.speechRate || 1;
     window.speechSynthesis.speak(utterance);
   };
 
@@ -141,6 +150,7 @@ export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, c
                                     setActiveScene(scene);
                                 }}
                                 className="aspect-square bg-white rounded-2xl shadow-md border-2 border-gray-100 flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform"
+                                aria-label={`Open scene ${scene.name}`}
                             >
                                 <span className="text-6xl">{scene.emoji}</span>
                                 <span className="font-bold text-lg text-gray-700">{scene.name}</span>
@@ -154,7 +164,7 @@ export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, c
              return (
                  <div className="flex flex-col h-full">
                      <div className="p-2 border-b flex items-center gap-2 bg-gray-50 shrink-0">
-                         <button onClick={() => setActiveScene(null)} className="px-3 py-1 bg-white border rounded-lg text-sm font-bold shadow-sm">
+                         <button onClick={() => setActiveScene(null)} className="px-3 py-1 bg-white border rounded-lg text-sm font-bold shadow-sm" aria-label="Back to scenes">
                              <i className="fa-solid fa-arrow-left mr-1"></i> Back
                          </button>
                          <span className="font-bold text-lg">{activeScene.emoji} {activeScene.name}</span>
@@ -166,6 +176,7 @@ export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, c
                                     key={btn.id}
                                     onClick={() => speak(btn.voice)}
                                     className={`${btn.color} text-white p-2 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-md active:scale-95 transition-transform aspect-square`}
+                                    aria-label={`Say ${btn.label}`}
                                 >
                                     <span className="text-4xl">{btn.emoji}</span>
                                     <span className="font-bold text-sm text-center leading-tight w-full break-words">{btn.label}</span>
@@ -187,7 +198,13 @@ export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, c
                     <button
                         key={btn.id}
                         onClick={() => speak(btn.voice)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                             speak(btn.voice);
+                          }
+                        }}
                         className={`${btn.color} text-white p-2 rounded-2xl flex flex-col items-center justify-center gap-2 shadow-md active:scale-95 transition-transform aspect-square`}
+                        aria-label={`Say ${btn.label}`}
                     >
                         <span className="text-4xl sm:text-5xl">{btn.emoji}</span>
                         <span className="font-bold text-sm sm:text-base text-center leading-tight break-words w-full">{btn.label}</span>
@@ -227,7 +244,8 @@ export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, c
           </h2>
           <button 
             onClick={onClose}
-            className="w-8 h-8 bg-white border border-gray-200 rounded-full hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors flex items-center justify-center shadow-sm"
+            className="w-10 h-10 bg-white border border-gray-200 rounded-full hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors flex items-center justify-center shadow-sm"
+            aria-label="Close AAC Board"
           >
             <i className="fa-solid fa-times"></i>
           </button>
@@ -239,11 +257,12 @@ export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, c
                 <button
                     key={cat.id}
                     onClick={() => { setActiveCategory(cat.id); setActiveScene(null); }}
-                    className={`flex flex-col items-center justify-center p-3 min-w-[70px] border-b-4 transition-colors ${
+                    className={`flex flex-col items-center justify-center p-3 min-w-[70px] sm:min-w-[80px] border-b-4 transition-colors ${
                         activeCategory === cat.id 
                             ? 'border-blue-500 bg-blue-50 text-blue-600' 
                             : 'border-transparent text-gray-500 hover:bg-gray-50'
                     }`}
+                    aria-label={`Category ${cat.id}`}
                 >
                     <i className={`fa-solid ${cat.icon} text-lg mb-1`}></i>
                     <span className="text-[10px] font-bold uppercase tracking-wide">{t(language, `cat${cat.id}`)}</span>

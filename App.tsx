@@ -24,6 +24,7 @@ import { ParentMessageInbox } from './components/ParentMessageInbox';
 import { TherapyManager } from './components/TherapyManager';
 import { LearningPathDashboard } from './components/LearningPathDashboard';
 import { EnvironmentScanner } from './components/EnvironmentScanner';
+import { ScheduleOptimizer } from './components/ScheduleOptimizer';
 import { t } from './utils/translations';
 
 const INITIAL_PROFILE: ChildProfile = {
@@ -33,7 +34,8 @@ const INITIAL_PROFILE: ChildProfile = {
   language: "English",
   sensoryProfile: { soundSensitivity: 'medium' },
   audioPreferences: { speechRate: 1, pitch: 1 },
-  defaultCameraOn: false
+  defaultCameraOn: false,
+  showVisualTimer: true
 };
 
 const INITIAL_SCHEDULES: Schedule[] = [
@@ -81,8 +83,12 @@ const App: React.FC = () => {
 
   const [generatedSchedule, setGeneratedSchedule] = useState<Omit<Schedule, 'id' | 'createdAt'> | null>(null);
   const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
+  const [optimizerScheduleId, setOptimizerScheduleId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  
+  // Audio Consent State (Default off for safety)
+  const [audioEnabled, setAudioEnabled] = useState(false);
 
   // Ref to debounce automatic logging of predictions
   const lastPredictionLogTime = useRef<number>(0);
@@ -152,11 +158,13 @@ const App: React.FC = () => {
                                icon: 'https://cdn-icons-png.flaticon.com/512/2665/2665038.png'
                            });
                        }
-                       try {
-                           const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
-                           audio.play().catch(() => {});
-                       } catch(e) {}
-                       
+                       // Check both Global Toggle AND Sensory Profile
+                       if (audioEnabled && state.profile.sensoryProfile.soundSensitivity !== 'high') {
+                           try {
+                               const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+                               audio.play().catch(() => {});
+                           } catch(e) {}
+                       }
                        return { ...msg, isDelivered: true };
                    }
               }
@@ -170,7 +178,7 @@ const App: React.FC = () => {
       }, 10000);
 
       return () => clearInterval(interval);
-  }, [state.parentMessages, state.profile.language]);
+  }, [state.parentMessages, state.profile.language, state.profile.sensoryProfile.soundSensitivity, audioEnabled]);
 
 
   // --- Continuous Meltdown Risk Prediction Logic ---
@@ -191,8 +199,12 @@ const App: React.FC = () => {
                      lastPredictionLogTime.current = now;
 
                      try {
-                         const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
-                         audio.play().catch(() => {});
+                         // Check both Global Toggle AND Sensory Profile
+                         if (audioEnabled && state.profile.sensoryProfile.soundSensitivity !== 'high') {
+                            const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+                            audio.play().catch(() => {});
+                         }
+                         
                          if ('Notification' in window && Notification.permission === 'granted') {
                              new Notification(`⚠️ ${t(state.profile.language, 'riskHigh')}`, {
                                  body: `${t(state.profile.language, 'whyRisk')}: ${prediction.riskFactors.map(r => r.factor).join(', ')}`,
@@ -225,7 +237,7 @@ const App: React.FC = () => {
      };
 
      runPrediction();
-  }, [state.behaviorLogs, state.moodLogs, state.activeScheduleId, state.profile, isLoaded]);
+  }, [state.behaviorLogs, state.moodLogs, state.activeScheduleId, state.profile, isLoaded, audioEnabled]);
 
   const navigateTo = (view: ViewState) => setState(prev => ({ ...prev, view }));
   
@@ -293,6 +305,20 @@ const App: React.FC = () => {
           setEditingScheduleId(id);
           navigateTo(ViewState.PREVIEW);
       }
+  };
+
+  const handleOpenOptimizer = (id: string) => {
+      setOptimizerScheduleId(id);
+      navigateTo(ViewState.OPTIMIZER);
+  };
+
+  const handleApplyOptimization = (optimizedSchedule: Schedule) => {
+      setState(prev => ({
+          ...prev,
+          schedules: prev.schedules.map(s => s.id === optimizedSchedule.id ? optimizedSchedule : s)
+      }));
+      setOptimizerScheduleId(null);
+      navigateTo(ViewState.DASHBOARD);
   };
 
   const handleSaveSchedule = (scheduleToSave?: Omit<Schedule, 'id' | 'createdAt'>) => {
@@ -443,6 +469,7 @@ const App: React.FC = () => {
   };
 
   const activeSchedule = state.schedules.find(s => s.id === state.activeScheduleId);
+  const optimizerSchedule = state.schedules.find(s => s.id === optimizerScheduleId);
   const lang = state.profile.language;
   const unreadCount = state.voiceMessages.filter(m => !m.read).length;
   const unreadParentMessages = state.parentMessages.filter(m => m.isDelivered && !m.isRead).length;
@@ -459,9 +486,16 @@ const App: React.FC = () => {
 
   return (
     <div className={`h-full w-full relative ${themeClass} overflow-hidden`}>
-      
+      {/* Skip Link for Accessibility */}
+      <a 
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 bg-primary text-white p-3 rounded-lg font-bold shadow-lg"
+      >
+        Skip to main content
+      </a>
+
       {/* Voice Companion */}
-      {state.view !== ViewState.COACH && state.view !== ViewState.CAMERA && state.view !== ViewState.KIDS_BUILDER && state.view !== ViewState.MAGIC_BOOKS && state.view !== ViewState.PARENT_INBOX && state.view !== ViewState.THERAPY && state.view !== ViewState.LEARNING && state.view !== ViewState.SCANNER && (
+      {state.view !== ViewState.COACH && state.view !== ViewState.CAMERA && state.view !== ViewState.KIDS_BUILDER && state.view !== ViewState.MAGIC_BOOKS && state.view !== ViewState.PARENT_INBOX && state.view !== ViewState.THERAPY && state.view !== ViewState.LEARNING && state.view !== ViewState.SCANNER && state.view !== ViewState.OPTIMIZER && audioEnabled && (
           <VoiceCompanion 
               profile={state.profile}
               currentView={state.view}
@@ -482,20 +516,23 @@ const App: React.FC = () => {
           />
       )}
       
+      <main id="main-content" className="h-full w-full max-w-2xl lg:max-w-4xl xl:max-w-6xl mx-auto bg-white shadow-2xl relative">
       {state.view === ViewState.HOME && (
         <div className="flex flex-col h-full p-6 relative">
           <div className="flex justify-between items-center mb-6 shrink-0">
-            <h1 className="text-3xl font-bold text-primary">{t(lang, 'appTitle')}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-primary">{t(lang, 'appTitle')}</h1>
             <div className="flex gap-2">
                 <button 
                     onClick={() => navigateTo(ViewState.STORE)}
                     className={`${state.isHighContrast ? 'bg-black border border-yellow-400 text-yellow-400' : 'bg-yellow-100 text-yellow-700'} px-3 py-1 rounded-full font-bold flex items-center gap-1`}
+                    aria-label="Reward Store"
                 >
                     <i className="fa-solid fa-star"></i> {state.tokens}
                 </button>
                 <button 
                     onClick={() => navigateTo(ViewState.DASHBOARD)}
-                    className={`${state.isHighContrast ? 'bg-black border border-yellow-400 text-yellow-400' : 'bg-white text-gray-400'} w-10 h-10 rounded-full shadow-sm flex items-center justify-center relative`}
+                    className={`${state.isHighContrast ? 'bg-black border border-yellow-400 text-yellow-400' : 'bg-white text-gray-400'} w-12 h-12 rounded-full shadow-sm flex items-center justify-center relative`}
+                    aria-label="Open Dashboard Settings"
                 >
                     <i className="fa-solid fa-gear"></i>
                     {unreadCount > 0 && (
@@ -632,27 +669,28 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {state.view === ViewState.CAMERA && <CameraCapture isLoading={isProcessing} onImageSelected={handleImageSelected} onCancel={() => navigateTo(ViewState.HOME)} language={lang} />}
+      {state.view === ViewState.CAMERA && <CameraCapture isLoading={isProcessing} onImageSelected={handleImageSelected} onCancel={() => navigateTo(ViewState.HOME)} language={lang} audioEnabled={audioEnabled} profile={state.profile} />}
       {state.view === ViewState.PREVIEW && generatedSchedule && <PreviewSchedule schedule={generatedSchedule} profile={state.profile} onSave={handleSaveSchedule} onCancel={() => { setGeneratedSchedule(null); setEditingScheduleId(null); navigateTo(ViewState.HOME); }} isEditing={!!editingScheduleId} />}
-      {state.view === ViewState.RUNNER && activeSchedule && <ScheduleRunner schedule={activeSchedule} profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} onComplete={handleRoutineComplete} />}
-      {state.view === ViewState.DASHBOARD && <Dashboard schedules={state.schedules} profile={state.profile} moodLogs={state.moodLogs} behaviorLogs={state.behaviorLogs} completionLogs={state.completionLogs} voiceMessages={state.voiceMessages} isHighContrast={state.isHighContrast} caregiverPin={state.caregiverPin || '1234'} onUpdatePin={(p) => setState(prev => ({...prev, caregiverPin: p}))} onExit={() => navigateTo(ViewState.HOME)} onSelectSchedule={(id) => startRoutine(id)} onEditSchedule={handleEditScheduleRequest} onCreateCustom={handleCreateCustomRoutine} onDeleteSchedule={handleDeleteSchedule} onUpdateSchedule={handleUpdateSchedule} onUpdateProfile={(p) => setState(prev => ({ ...prev, profile: p }))} onToggleHighContrast={() => setState(prev => ({ ...prev, isHighContrast: !prev.isHighContrast }))} onLogBehavior={(log) => setState(prev => ({ ...prev, behaviorLogs: [...prev.behaviorLogs, { ...log, id: Date.now().toString(), timestamp: Date.now() }] }))} onMarkMessagesRead={handleMarkMessagesRead} parentMessages={state.parentMessages} onScheduleMessage={handleScheduleMessage} onOpenTherapy={() => navigateTo(ViewState.THERAPY)} />}
+      {state.view === ViewState.RUNNER && activeSchedule && <ScheduleRunner schedule={activeSchedule} profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} onComplete={handleRoutineComplete} audioEnabled={audioEnabled} />}
+      {state.view === ViewState.DASHBOARD && <Dashboard schedules={state.schedules} profile={state.profile} moodLogs={state.moodLogs} behaviorLogs={state.behaviorLogs} completionLogs={state.completionLogs} voiceMessages={state.voiceMessages} isHighContrast={state.isHighContrast} caregiverPin={state.caregiverPin || '1234'} audioEnabled={audioEnabled} onUpdatePin={(p) => setState(prev => ({...prev, caregiverPin: p}))} onExit={() => navigateTo(ViewState.HOME)} onSelectSchedule={(id) => startRoutine(id)} onEditSchedule={handleEditScheduleRequest} onCreateCustom={handleCreateCustomRoutine} onDeleteSchedule={handleDeleteSchedule} onUpdateSchedule={handleUpdateSchedule} onUpdateProfile={(p) => setState(prev => ({ ...prev, profile: p }))} onToggleHighContrast={() => setState(prev => ({ ...prev, isHighContrast: !prev.isHighContrast }))} onToggleAudio={() => setAudioEnabled(!audioEnabled)} onLogBehavior={(log) => setState(prev => ({ ...prev, behaviorLogs: [...prev.behaviorLogs, { ...log, id: Date.now().toString(), timestamp: Date.now() }] }))} onMarkMessagesRead={handleMarkMessagesRead} parentMessages={state.parentMessages} onScheduleMessage={handleScheduleMessage} onOpenTherapy={() => navigateTo(ViewState.THERAPY)} onOpenOptimizer={handleOpenOptimizer} />}
       {state.view === ViewState.MOOD && <MoodCheck profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} onSave={(entry) => setState(prev => ({ ...prev, moodLogs: [...prev.moodLogs, entry] }))} />}
       {state.view === ViewState.QUIZ && <EmotionQuiz age={state.profile.age} language={lang} stats={state.quizStats} onUpdateStats={(s) => setState(prev => ({ ...prev, quizStats: s, tokens: prev.tokens + (s.xp > prev.quizStats.xp ? 1 : 0) }))} onExit={() => navigateTo(ViewState.HOME)} />}
       {state.view === ViewState.SOCIAL && <SocialScenarioPractice age={state.profile.age} language={lang} onExit={() => navigateTo(ViewState.HOME)} onComplete={(success) => { if(success) setState(prev => ({ ...prev, tokens: prev.tokens + 2 })); }} />}
-      {state.view === ViewState.VOICE_RECORDER && <VoiceRecorder onExit={() => navigateTo(ViewState.HOME)} onSave={handleSaveVoiceMessage} profile={state.profile} />}
-      {state.view === ViewState.TIMER && <WaitTimer onExit={() => navigateTo(ViewState.HOME)} language={lang} />}
+      {state.view === ViewState.VOICE_RECORDER && <VoiceRecorder onExit={() => navigateTo(ViewState.HOME)} onSave={handleSaveVoiceMessage} profile={state.profile} audioEnabled={audioEnabled} />}
+      {state.view === ViewState.TIMER && <WaitTimer onExit={() => navigateTo(ViewState.HOME)} language={lang} audioEnabled={audioEnabled} profile={state.profile} />}
       {state.view === ViewState.RESEARCH && <ResearchTool onExit={() => navigateTo(ViewState.HOME)} language={lang} />}
       {state.view === ViewState.STORE && <RewardStore tokens={state.tokens} profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} onRedeem={(cost) => setState(prev => ({ ...prev, tokens: prev.tokens - cost }))} />}
-      {state.view === ViewState.COACH && <LiveVoiceCoach profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} />}
+      {state.view === ViewState.COACH && <LiveVoiceCoach profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} audioEnabled={audioEnabled} />}
       {(state.view === ViewState.CALM) && <CalmMode onExit={() => navigateTo(ViewState.HOME)} language={lang} />}
-      {state.view === ViewState.KIDS_BUILDER && <KidsRoutineBuilder profile={state.profile} onSave={handleBuilderSave} onExit={() => navigateTo(ViewState.HOME)} />}
+      {state.view === ViewState.KIDS_BUILDER && <KidsRoutineBuilder profile={state.profile} onSave={handleBuilderSave} onExit={() => navigateTo(ViewState.HOME)} audioEnabled={audioEnabled} />}
       {state.view === ViewState.MAGIC_BOOKS && <MagicBookLibrary stories={state.stories} profile={state.profile} onSaveStory={handleSaveStory} onDeleteStory={handleDeleteStory} onExit={() => navigateTo(ViewState.HOME)} />}
       {state.view === ViewState.PARENT_INBOX && <ParentMessageInbox messages={state.parentMessages} profile={state.profile} onRespond={handleChildRespond} onExit={() => navigateTo(ViewState.HOME)} onRecordReply={() => navigateTo(ViewState.VOICE_RECORDER)} />}
       {state.view === ViewState.THERAPY && <TherapyManager sessions={state.therapySessions} profile={state.profile} onSaveSession={handleSaveTherapySession} onExit={() => navigateTo(ViewState.DASHBOARD)} />}
       {state.view === ViewState.LEARNING && <LearningPathDashboard profile={state.profile} paths={state.learningPaths} onUpdatePath={handleUpdateLearningPath} onExit={() => navigateTo(ViewState.HOME)} />}
       {state.view === ViewState.SCANNER && <EnvironmentScanner profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} />}
+      {state.view === ViewState.OPTIMIZER && optimizerSchedule && <ScheduleOptimizer schedule={optimizerSchedule} profile={state.profile} completionLogs={state.completionLogs} behaviorLogs={state.behaviorLogs} onBack={() => navigateTo(ViewState.DASHBOARD)} onApply={handleApplyOptimization} language={lang} />}
 
-      {state.view !== ViewState.CAMERA && state.view !== ViewState.CALM && state.view !== ViewState.KIDS_BUILDER && state.view !== ViewState.MAGIC_BOOKS && state.view !== ViewState.PARENT_INBOX && state.view !== ViewState.THERAPY && state.view !== ViewState.LEARNING && state.view !== ViewState.SCANNER && !state.isAACOpen && (
+      {state.view !== ViewState.CAMERA && state.view !== ViewState.CALM && state.view !== ViewState.KIDS_BUILDER && state.view !== ViewState.MAGIC_BOOKS && state.view !== ViewState.PARENT_INBOX && state.view !== ViewState.THERAPY && state.view !== ViewState.LEARNING && state.view !== ViewState.SCANNER && state.view !== ViewState.OPTIMIZER && !state.isAACOpen && (
         <button 
             onClick={() => setState(s => ({...s, isAACOpen: true}))}
             className={`fixed bottom-6 right-6 w-16 h-16 rounded-full flex items-center justify-center active:scale-90 transition-transform z-50 ${state.isHighContrast ? 'bg-yellow-400 text-black border-4 border-white' : 'bg-blue-600 shadow-2xl text-white border-2 border-white'}`}
@@ -669,7 +707,10 @@ const App: React.FC = () => {
         language={lang}
         customButtons={state.customAACButtons}
         onAddCustomButton={(btn) => setState(s => ({ ...s, customAACButtons: [...s.customAACButtons, btn] }))}
+        audioEnabled={audioEnabled}
+        profile={state.profile}
       />
+      </main>
     </div>
   );
 };

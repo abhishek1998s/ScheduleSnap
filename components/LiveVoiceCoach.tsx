@@ -7,9 +7,10 @@ import { t } from '../utils/translations';
 interface LiveVoiceCoachProps {
   profile: ChildProfile;
   onExit: () => void;
+  audioEnabled?: boolean;
 }
 
-export const LiveVoiceCoach: React.FC<LiveVoiceCoachProps> = ({ profile, onExit }) => {
+export const LiveVoiceCoach: React.FC<LiveVoiceCoachProps> = ({ profile, onExit, audioEnabled = true }) => {
   const [status, setStatus] = useState<'connecting' | 'connected' | 'error' | 'disconnected'>('connecting');
   const [volume, setVolume] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -91,6 +92,9 @@ export const LiveVoiceCoach: React.FC<LiveVoiceCoachProps> = ({ profile, onExit 
               if (!isMounted) return;
               const base64Audio = msg.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
               if (base64Audio && outputAudioContextRef.current && outputNodeRef.current) {
+                 // Check both global toggle and sensory profile
+                 if (!audioEnabled || profile.sensoryProfile.soundSensitivity === 'high') return;
+
                  const ctx = outputAudioContextRef.current;
                  nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
                  
@@ -162,7 +166,7 @@ export const LiveVoiceCoach: React.FC<LiveVoiceCoachProps> = ({ profile, onExit 
         isMounted = false;
         cleanupSession();
     };
-  }, [profile]);
+  }, [profile, audioEnabled]);
 
   // --- Helpers for PCM ---
   function createBlob(data: Float32Array) {

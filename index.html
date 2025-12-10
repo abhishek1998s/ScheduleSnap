@@ -1,9 +1,11 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <title>ScheduleSnap</title>
+    <link rel="manifest" href="/manifest.json" />
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script>
@@ -41,6 +43,30 @@
     <style>
       body { font-family: 'Nunito', sans-serif; -webkit-tap-highlight-color: transparent; }
       h1, h2, h3, button { font-family: 'Fredoka', sans-serif; }
+      
+      /* Accessibility: Keyboard focus indicators */
+      button:focus-visible,
+      [tabIndex="0"]:focus-visible,
+      a:focus-visible,
+      input:focus-visible {
+        outline: 3px solid #5B8C5A;
+        outline-offset: 2px;
+      }
+      button:focus:not(:focus-visible) {
+        outline: none;
+      }
+
+      /* Accessibility: Respect user's motion preferences */
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
     </style>
   <script type="importmap">
 {

@@ -54,7 +54,7 @@ export const RewardStore: React.FC<RewardStoreProps> = ({ tokens, profile, onRed
     <div className="h-full bg-purple-50 flex flex-col relative">
         {/* Header */}
         <div className="bg-white p-4 shadow-sm flex items-center justify-between sticky top-0 z-10 shrink-0">
-            <button onClick={onExit}><i className="fa-solid fa-arrow-left text-xl"></i></button>
+            <button onClick={onExit} aria-label="Back"><i className="fa-solid fa-arrow-left text-xl"></i></button>
             <h1 className="text-xl font-bold text-purple-700">{t(lang, 'rewardStore')}</h1>
             <div className="bg-yellow-100 px-3 py-1 rounded-full flex items-center gap-1">
                 <i className="fa-solid fa-star text-yellow-500"></i>
@@ -69,7 +69,7 @@ export const RewardStore: React.FC<RewardStoreProps> = ({ tokens, profile, onRed
                     <p className="font-bold">{t(lang, 'findingRewards')}</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-2 gap-4 pb-6">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-6">
                     {rewards.map(reward => {
                         const canAfford = tokens >= reward.cost;
                         return (
