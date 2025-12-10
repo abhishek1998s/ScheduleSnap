@@ -254,6 +254,32 @@ export const Dashboard: React.FC<DashboardProps> = ({
       }));
   };
 
+  const getCompletionDistribution = () => {
+      const counts: Record<string, number> = {};
+      let total = 0;
+      completionLogs.forEach(l => {
+          // Extract type from title (simple heuristic if not stored directly, 
+          // or match with current schedules)
+          const matchedSchedule = schedules.find(s => s.id === l.scheduleId);
+          const type = matchedSchedule ? matchedSchedule.type : 'General';
+          counts[type] = (counts[type] || 0) + 1;
+          total++;
+      });
+      
+      // Calculate conic gradient segments
+      let currentPercent = 0;
+      const segments = Object.entries(counts).map(([type, count], index) => {
+          const percent = (count / total) * 100;
+          const start = currentPercent;
+          currentPercent += percent;
+          // Colors for different types
+          const colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+          return { type, count, percent, color: colors[index % colors.length], start };
+      });
+      
+      return { total, segments };
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="flex flex-col h-full bg-background items-center justify-center p-6 overflow-y-auto">
@@ -541,6 +567,42 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 );
                             })}
                         </div>
+                    </div>
+
+                    {/* Routine Completion Distribution (Pie Chart) */}
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <h3 className="font-bold text-gray-800 mb-4">Routine Completion Distribution</h3>
+                        {completionLogs.length > 0 ? (
+                            <div className="flex items-center gap-6">
+                                <div className="relative w-32 h-32 shrink-0">
+                                    <div 
+                                        className="w-full h-full rounded-full transform -rotate-90"
+                                        style={{
+                                            background: `conic-gradient(${
+                                                getCompletionDistribution().segments.map(s => 
+                                                    `${s.color} ${s.start}% ${s.start + s.percent}%`
+                                                ).join(', ')
+                                            })`
+                                        }}
+                                    ></div>
+                                    <div className="absolute inset-0 m-6 bg-white rounded-full flex items-center justify-center flex-col">
+                                        <span className="text-2xl font-bold text-gray-800">{getCompletionDistribution().total}</span>
+                                        <span className="text-[8px] font-bold text-gray-400 uppercase">Total</span>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    {getCompletionDistribution().segments.map(s => (
+                                        <div key={s.type} className="flex items-center gap-2 text-xs">
+                                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: s.color }}></div>
+                                            <span className="font-bold text-gray-600">{s.type}</span>
+                                            <span className="text-gray-400">({Math.round(s.percent)}%)</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <p className="text-gray-400 text-sm italic">No completed routines yet.</p>
+                        )}
                     </div>
 
                     {/* Time of Day Analysis */}
