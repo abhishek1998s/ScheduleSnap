@@ -9,7 +9,6 @@ export const translations: Record<string, Record<string, string>> = {
     calmMode: "Calm Mode",
     feelings: "Feelings",
     aiCoach: "AI Coach",
-    // waitTimer is defined in Tools section below
     tellParents: "Tell Parents",
     research: "Research",
     social: "Social",
@@ -133,7 +132,25 @@ export const translations: Record<string, Record<string, string>> = {
     breatheIn: "Breathe In...",
     hold: "Hold...",
     breatheOut: "Breathe Out...",
-    followCircle: "Follow the breathing circle"
+    followCircle: "Follow the breathing circle",
+    // Calm Mode New
+    breathingPattern: "Breathing Pattern",
+    visualTheme: "Visual Theme",
+    soundscape: "Soundscape",
+    patternBalanced: "Balanced (4-4-4)",
+    patternRelax: "Relax (4-7-8)",
+    patternBox: "Box (Focus)",
+    patternQuick: "Quick (3-3-3)",
+    visualCircle: "Circle",
+    visualWaves: "Waves",
+    visualBubbles: "Bubbles",
+    visualStars: "Stars",
+    soundNone: "Silent",
+    soundWhiteNoise: "White Noise",
+    soundHeartbeat: "Heartbeat",
+    soundDrone: "Calm Hum",
+    soundRain: "Rain",
+    holdEmpty: "Hold Empty..."
   },
   Hindi: {
     appTitle: "ScheduleSnap",
@@ -258,7 +275,24 @@ export const translations: Record<string, Record<string, string>> = {
     breatheIn: "सांस लें...",
     hold: "रोकें...",
     breatheOut: "सांस छोड़ें...",
-    followCircle: "सर्कल का पालन करें"
+    followCircle: "सर्कल का पालन करें",
+    breathingPattern: "Breathing Pattern",
+    visualTheme: "Visual Theme",
+    soundscape: "Soundscape",
+    patternBalanced: "Balanced (4-4-4)",
+    patternRelax: "Relax (4-7-8)",
+    patternBox: "Box (Focus)",
+    patternQuick: "Quick (3-3-3)",
+    visualCircle: "Circle",
+    visualWaves: "Waves",
+    visualBubbles: "Bubbles",
+    visualStars: "Stars",
+    soundNone: "Silent",
+    soundWhiteNoise: "White Noise",
+    soundHeartbeat: "Heartbeat",
+    soundDrone: "Calm Hum",
+    soundRain: "Rain",
+    holdEmpty: "Hold Empty..."
   },
   Spanish: {
     appTitle: "ScheduleSnap",
@@ -383,7 +417,24 @@ export const translations: Record<string, Record<string, string>> = {
     breatheIn: "Inhala...",
     hold: "Mantén...",
     breatheOut: "Exhala...",
-    followCircle: "Sigue el círculo"
+    followCircle: "Sigue el círculo",
+    breathingPattern: "Patrón de Respiración",
+    visualTheme: "Tema Visual",
+    soundscape: "Paisaje Sonoro",
+    patternBalanced: "Equilibrado (4-4-4)",
+    patternRelax: "Relajación (4-7-8)",
+    patternBox: "Caja (Enfoque)",
+    patternQuick: "Rápido (3-3-3)",
+    visualCircle: "Círculo",
+    visualWaves: "Olas",
+    visualBubbles: "Burbujas",
+    visualStars: "Estrellas",
+    soundNone: "Silencio",
+    soundWhiteNoise: "Ruido Blanco",
+    soundHeartbeat: "Latido",
+    soundDrone: "Zumbido Calma",
+    soundRain: "Lluvia",
+    holdEmpty: "Mantén Vacío..."
   }
 };
 
