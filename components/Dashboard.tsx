@@ -64,8 +64,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // Goals (Simple local state for now)
   const [goals, setGoals] = useState([
-      { id: 1, text: "Complete Morning Routine 5x", target: 5, current: 0, icon: "fa-sun" },
-      { id: 2, text: "Log Mood daily", target: 7, current: 0, icon: "fa-face-smile" }
+      { id: 1, text: "Complete Morning Routine 5x", target: 5, current: 0, icon: "fa-sun", badge: "Morning Star" },
+      { id: 2, text: "Log Mood daily", target: 7, current: 0, icon: "fa-face-smile", badge: "Emotion Explorer" }
   ]);
 
   useEffect(() => {
@@ -236,6 +236,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
       const max = Math.max(...Object.values(counts), 1);
       return Object.entries(counts).map(([name, count]) => ({
           name, count, percent: (count / max) * 100
+      }));
+  };
+
+  const getTimeOfDayStats = () => {
+      const buckets = { Morning: 0, Midday: 0, Evening: 0, Night: 0 };
+      behaviorLogs.forEach(l => {
+          const h = new Date(l.timestamp).getHours();
+          if (h >= 5 && h < 11) buckets.Morning++;
+          else if (h >= 11 && h < 17) buckets.Midday++;
+          else if (h >= 17 && h < 22) buckets.Evening++;
+          else buckets.Night++;
+      });
+      const max = Math.max(...Object.values(buckets), 1);
+      return Object.entries(buckets).map(([time, count]) => ({
+          time, count, height: (count / max) * 100
       }));
   };
 
@@ -491,32 +506,58 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
             {activeTab === 'analytics' && (
                 <div className="space-y-6">
-                    {/* Goal Tracking */}
+                    {/* Goal Tracking with Badges */}
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                         <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                            <i className="fa-solid fa-bullseye text-primary"></i> Weekly Goals
+                            <i className="fa-solid fa-trophy text-yellow-500"></i> Weekly Goals & Badges
                         </h3>
                         <div className="space-y-4">
                             {goals.map(goal => {
                                 const percent = Math.min((goal.current / goal.target) * 100, 100);
+                                const isUnlocked = percent >= 100;
                                 return (
-                                    <div key={goal.id}>
-                                        <div className="flex justify-between text-sm mb-1">
+                                    <div key={goal.id} className="relative">
+                                        <div className="flex justify-between text-sm mb-1 items-center">
                                             <span className="font-bold text-gray-700 flex items-center gap-2">
-                                                <i className={`fa-solid ${goal.icon} text-gray-400`}></i> {goal.text}
+                                                <i className={`fa-solid ${goal.icon} ${isUnlocked ? 'text-yellow-500' : 'text-gray-300'}`}></i> 
+                                                {goal.text}
                                             </span>
-                                            <span className="text-gray-500 font-bold">{goal.current}/{goal.target}</span>
+                                            {isUnlocked && (
+                                                <span className="text-[10px] font-bold bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full border border-yellow-200">
+                                                    <i className="fa-solid fa-medal mr-1"></i> {goal.badge}
+                                                </span>
+                                            )}
                                         </div>
-                                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                        <div className="h-4 bg-gray-100 rounded-full overflow-hidden relative">
                                             <div 
-                                                className={`h-full transition-all ${percent >= 100 ? 'bg-green-500' : 'bg-blue-500'}`} 
+                                                className={`h-full transition-all duration-1000 ${isUnlocked ? 'bg-gradient-to-r from-yellow-400 to-yellow-300' : 'bg-blue-500'}`} 
                                                 style={{ width: `${percent}%` }}
                                             />
+                                            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-black/50">
+                                                {goal.current}/{goal.target}
+                                            </span>
                                         </div>
                                     </div>
                                 );
                             })}
                         </div>
+                    </div>
+
+                    {/* Time of Day Analysis */}
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                         <h3 className="font-bold text-gray-800 mb-4">Behavior Time of Day</h3>
+                         <div className="h-32 flex items-end justify-between gap-2">
+                             {getTimeOfDayStats().map(stat => (
+                                 <div key={stat.time} className="flex flex-col items-center gap-1 w-full group">
+                                     <div className="text-xs font-bold text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">{stat.count}</div>
+                                     <div 
+                                        className="w-full bg-purple-400 rounded-t-lg transition-all duration-700 min-h-[4px]"
+                                        style={{ height: `${Math.max(stat.height, 5)}%` }}
+                                     ></div>
+                                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">{stat.time}</div>
+                                 </div>
+                             ))}
+                         </div>
                     </div>
 
                     {/* Mood Chart */}
