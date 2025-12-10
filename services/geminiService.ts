@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { Schedule, ChildProfile, QuizQuestion, SocialScenario, BehaviorLog, BehaviorAnalysis, ResearchResult, RewardItem } from "../types";
+import { Schedule, ChildProfile, QuizQuestion, SocialScenario, BehaviorLog, BehaviorAnalysis, ResearchResult, RewardItem, AACButton } from "../types";
 
 // Initialize Gemini Client
 // Use a dummy key if missing to prevent initialization errors, checking process.env.API_KEY before calls.
@@ -610,4 +610,55 @@ export const transcribeAudio = async (audioBlob: Blob, language: string = 'Engli
       console.warn("Transcription failed");
       return "Transcription unavailable.";
   }
+};
+
+export const generateAACSymbol = async (label: string, language: string): Promise<AACButton> => {
+    if (!process.env.API_KEY) {
+        return {
+            id: `cust-${Date.now()}`,
+            label: label,
+            emoji: '✨',
+            voice: label,
+            color: 'bg-pink-500',
+            category: 'Custom'
+        };
+    }
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: `Create an AAC symbol for "${label}". Language: ${language}. Return JSON.`,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        emoji: { type: Type.STRING },
+                        voice: { type: Type.STRING, description: "Full sentence to speak" },
+                        color: { type: Type.STRING, description: "Tailwind background color class (e.g. bg-blue-500, bg-red-500, bg-green-500, bg-yellow-500)" }
+                    },
+                    required: ['emoji', 'voice', 'color']
+                }
+            }
+        });
+        
+        const data = JSON.parse(response.text || "{}");
+        return {
+            id: `cust-${Date.now()}`,
+            label: label,
+            emoji: data.emoji || '❓',
+            voice: data.voice || label,
+            color: data.color || 'bg-blue-500',
+            category: 'Custom'
+        };
+    } catch (e) {
+        return {
+            id: `cust-${Date.now()}`,
+            label: label,
+            emoji: '✨',
+            voice: label,
+            color: 'bg-pink-500',
+            category: 'Custom'
+        };
+    }
 };

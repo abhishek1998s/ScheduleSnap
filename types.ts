@@ -107,6 +107,25 @@ export interface RewardItem {
   cost: number;
 }
 
+// New AAC Types
+export type AACCategoryType = 'Core' | 'Needs' | 'Feelings' | 'Actions' | 'Social' | 'Scenes' | 'Custom';
+
+export interface AACButton {
+  id: string;
+  label: string;
+  emoji: string;
+  voice: string;
+  color: string;
+  category: AACCategoryType;
+}
+
+export interface VisualScene {
+  id: string;
+  name: string;
+  emoji: string;
+  vocabulary: AACButton[];
+}
+
 export interface AppState {
   view: 'home' | 'camera' | 'schedule-runner' | 'dashboard' | 'calm' | 'preview' | 'mood' | 'quiz' | 'store' | 'coach' | 'social' | 'voice-recorder' | 'timer' | 'research';
   activeScheduleId: string | null;
@@ -118,9 +137,10 @@ export interface AppState {
   moodLogs: MoodEntry[];
   behaviorLogs: BehaviorLog[];
   voiceMessages: VoiceMessage[];
-  quizStats: QuizStats; // New
+  quizStats: QuizStats;
   meltdownRisk?: 'Low' | 'Medium' | 'High';
   caregiverPin?: string;
+  customAACButtons: AACButton[]; // New: Persist custom buttons
 }
 
 export enum ViewState {

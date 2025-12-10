@@ -60,7 +60,8 @@ const App: React.FC = () => {
     voiceMessages: [],
     quizStats: { level: 1, xp: 0, totalAnswered: 0 },
     meltdownRisk: 'Low',
-    caregiverPin: '1234'
+    caregiverPin: '1234',
+    customAACButtons: [] // Initial empty
   });
 
   const [generatedSchedule, setGeneratedSchedule] = useState<Omit<Schedule, 'id' | 'createdAt'> | null>(null);
@@ -92,7 +93,8 @@ const App: React.FC = () => {
             },
             isHighContrast: parsed.isHighContrast || false,
             caregiverPin: parsed.caregiverPin || '1234',
-            quizStats: parsed.quizStats || { level: 1, xp: 0, totalAnswered: 0 }
+            quizStats: parsed.quizStats || { level: 1, xp: 0, totalAnswered: 0 },
+            customAACButtons: parsed.customAACButtons || []
         }));
       } catch (e) {
         console.error("Failed to load save data");
@@ -342,7 +344,13 @@ const App: React.FC = () => {
       {state.view === ViewState.STORE && <RewardStore tokens={state.tokens} profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} onRedeem={(cost) => setState(prev => ({ ...prev, tokens: prev.tokens - cost }))} />}
       {state.view === ViewState.COACH && <LiveVoiceCoach profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} />}
       {(state.view === ViewState.CALM) && <CalmMode onExit={() => navigateTo(ViewState.HOME)} language={lang} />}
-      <AACBoard isOpen={state.isAACOpen} onClose={() => setState(s => ({...s, isAACOpen: false}))} language={lang} />
+      <AACBoard 
+        isOpen={state.isAACOpen} 
+        onClose={() => setState(s => ({...s, isAACOpen: false}))} 
+        language={lang}
+        customButtons={state.customAACButtons}
+        onAddCustomButton={(btn) => setState(s => ({ ...s, customAACButtons: [...s.customAACButtons, btn] }))}
+      />
     </div>
   );
 };
