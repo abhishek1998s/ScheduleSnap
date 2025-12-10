@@ -15,6 +15,7 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [completedSubSteps, setCompletedSubSteps] = useState<Set<string>>(new Set());
   const [isCompleted, setIsCompleted] = useState(false);
+  const [activeEncouragement, setActiveEncouragement] = useState('');
   
   // Timer State for F38 & Visuals
   const DEFAULT_STEP_DURATION = 120; // 2 minutes default if not specified
@@ -39,11 +40,25 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
     // Reset timer on step change
     setTimeLeft(DEFAULT_STEP_DURATION);
     setIsTimerRunning(true);
-
-    if (currentStep && !isCompleted) {
-      playAudio(`${currentStep.instruction}. ${currentStep.encouragement}`);
+    
+    // Rotate Encouragement
+    if (currentStep) {
+        if (currentStep.encouragementOptions && currentStep.encouragementOptions.length > 0) {
+            const randomEncouragement = currentStep.encouragementOptions[Math.floor(Math.random() * currentStep.encouragementOptions.length)];
+            setActiveEncouragement(randomEncouragement);
+        } else {
+            setActiveEncouragement(currentStep.encouragement);
+        }
     }
-  }, [currentStepIndex, isCompleted]);
+
+  }, [currentStepIndex]);
+
+  // Play audio when step/encouragement changes, but wait for activeEncouragement to be set
+  useEffect(() => {
+     if (currentStep && !isCompleted && activeEncouragement) {
+        playAudio(`${currentStep.instruction}. ${activeEncouragement}`);
+     }
+  }, [currentStepIndex, isCompleted, activeEncouragement]);
 
   // Timer Tick & Transition Warnings (F38)
   useEffect(() => {
@@ -79,7 +94,8 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
 
   const finishRoutine = () => {
     setIsCompleted(true);
-    playAudio(`Hurray! You finished the ${schedule.title}! You are amazing!`);
+    const celebration = schedule.completionCelebration || `Hurray! You finished the ${schedule.title}! You are amazing!`;
+    playAudio(celebration);
     setTimeout(() => {
         onComplete();
     }, 4000);
@@ -98,7 +114,7 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
         <div className="min-h-full flex flex-col items-center justify-center">
             <i className="fa-solid fa-trophy text-8xl text-yellow-300 mb-6 animate-bounce"></i>
             <h1 className="text-4xl font-bold mb-4">{t(lang, 'iDidIt')}</h1>
-            <p className="text-2xl mb-8">{t(lang, 'allDone')} {schedule.title}!</p>
+            <p className="text-2xl mb-8 font-bold">{schedule.completionCelebration || `${t(lang, 'allDone')} ${schedule.title}!`}</p>
             <div className="flex gap-2 mb-8">
                 {[1,2,3,4,5].map(i => <i key={i} className="fa-solid fa-star text-3xl text-yellow-300 animate-pulse"></i>)}
             </div>
@@ -200,7 +216,7 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
                 {currentStep.instruction}
             </h2>
             <p className="text-lg sm:text-xl text-primary font-bold text-center">
-                "{currentStep.encouragement}"
+                "{activeEncouragement}"
             </p>
             
             {currentStep.subSteps && currentStep.subSteps.length > 0 && (

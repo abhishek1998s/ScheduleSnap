@@ -135,6 +135,20 @@ export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, prof
                 </div>
             ))}
         </div>
+
+        {/* Celebration Message */}
+        <div className="mt-4 bg-green-50 p-4 rounded-xl border border-green-100">
+            <h3 className="text-green-800 font-bold text-sm uppercase mb-1 flex items-center gap-2">
+                <i className="fa-solid fa-trophy"></i> Celebration Message
+            </h3>
+            <input 
+                value={localSchedule.completionCelebration || ''}
+                onChange={(e) => setLocalSchedule({...localSchedule, completionCelebration: e.target.value})}
+                className="w-full bg-transparent text-green-900 font-medium leading-relaxed border-b border-green-200 focus:border-green-500 outline-none"
+                placeholder="Message to say when done..."
+            />
+        </div>
+
       </div>
 
       <div className="p-4 bg-white border-t flex gap-4">

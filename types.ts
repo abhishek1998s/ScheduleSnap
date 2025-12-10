@@ -16,6 +16,7 @@ export interface Schedule {
   type: 'Morning' | 'Bedtime' | 'Meal' | 'Play' | 'General';
   steps: ScheduleStep[];
   socialStory: string;
+  completionCelebration?: string; // New: Interest-themed completion message
   scheduledTime?: string; // New: "08:00", "19:30"
   createdAt: number;
 }

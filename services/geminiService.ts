@@ -25,6 +25,7 @@ export const generateScheduleFromImage = async (
           title: "Morning Routine",
           type: "Morning",
           socialStory: "In the morning, we wake up and get ready. We do things in order so we feel happy and ready to play!",
+          completionCelebration: "Mission Accomplished! You are a superstar!",
           steps: [
             { id: '1', emoji: "🛏️", instruction: "Wake up", encouragement: "Good morning sunshine!", sensoryTip: "Stretch under warm covers", completed: false },
             { id: '2', emoji: "🚽", instruction: "Use bathroom", encouragement: "Great job!", completed: false },
@@ -54,8 +55,8 @@ export const generateScheduleFromImage = async (
        - Emoji: A specific visual for the step.
        - Encouragement Options: Generate 3 distinct encouragement phrases. They MUST be themed around the child's interests (e.g., if they like Space, say "Blast off to the bathroom!" or "Stellar teeth brushing!").
        - Sensory Tip: If a step involves sensory input (touch, taste, sound, temperature), provide a brief, helpful tip (e.g., "Water might be cold", "Toothpaste tastes minty").
-
     4. SOCIAL STORY: Write a short, motivating 2-sentence story explaining WHY we do this routine.
+    5. CELEBRATION: A short, exciting, interest-themed phrase to say when the whole routine is done.
   `;
 
   // Use Thinking Mode if enabled in profile
@@ -82,6 +83,7 @@ export const generateScheduleFromImage = async (
             title: { type: Type.STRING, description: "Title of the routine (e.g. Bedtime Mission)" },
             type: { type: Type.STRING, enum: ['Morning', 'Bedtime', 'Meal', 'Play', 'General'] },
             socialStory: { type: Type.STRING, description: "Simple explanation of the routine's purpose" },
+            completionCelebration: { type: Type.STRING, description: "Final celebratory message based on interests" },
             steps: {
               type: Type.ARRAY,
               items: {
@@ -100,7 +102,7 @@ export const generateScheduleFromImage = async (
               }
             }
           },
-          required: ['title', 'type', 'socialStory', 'steps']
+          required: ['title', 'type', 'socialStory', 'steps', 'completionCelebration']
         }
       }
     });
@@ -124,6 +126,7 @@ export const generateScheduleFromImage = async (
       title: data.title,
       type: data.type,
       socialStory: data.socialStory,
+      completionCelebration: data.completionCelebration || "You did it!",
       steps: stepsWithIds
     };
 
@@ -553,7 +556,8 @@ export const optimizeSchedule = async (
                             required: ['emoji', 'instruction', 'encouragement']
                         }
                     },
-                    socialStory: { type: Type.STRING }
+                    socialStory: { type: Type.STRING },
+                    completionCelebration: { type: Type.STRING }
                 },
                 required: ['steps', 'socialStory']
              }
@@ -570,6 +574,7 @@ export const optimizeSchedule = async (
     return {
         ...schedule,
         socialStory: data.optimizedSchedule.socialStory,
+        completionCelebration: data.optimizedSchedule.completionCelebration || schedule.completionCelebration,
         steps: data.optimizedSchedule.steps.map((s: any, i: number) => ({
             id: `opt-${Date.now()}-${i}`,
             emoji: s.emoji,
