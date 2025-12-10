@@ -56,6 +56,9 @@ export const LiveVoiceCoach: React.FC<LiveVoiceCoachProps> = ({ profile, onExit,
             videoRef.current.play().catch(e => console.warn("Video play failed", e));
         }
 
+        // Live Session
+        let activeSession: any = null;
+
         const sessionPromise = ai.live.connect({
           model: 'gemini-2.5-flash-native-audio-preview-09-2025',
           callbacks: {
@@ -63,28 +66,35 @@ export const LiveVoiceCoach: React.FC<LiveVoiceCoachProps> = ({ profile, onExit,
               if (!isMounted) return;
               setStatus('connected');
               
+              // Resolve session for immediate access
+              sessionPromise.then(s => activeSession = s);
+
               // Process Input Audio
               if (inputAudioContextRef.current) {
                   const source = inputAudioContextRef.current.createMediaStreamSource(stream);
-                  const scriptProcessor = inputAudioContextRef.current.createScriptProcessor(4096, 1, 1);
+                  // Reduced buffer size for lower latency
+                  const scriptProcessor = inputAudioContextRef.current.createScriptProcessor(2048, 1, 1);
                   inputNodeRef.current = scriptProcessor;
+                  
+                  // Boost input gain
+                  const gainNode = inputAudioContextRef.current.createGain();
+                  gainNode.gain.value = 1.5; 
 
                   scriptProcessor.onaudioprocess = (e) => {
-                    if (!isMounted) return;
+                    if (!isMounted || !activeSession) return; // Use activeSession for speed
                     const inputData = e.inputBuffer.getChannelData(0);
                     
                     // Volume visualization
                     let sum = 0;
-                    for(let i=0; i<inputData.length; i++) sum += inputData[i] * inputData[i];
-                    setVolume(Math.sqrt(sum / inputData.length) * 5);
+                    for(let i=0; i<inputData.length; i+=10) sum += inputData[i] * inputData[i];
+                    setVolume(Math.sqrt(sum / (inputData.length/10)) * 5);
 
                     const pcmBlob = createBlob(inputData);
-                    sessionPromise.then(session => session.sendRealtimeInput({ media: pcmBlob })).catch(err => {
-                        console.warn("Failed to send audio", err);
-                    });
+                    activeSession.sendRealtimeInput({ media: pcmBlob });
                   };
                   
-                  source.connect(scriptProcessor);
+                  source.connect(gainNode);
+                  gainNode.connect(scriptProcessor);
                   scriptProcessor.connect(inputAudioContextRef.current.destination);
               }
             },
@@ -96,6 +106,9 @@ export const LiveVoiceCoach: React.FC<LiveVoiceCoachProps> = ({ profile, onExit,
                  if (!audioEnabled || profile.sensoryProfile.soundSensitivity === 'high') return;
 
                  const ctx = outputAudioContextRef.current;
+                 // Ensure context is running (can be suspended by autoplay policy)
+                 if (ctx.state === 'suspended') await ctx.resume();
+
                  nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
                  
                  try {
@@ -149,8 +162,12 @@ export const LiveVoiceCoach: React.FC<LiveVoiceCoachProps> = ({ profile, onExit,
         cleanupSession = () => {
             sessionPromise.then(s => s.close()).catch(e => console.warn("Close failed", e));
             inputNodeRef.current?.disconnect();
-            inputAudioContextRef.current?.close();
-            outputAudioContextRef.current?.close();
+            if (inputAudioContextRef.current && inputAudioContextRef.current.state !== 'closed') {
+                inputAudioContextRef.current.close();
+            }
+            if (outputAudioContextRef.current && outputAudioContextRef.current.state !== 'closed') {
+                outputAudioContextRef.current.close();
+            }
             stream.getTracks().forEach(t => t.stop());
         };
 
@@ -170,10 +187,17 @@ export const LiveVoiceCoach: React.FC<LiveVoiceCoachProps> = ({ profile, onExit,
 
   // --- Helpers for PCM ---
   function createBlob(data: Float32Array) {
+    // Optimized 16-bit PCM encoding
     const l = data.length;
-    const int16 = new Int16Array(l);
-    for (let i = 0; i < l; i++) int16[i] = data[i] * 32768;
-    const binary = String.fromCharCode(...new Uint8Array(int16.buffer));
+    let binary = "";
+    for (let i = 0; i < l; i++) {
+        // Clamp and convert to 16-bit integer
+        let s = Math.max(-1, Math.min(1, data[i]));
+        s = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        s = Math.round(s);
+        // Little Endian
+        binary += String.fromCharCode(s & 255, (s >> 8) & 255);
+    }
     return {
         data: btoa(binary),
         mimeType: 'audio/pcm;rate=16000'
@@ -201,11 +225,11 @@ export const LiveVoiceCoach: React.FC<LiveVoiceCoachProps> = ({ profile, onExit,
   }
 
   return (
-    <div className="flex flex-col h-full bg-black relative">
+    <div className="flex flex-col h-full bg-black relative overflow-hidden">
       <video ref={videoRef} className="absolute inset-0 w-full h-full object-cover opacity-50" muted playsInline />
       
-      <div className="absolute inset-0 flex flex-col items-center justify-between p-8 z-10">
-         <div className="w-full flex justify-between items-center text-white">
+      <div className="absolute inset-0 flex flex-col items-center justify-between p-4 md:p-8 z-10 overflow-y-auto">
+         <div className="w-full flex justify-between items-center text-white shrink-0">
             <h2 className="text-xl font-bold bg-black/30 px-4 py-2 rounded-full backdrop-blur-md">
                 AI Coach Snap 🤖
             </h2>
@@ -214,13 +238,13 @@ export const LiveVoiceCoach: React.FC<LiveVoiceCoachProps> = ({ profile, onExit,
             </div>
          </div>
 
-         <div className="flex flex-col items-center gap-4">
+         <div className="flex flex-col items-center gap-4 my-8">
              {/* Visualizer Circle */}
              <div 
-               className="w-32 h-32 bg-primary/80 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(91,140,90,0.6)] transition-transform duration-100 border-4 border-white"
+               className="w-32 h-32 md:w-48 md:h-48 bg-primary/80 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(91,140,90,0.6)] transition-transform duration-100 border-4 border-white"
                style={{ transform: `scale(${1 + Math.min(volume, 0.5)})` }}
              >
-                <i className="fa-solid fa-microphone text-4xl text-white"></i>
+                <i className="fa-solid fa-microphone text-4xl md:text-6xl text-white"></i>
              </div>
              <p className="text-white font-bold text-lg bg-black/40 px-4 py-2 rounded-xl backdrop-blur-sm text-center">
                  {status === 'connected' ? t(lang, 'listening') : status === 'error' ? t(lang, 'connectionFailed') : t(lang, 'connecting')}
@@ -229,7 +253,7 @@ export const LiveVoiceCoach: React.FC<LiveVoiceCoachProps> = ({ profile, onExit,
 
          <button 
             onClick={onExit}
-            className="bg-red-500 hover:bg-red-600 text-white w-full max-w-sm py-4 rounded-2xl font-bold text-xl shadow-lg flex items-center justify-center gap-2"
+            className="bg-red-500 hover:bg-red-600 text-white w-full max-w-sm py-4 rounded-2xl font-bold text-xl shadow-lg flex items-center justify-center gap-2 shrink-0 mb-4"
          >
             <i className="fa-solid fa-phone-slash"></i>
             {t(lang, 'endCall')}

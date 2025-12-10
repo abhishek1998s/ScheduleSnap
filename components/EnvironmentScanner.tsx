@@ -75,7 +75,9 @@ export const EnvironmentScanner: React.FC<EnvironmentScannerProps> = ({ profile,
 
     return () => {
         if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
-        if (audioContextRef.current) audioContextRef.current.close();
+        if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+            audioContextRef.current.close();
+        }
     };
   }, [isScanning]);
 
@@ -131,9 +133,9 @@ export const EnvironmentScanner: React.FC<EnvironmentScannerProps> = ({ profile,
         </div>
 
         {/* UI Overlay */}
-        <div className="relative z-10 flex flex-col h-full">
+        <div className="relative z-10 flex flex-col h-full pointer-events-none">
             {/* Header */}
-            <div className="p-4 flex justify-between items-center bg-gradient-to-b from-black/80 to-transparent">
+            <div className="p-4 flex justify-between items-center bg-gradient-to-b from-black/80 to-transparent shrink-0 pointer-events-auto">
                 <button onClick={onExit} className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center">
                     <i className="fa-solid fa-times"></i>
                 </button>
@@ -141,9 +143,9 @@ export const EnvironmentScanner: React.FC<EnvironmentScannerProps> = ({ profile,
                 <div className="w-10"></div>
             </div>
 
-            <div className="flex-1 flex flex-col items-center justify-center p-6">
+            <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-y-auto pointer-events-auto">
                 {isScanning ? (
-                    <div className="relative w-full max-w-sm aspect-square border-2 border-white/30 rounded-3xl overflow-hidden">
+                    <div className="relative w-full max-w-sm aspect-square max-h-[50vh] border-2 border-white/30 rounded-3xl overflow-hidden backdrop-blur-sm bg-white/5">
                         {/* Scanning Line Animation */}
                         <div className="absolute top-0 left-0 right-0 h-1 bg-green-400 shadow-[0_0_20px_rgba(74,222,128,0.8)] animate-[scan_2s_linear_infinite]"></div>
                         <style>{`
@@ -155,63 +157,65 @@ export const EnvironmentScanner: React.FC<EnvironmentScannerProps> = ({ profile,
                             }
                         `}</style>
                         <div className="absolute inset-0 flex items-center justify-center">
-                            <p className="font-bold text-xl animate-pulse">{t(lang, 'scanningRoom')}</p>
+                            <p className="font-bold text-xl animate-pulse drop-shadow-md">{t(lang, 'scanningRoom')}</p>
                         </div>
                     </div>
                 ) : result ? (
-                    <div className="w-full max-w-md bg-white/95 backdrop-blur-xl rounded-3xl p-6 text-slate-800 shadow-2xl animate-slideUp overflow-y-auto max-h-[75vh]">
+                    <div className="w-full max-w-md bg-white/95 backdrop-blur-xl rounded-3xl p-6 text-slate-800 shadow-2xl animate-slideUp overflow-y-auto max-h-[80vh] flex flex-col">
                         
                         {/* Overall Risk Header */}
-                        <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
+                        <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-4 shrink-0">
                             <span className="font-bold text-gray-500 uppercase text-xs">{t(lang, 'envRisk')}</span>
                             <span className={`px-3 py-1 rounded-full text-white text-xs font-bold uppercase ${getRiskColor(result.overallRisk)}`}>
                                 {result.overallRisk}
                             </span>
                         </div>
 
-                        {/* Gauges Grid */}
-                        <div className="grid grid-cols-3 gap-2 mb-6">
-                            {/* Light */}
-                            <div className="bg-slate-50 p-3 rounded-2xl flex flex-col items-center text-center">
-                                <i className={`fa-solid fa-sun text-2xl mb-2 ${result.lightLevel === 'good' ? 'text-green-500' : 'text-orange-500'}`}></i>
-                                <span className="text-[10px] font-bold uppercase text-gray-400">{t(lang, 'lightLevel')}</span>
-                                <span className="text-xs font-bold">{result.lightLevel}</span>
-                            </div>
-                            {/* Noise */}
-                            <div className="bg-slate-50 p-3 rounded-2xl flex flex-col items-center text-center">
-                                <i className={`fa-solid fa-volume-high text-2xl mb-2 ${result.noiseLevel > 60 ? 'text-red-500' : result.noiseLevel > 30 ? 'text-yellow-500' : 'text-green-500'}`}></i>
-                                <span className="text-[10px] font-bold uppercase text-gray-400">{t(lang, 'noiseLevel')}</span>
-                                <span className="text-xs font-bold">{result.noiseLevel}%</span>
-                            </div>
-                            {/* Clutter */}
-                            <div className="bg-slate-50 p-3 rounded-2xl flex flex-col items-center text-center">
-                                <i className={`fa-solid fa-boxes-stacked text-2xl mb-2 ${result.visualClutter === 'low' ? 'text-green-500' : 'text-orange-500'}`}></i>
-                                <span className="text-[10px] font-bold uppercase text-gray-400">{t(lang, 'visualClutter')}</span>
-                                <span className="text-xs font-bold">{result.visualClutter}</span>
-                            </div>
-                        </div>
-
-                        {/* Analysis Text */}
-                        <p className="text-sm text-gray-600 italic mb-4 border-l-4 border-blue-400 pl-3">
-                            "{result.colorAnalysis}"
-                        </p>
-
-                        {/* Recommendations */}
-                        <div className="space-y-3 mb-6">
-                            <h3 className="font-bold text-slate-800 text-sm uppercase">{t(lang, 'recommendations')}</h3>
-                            {result.recommendations.map((rec, i) => (
-                                <div key={i} className="flex items-start gap-3 bg-blue-50 p-3 rounded-xl text-sm text-blue-900">
-                                    <i className="fa-solid fa-lightbulb mt-1 text-blue-500"></i>
-                                    {rec}
+                        <div className="overflow-y-auto flex-1">
+                            {/* Gauges Grid */}
+                            <div className="grid grid-cols-3 gap-2 mb-6">
+                                {/* Light */}
+                                <div className="bg-slate-50 p-3 rounded-2xl flex flex-col items-center text-center">
+                                    <i className={`fa-solid fa-sun text-2xl mb-2 ${result.lightLevel === 'good' ? 'text-green-500' : 'text-orange-500'}`}></i>
+                                    <span className="text-[10px] font-bold uppercase text-gray-400">{t(lang, 'lightLevel')}</span>
+                                    <span className="text-xs font-bold">{result.lightLevel}</span>
                                 </div>
-                            ))}
-                            {result.lightSuggestion && <div className="text-xs text-orange-600 px-2">• {result.lightSuggestion}</div>}
-                            {result.noiseSuggestion && <div className="text-xs text-orange-600 px-2">• {result.noiseSuggestion}</div>}
+                                {/* Noise */}
+                                <div className="bg-slate-50 p-3 rounded-2xl flex flex-col items-center text-center">
+                                    <i className={`fa-solid fa-volume-high text-2xl mb-2 ${result.noiseLevel > 60 ? 'text-red-500' : result.noiseLevel > 30 ? 'text-yellow-500' : 'text-green-500'}`}></i>
+                                    <span className="text-[10px] font-bold uppercase text-gray-400">{t(lang, 'noiseLevel')}</span>
+                                    <span className="text-xs font-bold">{result.noiseLevel}%</span>
+                                </div>
+                                {/* Clutter */}
+                                <div className="bg-slate-50 p-3 rounded-2xl flex flex-col items-center text-center">
+                                    <i className={`fa-solid fa-boxes-stacked text-2xl mb-2 ${result.visualClutter === 'low' ? 'text-green-500' : 'text-orange-500'}`}></i>
+                                    <span className="text-[10px] font-bold uppercase text-gray-400">{t(lang, 'visualClutter')}</span>
+                                    <span className="text-xs font-bold">{result.visualClutter}</span>
+                                </div>
+                            </div>
+
+                            {/* Analysis Text */}
+                            <p className="text-sm text-gray-600 italic mb-4 border-l-4 border-blue-400 pl-3">
+                                "{result.colorAnalysis}"
+                            </p>
+
+                            {/* Recommendations */}
+                            <div className="space-y-3 mb-6">
+                                <h3 className="font-bold text-slate-800 text-sm uppercase">{t(lang, 'recommendations')}</h3>
+                                {result.recommendations.map((rec, i) => (
+                                    <div key={i} className="flex items-start gap-3 bg-blue-50 p-3 rounded-xl text-sm text-blue-900">
+                                        <i className="fa-solid fa-lightbulb mt-1 text-blue-500"></i>
+                                        {rec}
+                                    </div>
+                                ))}
+                                {result.lightSuggestion && <div className="text-xs text-orange-600 px-2">• {result.lightSuggestion}</div>}
+                                {result.noiseSuggestion && <div className="text-xs text-orange-600 px-2">• {result.noiseSuggestion}</div>}
+                            </div>
                         </div>
 
                         <button 
                             onClick={handleScanAgain}
-                            className="w-full py-4 bg-slate-800 text-white rounded-xl font-bold shadow-lg hover:bg-slate-700 active:scale-95 transition-all"
+                            className="w-full py-4 bg-slate-800 text-white rounded-xl font-bold shadow-lg hover:bg-slate-700 active:scale-95 transition-all shrink-0 mt-4"
                         >
                             <i className="fa-solid fa-rotate-right mr-2"></i> {t(lang, 'scanAgain')}
                         </button>

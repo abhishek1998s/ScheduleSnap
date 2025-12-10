@@ -415,12 +415,31 @@ export const generateSocialScenario = async (age: number, language: string): Pro
     if (!process.env.API_KEY) return getMockScenario();
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview',
-            contents: `Social scenario.`,
+            model: 'gemini-2.5-flash',
+            contents: `Generate a social scenario for a ${age} year old child. Language: ${language}.
+            Include a title, description, an emoji, and 3 options (one correct).
+            For each option provide feedback.`,
             config: {
-                ...getThinkingConfig('medium'),
                 responseMimeType: "application/json",
-                responseSchema: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, description: { type: Type.STRING }, emoji: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { text: { type: Type.STRING }, isAppropriate: { type: Type.BOOLEAN }, feedback: { type: Type.STRING } } } } } }
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        title: { type: Type.STRING },
+                        description: { type: Type.STRING },
+                        emoji: { type: Type.STRING },
+                        options: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    text: { type: Type.STRING },
+                                    isAppropriate: { type: Type.BOOLEAN },
+                                    feedback: { type: Type.STRING }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         });
         return JSON.parse(response.text || '{}');

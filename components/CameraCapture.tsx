@@ -40,7 +40,9 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, o
         console.warn("AudioContext not supported");
     }
     return () => {
-        audioContextRef.current?.close();
+        if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+            audioContextRef.current.close();
+        }
     };
   }, []);
 
