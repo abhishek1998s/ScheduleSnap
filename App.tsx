@@ -18,6 +18,7 @@ import { WaitTimer } from './components/WaitTimer';
 import { ResearchTool } from './components/ResearchTool';
 import { MeltdownPredictionAlert } from './components/MeltdownPredictionAlert';
 import { VoiceCompanion } from './components/VoiceCompanion';
+import { KidsRoutineBuilder } from './components/KidsRoutineBuilder';
 import { t } from './utils/translations';
 
 const INITIAL_PROFILE: ChildProfile = {
@@ -333,6 +334,14 @@ const App: React.FC = () => {
       setState(prev => ({ ...prev, latestPrediction: null }));
   };
 
+  const handleBuilderSave = (schedule: Schedule) => {
+      setState(prev => ({
+          ...prev,
+          schedules: [schedule, ...prev.schedules],
+          view: ViewState.HOME
+      }));
+  };
+
   const activeSchedule = state.schedules.find(s => s.id === state.activeScheduleId);
   const lang = state.profile.language;
   const unreadCount = state.voiceMessages.filter(m => !m.read).length;
@@ -351,7 +360,7 @@ const App: React.FC = () => {
     <div className={`h-full w-full relative ${themeClass} overflow-hidden`}>
       
       {/* Voice Companion "Snap" */}
-      {state.view !== ViewState.COACH && state.view !== ViewState.CAMERA && (
+      {state.view !== ViewState.COACH && state.view !== ViewState.CAMERA && state.view !== ViewState.KIDS_BUILDER && (
           <VoiceCompanion 
               profile={state.profile}
               currentView={state.view}
@@ -407,6 +416,15 @@ const App: React.FC = () => {
             >
                 <i className="fa-solid fa-camera text-5xl"></i>
                 <span className="text-2xl font-bold">{t(lang, 'snapRoutine')}</span>
+            </button>
+
+            {/* NEW: Kids Builder Button */}
+            <button 
+                onClick={() => navigateTo(ViewState.KIDS_BUILDER)}
+                className={`w-full p-6 rounded-3xl flex items-center justify-center gap-4 active:scale-95 transition-transform mb-6 ${state.isHighContrast ? 'bg-blue-900 border-4 border-yellow-400 text-yellow-300' : 'bg-gradient-to-r from-blue-400 to-cyan-400 text-white shadow-lg'}`}
+            >
+                <i className="fa-solid fa-hammer text-3xl"></i>
+                <span className="text-xl font-bold">{t(lang, 'buildMyDay')}</span>
             </button>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-8">
@@ -481,8 +499,9 @@ const App: React.FC = () => {
       {state.view === ViewState.STORE && <RewardStore tokens={state.tokens} profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} onRedeem={(cost) => setState(prev => ({ ...prev, tokens: prev.tokens - cost }))} />}
       {state.view === ViewState.COACH && <LiveVoiceCoach profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} />}
       {(state.view === ViewState.CALM) && <CalmMode onExit={() => navigateTo(ViewState.HOME)} language={lang} />}
+      {state.view === ViewState.KIDS_BUILDER && <KidsRoutineBuilder profile={state.profile} onSave={handleBuilderSave} onExit={() => navigateTo(ViewState.HOME)} />}
       
-      {state.view !== ViewState.CAMERA && state.view !== ViewState.CALM && !state.isAACOpen && (
+      {state.view !== ViewState.CAMERA && state.view !== ViewState.CALM && state.view !== ViewState.KIDS_BUILDER && !state.isAACOpen && (
         <button 
             onClick={() => setState(s => ({...s, isAACOpen: true}))}
             className={`fixed bottom-6 right-6 w-16 h-16 rounded-full flex items-center justify-center active:scale-90 transition-transform z-50 ${state.isHighContrast ? 'bg-yellow-400 text-black border-4 border-white' : 'bg-blue-600 shadow-2xl text-white border-2 border-white'}`}

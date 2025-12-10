@@ -249,37 +249,40 @@ export const translations: Record<string, Record<string, string>> = {
     optEvidence: "Evidence",
     optCompletion: "Completion",
     optTime: "Time",
-    optStress: "Stress"
+    optStress: "Stress",
+    // Kids Builder
+    buildMyDay: "Build My Day",
+    builderWelcome: "Hi! Let's build your schedule together! Drag pictures to the blue area.",
+    builderEmpty: "Add some pictures first!",
+    added: "Added",
+    savedRoutine: "I saved your routine!",
+    builderLibrary: "Picture Library",
+    dragHere: "Tap pictures to add them here!",
+    saved: "Saved!",
   },
   Hindi: {
     // ... existing translations ...
     appTitle: "ScheduleSnap",
-    // ... (rest omitted for brevity, assuming similar keys exist or fallback to English) ...
-    optTitle: "एजेंटिक अनुकूलक",
-    optImpact: "अनुमानित प्रभाव",
-    optChanges: "प्रस्तावित परिवर्तन",
-    optApply: "लागू करें",
-    optDiscard: "रद्द करें",
-    optReason: "क्यों?",
-    optEvidence: "सबूत",
-    optCompletion: "पूर्णता",
-    optTime: "समय",
-    optStress: "तनाव"
+    buildMyDay: "मेरा दिन बनाओ",
+    builderWelcome: "नमस्ते! आइए अपना शेड्यूल बनाएं!",
+    builderEmpty: "पहले कुछ तस्वीरें जोड़ें!",
+    added: "जोड़ा गया",
+    savedRoutine: "मैंने आपका रूटीन सहेज लिया!",
+    builderLibrary: "तस्वीर पुस्तकालय",
+    dragHere: "तस्वीरें जोड़ने के लिए टैप करें!",
+    // ...
   },
   Spanish: {
     // ... existing translations ...
     appTitle: "ScheduleSnap",
+    buildMyDay: "Construir Mi Día",
+    builderWelcome: "¡Hola! ¡Vamos a construir tu horario!",
+    builderEmpty: "¡Agrega algunas fotos primero!",
+    added: "Agregado",
+    savedRoutine: "¡Guardé tu rutina!",
+    builderLibrary: "Biblioteca de imágenes",
+    dragHere: "¡Toca las imágenes para agregarlas aquí!",
     // ...
-    optTitle: "Optimizador Agente",
-    optImpact: "Impacto Previsto",
-    optChanges: "Cambios Propuestos",
-    optApply: "Aplicar Optimización",
-    optDiscard: "Descartar",
-    optReason: "¿Por qué?",
-    optEvidence: "Evidencia",
-    optCompletion: "Finalización",
-    optTime: "Tiempo",
-    optStress: "Estrés"
   }
 };
 

@@ -1,5 +1,4 @@
 
-
 export interface ScheduleStep {
   id: string;
   emoji: string;
@@ -211,6 +210,13 @@ export interface ScheduleOptimization {
   };
 }
 
+export interface BuilderFeedback {
+    isValid: boolean;
+    message: string;
+    missingSteps?: string[];
+    suggestedOrder?: string[];
+}
+
 // NEW: Voice Companion Modes
 export type ConversationMode = 'routine_guide' | 'encouragement' | 'calm_support' | 'learning' | 'play' | 'transition_prep';
 
@@ -228,7 +234,8 @@ export enum ViewState {
   SOCIAL = 'social',
   VOICE_RECORDER = 'voice-recorder',
   TIMER = 'timer',
-  RESEARCH = 'research'
+  RESEARCH = 'research',
+  KIDS_BUILDER = 'kids-builder'
 }
 
 export interface AppState {
