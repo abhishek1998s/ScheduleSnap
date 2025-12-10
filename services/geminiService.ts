@@ -14,7 +14,8 @@ Keep language simple, direct, and positive. Use emojis heavily.
 
 export const generateScheduleFromImage = async (
   imageBase64: string, 
-  profile: ChildProfile
+  profile: ChildProfile,
+  behaviorLogs: BehaviorLog[] = []
 ): Promise<Omit<Schedule, 'id' | 'createdAt'>> => {
   
   if (!process.env.API_KEY) {
@@ -26,6 +27,7 @@ export const generateScheduleFromImage = async (
           type: "Morning",
           socialStory: "In the morning, we wake up and get ready. We do things in order so we feel happy and ready to play!",
           completionCelebration: "Mission Accomplished! You are a superstar!",
+          missingItems: ["Toothbrush", "Towel"],
           steps: [
             { id: '1', emoji: "🛏️", instruction: "Wake up", encouragement: "Good morning sunshine!", sensoryTip: "Stretch under warm covers", completed: false },
             { id: '2', emoji: "🚽", instruction: "Use bathroom", encouragement: "Great job!", completed: false },
@@ -37,6 +39,12 @@ export const generateScheduleFromImage = async (
     });
   }
 
+  // Create a summary of past issues to inform the generation
+  const relevantLogs = behaviorLogs.slice(-15);
+  const behavioralContext = relevantLogs.length > 0 
+    ? `PAST BEHAVIORAL HISTORY: The child has recently experienced ${relevantLogs.map(l => l.behavior + ' during ' + (l.trigger || 'tasks')).join(', ')}. Please structure the schedule to avoid these triggers or add calming steps if needed.`
+    : "PAST BEHAVIORAL HISTORY: No recent incidents logged.";
+
   const prompt = `
     Act as an expert pediatric occupational therapist using the "ScheduleSnap" methodology.
     Analyze the provided image to create a highly personalized visual schedule for ${profile.name}, age ${profile.age}.
@@ -45,18 +53,21 @@ export const generateScheduleFromImage = async (
     - Interests: ${profile.interests.join(', ')} (IMPORTANT: Use these to theme the encouragements!)
     - Sensory Profile: ${profile.sensoryProfile.soundSensitivity} sound sensitivity.
     - Output Language: ${profile.language || 'English'}.
+    
+    ${behavioralContext}
 
     TASK:
-    1. IMAGE ANALYSIS: deeply analyze the image. Identify the setting, objects present, and objects that are *missing* but logically needed for this routine.
-    2. SEQUENCING: Create a logical sequence of 4-8 steps.
-       - If the routine is complex, insert a "Sensory Break" or "Check-in" step.
-    3. STEP CONTENT:
+    1. IMAGE ANALYSIS: Deeply analyze the image. Identify the setting and objects present.
+    2. MISSING ITEMS: Explicitly list important objects for this routine that are NOT visible in the photo (e.g., if it's a brushing routine but no toothpaste is visible).
+    3. SEQUENCING: Create a logical sequence of 4-8 steps.
+       - Consider the behavioral history. If there's a history of meltdowns with transitions, add "Check-in" or "Breathing" steps.
+    4. STEP CONTENT:
        - Instruction: Clear, simple, action-oriented text.
        - Emoji: A specific visual for the step.
-       - Encouragement Options: Generate 3 distinct encouragement phrases. They MUST be themed around the child's interests (e.g., if they like Space, say "Blast off to the bathroom!" or "Stellar teeth brushing!").
-       - Sensory Tip: If a step involves sensory input (touch, taste, sound, temperature), provide a brief, helpful tip (e.g., "Water might be cold", "Toothpaste tastes minty").
-    4. SOCIAL STORY: Write a short, motivating 2-sentence story explaining WHY we do this routine.
-    5. CELEBRATION: A short, exciting, interest-themed phrase to say when the whole routine is done.
+       - Encouragement Options: Generate 3 distinct encouragement phrases. They MUST be themed around the child's interests.
+       - Sensory Tip: If a step involves sensory input, provide a brief tip.
+    5. SOCIAL STORY: Write a short, motivating 2-sentence story explaining WHY we do this routine.
+    6. CELEBRATION: A short, exciting, interest-themed phrase to say when the whole routine is done.
   `;
 
   // Use Thinking Mode if enabled in profile
@@ -84,6 +95,11 @@ export const generateScheduleFromImage = async (
             type: { type: Type.STRING, enum: ['Morning', 'Bedtime', 'Meal', 'Play', 'General'] },
             socialStory: { type: Type.STRING, description: "Simple explanation of the routine's purpose" },
             completionCelebration: { type: Type.STRING, description: "Final celebratory message based on interests" },
+            missingItems: { 
+                type: Type.ARRAY, 
+                items: { type: Type.STRING },
+                description: "List of objects needed for the routine but missing from the image"
+            },
             steps: {
               type: Type.ARRAY,
               items: {
@@ -102,7 +118,7 @@ export const generateScheduleFromImage = async (
               }
             }
           },
-          required: ['title', 'type', 'socialStory', 'steps', 'completionCelebration']
+          required: ['title', 'type', 'socialStory', 'steps', 'completionCelebration', 'missingItems']
         }
       }
     });
@@ -115,7 +131,6 @@ export const generateScheduleFromImage = async (
     const stepsWithIds = data.steps.map((step: any, index: number) => ({
       ...step,
       id: `step-${Date.now()}-${index}`,
-      // Use the first option as the default, but store all
       encouragement: step.encouragementOptions?.[0] || "Great job!",
       encouragementOptions: step.encouragementOptions || ["Good job!"],
       sensoryTip: step.sensoryTip,
@@ -127,6 +142,7 @@ export const generateScheduleFromImage = async (
       type: data.type,
       socialStory: data.socialStory,
       completionCelebration: data.completionCelebration || "You did it!",
+      missingItems: data.missingItems || [],
       steps: stepsWithIds
     };
 

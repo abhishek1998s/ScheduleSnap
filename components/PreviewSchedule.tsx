@@ -72,10 +72,26 @@ export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, prof
                     />
                 </div>
             </div>
+
+            {/* Missing Items Alert */}
+            {localSchedule.missingItems && localSchedule.missingItems.length > 0 && (
+                <div className="mb-4 bg-orange-50 border border-orange-200 p-3 rounded-xl text-left">
+                    <h3 className="text-orange-800 font-bold text-xs uppercase flex items-center gap-2 mb-1">
+                        <i className="fa-solid fa-triangle-exclamation"></i> Missing Items
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                        {localSchedule.missingItems.map((item, i) => (
+                            <span key={i} className="px-2 py-1 bg-white text-orange-800 text-xs font-bold rounded-lg border border-orange-100 shadow-sm">
+                                {item}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
             
             {/* Social Story */}
             {localSchedule.socialStory && (
-                <div className="mt-4 bg-yellow-50 p-4 rounded-xl border border-yellow-100 text-left">
+                <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-100 text-left">
                     <h3 className="text-yellow-800 font-bold text-sm uppercase mb-1 flex items-center gap-2">
                         <i className="fa-solid fa-book-open"></i> Social Story
                     </h3>

@@ -119,7 +119,8 @@ const App: React.FC = () => {
   const handleImageSelected = async (base64: string) => {
     setIsProcessing(true);
     try {
-      const newScheduleData = await generateScheduleFromImage(base64, state.profile);
+      // Pass behaviorLogs so the AI can sequence smartly based on history
+      const newScheduleData = await generateScheduleFromImage(base64, state.profile, state.behaviorLogs);
       setGeneratedSchedule(newScheduleData);
       navigateTo(ViewState.PREVIEW);
     } catch (error) {

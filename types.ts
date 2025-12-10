@@ -17,6 +17,7 @@ export interface Schedule {
   steps: ScheduleStep[];
   socialStory: string;
   completionCelebration?: string; // New: Interest-themed completion message
+  missingItems?: string[]; // New: Objects needed but not found in image
   scheduledTime?: string; // New: "08:00", "19:30"
   createdAt: number;
 }
