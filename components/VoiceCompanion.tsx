@@ -1,18 +1,19 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ChildProfile, ConversationMode, MeltdownPrediction, ViewState } from '../types';
+import { ChildProfile, ConversationMode, MeltdownPrediction, ViewState, Schedule } from '../types';
 import { generateCompanionComment } from '../services/geminiService';
 
 interface VoiceCompanionProps {
   profile: ChildProfile;
   currentView: ViewState;
+  schedules: Schedule[]; // Added to check for upcoming routines
   activeScheduleTitle?: string;
   meltdownRisk: MeltdownPrediction | null;
   onEnterLiveMode: () => void;
 }
 
 export const VoiceCompanion: React.FC<VoiceCompanionProps> = ({ 
-  profile, currentView, activeScheduleTitle, meltdownRisk, onEnterLiveMode 
+  profile, currentView, schedules, activeScheduleTitle, meltdownRisk, onEnterLiveMode 
 }) => {
   const [message, setMessage] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(true);
@@ -22,6 +23,7 @@ export const VoiceCompanion: React.FC<VoiceCompanionProps> = ({
   // Refs to debounce automatic triggers
   const lastTriggerTime = useRef<number>(0);
   const lastViewRef = useRef<ViewState>(currentView);
+  const notifiedSchedulesRef = useRef<Set<string>>(new Set());
 
   // Helper to speak text
   const speak = (text: string) => {
@@ -47,7 +49,7 @@ export const VoiceCompanion: React.FC<VoiceCompanionProps> = ({
 
   const triggerComment = async (mode: ConversationMode, context: any) => {
     const now = Date.now();
-    // Prevent spamming (at least 30 seconds between auto-triggers)
+    // Prevent spamming (at least 30 seconds between auto-triggers, unless it's a play interaction)
     if (now - lastTriggerTime.current < 30000 && mode !== 'play') return;
     
     lastTriggerTime.current = now;
@@ -84,17 +86,44 @@ export const VoiceCompanion: React.FC<VoiceCompanionProps> = ({
       }
   }, [meltdownRisk]);
 
-  // 3. Random Encouragement (Interval)
+  // 3. Time-based Checks (Interval)
   useEffect(() => {
       const interval = setInterval(() => {
-          // Only random check-in if idle on Home screen
+          const now = new Date();
+          const currentTimeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }); // "14:30"
+          
+          // A. Random Encouragement (Idle on Home)
           if (currentView === ViewState.HOME && !isSpeaking) {
-              triggerComment('encouragement', { timeOfDay: new Date().toLocaleTimeString() });
+             // 5% chance every 10s check (approx every 3-4 mins)
+             if (Math.random() < 0.05) {
+                 triggerComment('encouragement', { timeOfDay: currentTimeStr });
+             }
           }
-      }, 5 * 60 * 1000); // Every 5 minutes
+
+          // B. Transition Prep (Upcoming Schedules)
+          schedules.forEach(schedule => {
+              if (schedule.scheduledTime && !notifiedSchedulesRef.current.has(schedule.id + currentTimeStr)) {
+                  const [h, m] = schedule.scheduledTime.split(':').map(Number);
+                  const schedDate = new Date();
+                  schedDate.setHours(h, m, 0, 0);
+                  
+                  const diffMins = (schedDate.getTime() - now.getTime()) / 60000;
+                  
+                  // Notify 5 minutes before
+                  if (diffMins > 4 && diffMins < 6) {
+                      notifiedSchedulesRef.current.add(schedule.id + currentTimeStr);
+                      triggerComment('transition_prep', { 
+                          nextRoutine: schedule.title, 
+                          timeInMinutes: 5 
+                      });
+                  }
+              }
+          });
+
+      }, 10000); // Check every 10 seconds
       
       return () => clearInterval(interval);
-  }, [currentView, isSpeaking]);
+  }, [currentView, isSpeaking, schedules]);
 
   // Manual Trigger (Clicking the robot)
   const handleInteraction = () => {

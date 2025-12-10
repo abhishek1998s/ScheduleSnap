@@ -355,6 +355,7 @@ const App: React.FC = () => {
           <VoiceCompanion 
               profile={state.profile}
               currentView={state.view}
+              schedules={state.schedules}
               activeScheduleTitle={activeSchedule?.title}
               meltdownRisk={state.latestPrediction || null}
               onEnterLiveMode={() => navigateTo(ViewState.COACH)}
