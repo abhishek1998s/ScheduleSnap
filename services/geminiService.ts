@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { Schedule, ChildProfile, QuizQuestion, SocialScenario, BehaviorLog, BehaviorAnalysis, ResearchResult, RewardItem, AACButton, MoodEntry, CompletionLog, WeeklyReport, VideoAnalysisResult } from "../types";
+import { Schedule, ChildProfile, QuizQuestion, SocialScenario, BehaviorLog, BehaviorAnalysis, ResearchResult, RewardItem, AACButton, MoodEntry, CompletionLog, WeeklyReport, VideoAnalysisResult, MeltdownPrediction } from "../types";
 
 // Initialize Gemini Client
 // Use a dummy key if missing to prevent initialization errors, checking process.env.API_KEY before calls.
@@ -33,7 +33,7 @@ const getMockQuiz = (level: number = 1, avoid?: string): QuizQuestion => {
         { name: "Happy", emoji: "😊", hint: "Look for the smile." },
         { name: "Sad", emoji: "😢", hint: "Look for the frown." },
         { name: "Angry", emoji: "😠", hint: "Look for the eyebrows." },
-        { name: "Surprised", emoji: "😲", hint: "Look for the open mouth." },
+        { name: "Surprised", emoji: "😠", hint: "Look for the open mouth." },
         { name: "Silly", emoji: "🤪", hint: "Look for the tongue." }
     ];
 
@@ -780,6 +780,104 @@ export const analyzeRoutineFrame = async (
             isStuck: false,
             feedback: "Keep going!",
             completed: false
+        };
+    }
+};
+
+export const predictMeltdownRisk = async (
+    profile: ChildProfile,
+    behaviorLogs: BehaviorLog[],
+    moodLogs: MoodEntry[],
+    activeScheduleTitle?: string
+): Promise<MeltdownPrediction> => {
+    if (!process.env.API_KEY) {
+        // Mock low risk if no API
+        return {
+            riskLevel: 'low',
+            confidence: 90,
+            timeEstimate: "N/A",
+            riskFactors: [],
+            preventionStrategies: [],
+            recommendedAction: 'monitor'
+        };
+    }
+
+    const context = {
+        time: new Date().toLocaleTimeString(),
+        day: new Date().toLocaleDateString('en-US', { weekday: 'long' }),
+        recentBehaviors: behaviorLogs.slice(-10),
+        recentMoods: moodLogs.slice(-10),
+        activeSchedule: activeScheduleTitle || "None",
+        profile: {
+            sensory: profile.sensoryProfile,
+            interests: profile.interests
+        }
+    };
+
+    const prompt = `
+        You are a child behavior analyst. Based on the provided context, predict the current risk of a meltdown for ${profile.name}.
+        Context: ${JSON.stringify(context)}
+        
+        Analyze patterns in time of day, recent moods, and historical triggers.
+        If risk is elevated, suggest specific, actionable prevention strategies based on the child's profile.
+        Language: ${profile.language || 'English'}.
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        riskLevel: { type: Type.STRING, enum: ['low', 'medium', 'high', 'imminent'] },
+                        confidence: { type: Type.NUMBER },
+                        timeEstimate: { type: Type.STRING },
+                        riskFactors: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    factor: { type: Type.STRING },
+                                    contribution: { type: Type.NUMBER },
+                                    evidence: { type: Type.STRING }
+                                },
+                                required: ['factor', 'contribution', 'evidence']
+                            }
+                        },
+                        preventionStrategies: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    strategy: { type: Type.STRING },
+                                    effectiveness: { type: Type.STRING },
+                                    urgency: { type: Type.STRING, enum: ['now', 'soon', 'consider'] }
+                                },
+                                required: ['strategy', 'effectiveness', 'urgency']
+                            }
+                        },
+                        recommendedAction: { type: Type.STRING, enum: ['monitor', 'intervene', 'calm_mode', 'break'] }
+                    },
+                    required: ['riskLevel', 'confidence', 'timeEstimate', 'riskFactors', 'preventionStrategies', 'recommendedAction']
+                }
+            }
+        });
+
+        const text = response.text;
+        if (!text) throw new Error("No prediction");
+        return JSON.parse(text);
+    } catch (e) {
+        console.warn("Prediction failed", e);
+        return {
+            riskLevel: 'low',
+            confidence: 0,
+            timeEstimate: "",
+            riskFactors: [],
+            preventionStrategies: [],
+            recommendedAction: 'monitor'
         };
     }
 };

@@ -1,4 +1,5 @@
 
+
 export interface ScheduleStep {
   id: string;
   emoji: string;
@@ -150,6 +151,27 @@ export interface VideoAnalysisResult {
   completed: boolean;
 }
 
+// NEW: Meltdown Prediction Types
+export interface MeltdownPrediction {
+  riskLevel: 'low' | 'medium' | 'high' | 'imminent';
+  confidence: number;         // 0-100%
+  timeEstimate: string;       // "within 30 minutes"
+  
+  riskFactors: {
+    factor: string;           // "Time of day pattern"
+    contribution: number;     // How much this affects risk (0-10)
+    evidence: string;         // "3 of 5 meltdowns at this time"
+  }[];
+
+  preventionStrategies: {
+    strategy: string;         // "Offer a snack"
+    effectiveness: string;    // "Worked 4 of 5 times"
+    urgency: 'now' | 'soon' | 'consider';
+  }[];
+
+  recommendedAction: 'monitor' | 'intervene' | 'calm_mode' | 'break';
+}
+
 export interface AppState {
   view: 'home' | 'camera' | 'schedule-runner' | 'dashboard' | 'calm' | 'preview' | 'mood' | 'quiz' | 'store' | 'coach' | 'social' | 'voice-recorder' | 'timer' | 'research';
   activeScheduleId: string | null;
@@ -160,12 +182,13 @@ export interface AppState {
   tokens: number;
   moodLogs: MoodEntry[];
   behaviorLogs: BehaviorLog[];
-  completionLogs: CompletionLog[]; // New: For analytics
+  completionLogs: CompletionLog[]; 
   voiceMessages: VoiceMessage[];
   quizStats: QuizStats;
-  meltdownRisk?: 'Low' | 'Medium' | 'High';
+  meltdownRisk?: 'Low' | 'Medium' | 'High'; // Simple legacy flag, kept for backward compatibility
   caregiverPin?: string;
-  customAACButtons: AACButton[]; // New: Persist custom buttons
+  customAACButtons: AACButton[]; 
+  latestPrediction?: MeltdownPrediction | null; // NEW
 }
 
 export enum ViewState {

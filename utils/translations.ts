@@ -1,4 +1,5 @@
 
+
 // Supported languages matching PRD
 export type SupportedLanguage = 'English' | 'Spanish' | 'French' | 'German' | 'Chinese' | 'Japanese' | 'Korean' | 'Italian' | 'Portuguese' | 'Arabic' | 'Hindi';
 
@@ -218,7 +219,16 @@ export const translations: Record<string, Record<string, string>> = {
     aacGoHome: "Go Home",
     aacTeacher: "Teacher",
     aacFriend: "Friend",
-    aacPencil: "Pencil"
+    aacPencil: "Pencil",
+    // Meltdown Prediction
+    riskLevel: "Risk Level",
+    confidence: "Confidence",
+    whyRisk: "Why Risk is Elevated",
+    startCalmMode: "Start Calm Mode",
+    riskLow: "Low Risk",
+    riskMedium: "Medium Risk",
+    riskHigh: "High Risk",
+    riskImminent: "Imminent Risk"
   },
   Hindi: {
     appTitle: "ScheduleSnap",
@@ -425,7 +435,15 @@ export const translations: Record<string, Record<string, string>> = {
     aacGoHome: "घर जाना",
     aacTeacher: "शिक्षक",
     aacFriend: "दोस्त",
-    aacPencil: "पेंसिल"
+    aacPencil: "पेंसिल",
+    riskLevel: "जोखिम स्तर",
+    confidence: "आत्मविश्वास",
+    whyRisk: "जोखिम क्यों अधिक है",
+    startCalmMode: "शांत मोड शुरू करें",
+    riskLow: "कम जोखिम",
+    riskMedium: "मध्यम जोखिम",
+    riskHigh: "उच्च जोखिम",
+    riskImminent: "आसन्न जोखिम"
   },
   Spanish: {
     appTitle: "ScheduleSnap",
@@ -632,7 +650,15 @@ export const translations: Record<string, Record<string, string>> = {
     aacGoHome: "Ir a Casa",
     aacTeacher: "Maestro",
     aacFriend: "Amigo",
-    aacPencil: "Lápiz"
+    aacPencil: "Lápiz",
+    riskLevel: "Nivel de Riesgo",
+    confidence: "Confianza",
+    whyRisk: "Por qué el riesgo es alto",
+    startCalmMode: "Iniciar Modo Calma",
+    riskLow: "Riesgo Bajo",
+    riskMedium: "Riesgo Medio",
+    riskHigh: "Riesgo Alto",
+    riskImminent: "Riesgo Inminente"
   }
 };
 

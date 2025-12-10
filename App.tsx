@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { AppState, ViewState, Schedule, ChildProfile, MoodEntry, BehaviorLog, VoiceMessage } from './types';
-import { generateScheduleFromImage } from './services/geminiService';
+import { AppState, ViewState, Schedule, ChildProfile, MoodEntry, BehaviorLog, VoiceMessage, MeltdownPrediction } from './types';
+import { generateScheduleFromImage, predictMeltdownRisk } from './services/geminiService';
 import { CalmMode } from './components/CalmMode';
 import { AACBoard } from './components/AACBoard';
 import { CameraCapture } from './components/CameraCapture';
@@ -16,6 +16,7 @@ import { SocialScenarioPractice } from './components/SocialScenario';
 import { VoiceRecorder } from './components/VoiceRecorder';
 import { WaitTimer } from './components/WaitTimer';
 import { ResearchTool } from './components/ResearchTool';
+import { MeltdownPredictionAlert } from './components/MeltdownPredictionAlert';
 import { t } from './utils/translations';
 
 const INITIAL_PROFILE: ChildProfile = {
@@ -63,7 +64,8 @@ const App: React.FC = () => {
     quizStats: { level: 1, xp: 0, totalAnswered: 0 },
     meltdownRisk: 'Low',
     caregiverPin: '1234',
-    customAACButtons: [] // Initial empty
+    customAACButtons: [], // Initial empty
+    latestPrediction: null
   });
 
   const [generatedSchedule, setGeneratedSchedule] = useState<Omit<Schedule, 'id' | 'createdAt'> | null>(null);
@@ -99,7 +101,8 @@ const App: React.FC = () => {
             caregiverPin: parsed.caregiverPin || '1234',
             quizStats: parsed.quizStats || { level: 1, xp: 0, totalAnswered: 0 },
             customAACButtons: parsed.customAACButtons || [],
-            completionLogs: parsed.completionLogs || []
+            completionLogs: parsed.completionLogs || [],
+            latestPrediction: parsed.latestPrediction || null
         }));
       } catch (e) {
         console.error("Failed to load save data");
@@ -115,16 +118,29 @@ const App: React.FC = () => {
     }
   }, [state, isLoaded]);
 
+  // --- NEW: Continuous Meltdown Risk Prediction Logic ---
   useEffect(() => {
-     const recentLogs = state.behaviorLogs.filter(l => (Date.now() - l.timestamp) < 24 * 60 * 60 * 1000);
-     const severityScore = recentLogs.reduce((acc, log) => acc + (log.intensity === 'Severe' ? 3 : log.intensity === 'Moderate' ? 1 : 0), 0);
-     let risk: 'Low' | 'Medium' | 'High' = 'Low';
-     if (severityScore > 5) risk = 'High';
-     else if (severityScore > 2) risk = 'Medium';
-     if (risk !== state.meltdownRisk) {
-         setState(prev => ({ ...prev, meltdownRisk: risk }));
-     }
-  }, [state.behaviorLogs]);
+     if (!isLoaded) return;
+
+     const runPrediction = async () => {
+         // Optimization: Only predict if we have enough data (at least 2 logs total)
+         if (state.behaviorLogs.length + state.moodLogs.length < 2) return;
+         
+         // Don't predict if we just did it recently (e.g., last 10 mins) - for demo we ignore this
+         
+         const activeScheduleTitle = state.schedules.find(s => s.id === state.activeScheduleId)?.title;
+         
+         try {
+             const prediction = await predictMeltdownRisk(state.profile, state.behaviorLogs, state.moodLogs, activeScheduleTitle);
+             setState(prev => ({ ...prev, latestPrediction: prediction }));
+         } catch (e) {
+             console.warn("Auto-prediction failed", e);
+         }
+     };
+
+     // Run prediction when logs change
+     runPrediction();
+  }, [state.behaviorLogs, state.moodLogs, state.activeScheduleId, isLoaded]);
 
   const navigateTo = (view: ViewState) => setState(prev => ({ ...prev, view }));
   
@@ -265,6 +281,18 @@ const App: React.FC = () => {
     }));
   };
 
+  const handlePredictionDismiss = () => {
+      setState(prev => ({ ...prev, latestPrediction: null }));
+  };
+
+  const handlePredictionAction = (action: string) => {
+      if (action === 'calm_mode') {
+          navigateTo(ViewState.CALM);
+      }
+      // In a real app, we might log the intervention taken here
+      setState(prev => ({ ...prev, latestPrediction: null }));
+  };
+
   const activeSchedule = state.schedules.find(s => s.id === state.activeScheduleId);
   const lang = state.profile.language;
   const unreadCount = state.voiceMessages.filter(m => !m.read).length;
@@ -282,16 +310,14 @@ const App: React.FC = () => {
   return (
     <div className={`h-full w-full relative ${themeClass} overflow-hidden`}>
       
-      {state.meltdownRisk === 'High' && state.view === ViewState.HOME && (
-          <div className="bg-red-500 text-white p-3 text-center animate-pulse flex justify-between items-center px-6">
-              <span className="font-bold"><i className="fa-solid fa-triangle-exclamation mr-2"></i>High Meltdown Risk Detected</span>
-              <button 
-                onClick={() => navigateTo(ViewState.CALM)}
-                className="bg-white text-red-500 text-xs px-3 py-1 rounded-full font-bold uppercase"
-              >
-                {t(lang, 'calmMode')}
-              </button>
-          </div>
+      {/* Meltdown Risk Alert - Persistent Overlay */}
+      {state.latestPrediction && state.view !== ViewState.CALM && (
+          <MeltdownPredictionAlert 
+              prediction={state.latestPrediction} 
+              onDismiss={handlePredictionDismiss}
+              onAction={handlePredictionAction}
+              language={lang}
+          />
       )}
       
       {state.view === ViewState.HOME && (
