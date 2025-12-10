@@ -503,6 +503,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </>
             )}
 
+            {/* ... Routines and Analytics Tabs unchanged ... */}
             {activeTab === 'routines' && (
                 <div className="space-y-4">
                     <button 
@@ -854,6 +855,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                             <p className="font-bold text-xs text-gray-500 uppercase">{t(lang, 'interpretation')}</p>
                                             <p className="text-gray-800 font-bold">"{msg.analysis.interpretedMeaning}"</p>
                                         </div>
+                                        
+                                        {/* Added AAC Symbol Display for Parents */}
+                                        {msg.analysis.aacSymbols && msg.analysis.aacSymbols.length > 0 && (
+                                            <div className="flex gap-2 my-2 overflow-x-auto pb-2 scrollbar-thin">
+                                                {msg.analysis.aacSymbols.map((sym, i) => (
+                                                    <div key={i} className="flex flex-col items-center bg-gray-50 p-2 rounded-lg border border-gray-200 min-w-[60px] shrink-0">
+                                                        <span className="text-2xl">{sym.emoji}</span>
+                                                        <span className="text-[10px] font-bold text-gray-500 uppercase">{sym.label}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
                                         <div className="grid grid-cols-2 gap-2">
                                             <div>
                                                 <p className="font-bold text-xs text-gray-400 uppercase">{t(lang, 'rawAudio')}</p>
