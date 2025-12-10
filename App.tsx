@@ -24,7 +24,8 @@ const INITIAL_PROFILE: ChildProfile = {
   interests: ["Trains", "Space", "Dinosaurs"],
   language: "English",
   sensoryProfile: { soundSensitivity: 'medium' },
-  audioPreferences: { speechRate: 1, pitch: 1 }
+  audioPreferences: { speechRate: 1, pitch: 1 },
+  defaultCameraOn: false
 };
 
 const INITIAL_SCHEDULES: Schedule[] = [
@@ -91,7 +92,8 @@ const App: React.FC = () => {
                 ...prev.profile, 
                 ...parsed.profile, 
                 language: parsed.profile?.language || 'English',
-                audioPreferences: parsed.profile?.audioPreferences || { speechRate: 1, pitch: 1 } 
+                audioPreferences: parsed.profile?.audioPreferences || { speechRate: 1, pitch: 1 },
+                defaultCameraOn: parsed.profile?.defaultCameraOn || false
             },
             isHighContrast: parsed.isHighContrast || false,
             caregiverPin: parsed.caregiverPin || '1234',
@@ -161,6 +163,27 @@ const App: React.FC = () => {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleCreateCustomRoutine = () => {
+      const blankSchedule: Omit<Schedule, 'id' | 'createdAt'> = {
+          title: "New Routine",
+          type: "General",
+          socialStory: "",
+          steps: [{ 
+              id: `step-1`, 
+              emoji: '📝', 
+              instruction: 'First Step', 
+              encouragement: 'You can do it!', 
+              encouragementOptions: ['You can do it!'], 
+              completed: false 
+          }],
+          completionCelebration: "Great job!",
+          missingItems: []
+      };
+      setGeneratedSchedule(blankSchedule);
+      setEditingScheduleId(null);
+      navigateTo(ViewState.PREVIEW);
   };
 
   const handleEditScheduleRequest = (id: string) => {
@@ -370,7 +393,7 @@ const App: React.FC = () => {
       {state.view === ViewState.CAMERA && <CameraCapture isLoading={isProcessing} onImageSelected={handleImageSelected} onCancel={() => navigateTo(ViewState.HOME)} language={lang} />}
       {state.view === ViewState.PREVIEW && generatedSchedule && <PreviewSchedule schedule={generatedSchedule} profile={state.profile} onSave={handleSaveSchedule} onCancel={() => { setGeneratedSchedule(null); setEditingScheduleId(null); navigateTo(ViewState.HOME); }} isEditing={!!editingScheduleId} />}
       {state.view === ViewState.RUNNER && activeSchedule && <ScheduleRunner schedule={activeSchedule} profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} onComplete={handleRoutineComplete} />}
-      {state.view === ViewState.DASHBOARD && <Dashboard schedules={state.schedules} profile={state.profile} moodLogs={state.moodLogs} behaviorLogs={state.behaviorLogs} completionLogs={state.completionLogs} voiceMessages={state.voiceMessages} isHighContrast={state.isHighContrast} caregiverPin={state.caregiverPin || '1234'} onUpdatePin={(p) => setState(prev => ({...prev, caregiverPin: p}))} onExit={() => navigateTo(ViewState.HOME)} onSelectSchedule={(id) => startRoutine(id)} onEditSchedule={handleEditScheduleRequest} onDeleteSchedule={handleDeleteSchedule} onUpdateSchedule={handleUpdateSchedule} onUpdateProfile={(p) => setState(prev => ({ ...prev, profile: p }))} onToggleHighContrast={() => setState(prev => ({ ...prev, isHighContrast: !prev.isHighContrast }))} onLogBehavior={(log) => setState(prev => ({ ...prev, behaviorLogs: [...prev.behaviorLogs, { ...log, id: Date.now().toString(), timestamp: Date.now() }] }))} onMarkMessagesRead={handleMarkMessagesRead} />}
+      {state.view === ViewState.DASHBOARD && <Dashboard schedules={state.schedules} profile={state.profile} moodLogs={state.moodLogs} behaviorLogs={state.behaviorLogs} completionLogs={state.completionLogs} voiceMessages={state.voiceMessages} isHighContrast={state.isHighContrast} caregiverPin={state.caregiverPin || '1234'} onUpdatePin={(p) => setState(prev => ({...prev, caregiverPin: p}))} onExit={() => navigateTo(ViewState.HOME)} onSelectSchedule={(id) => startRoutine(id)} onEditSchedule={handleEditScheduleRequest} onCreateCustom={handleCreateCustomRoutine} onDeleteSchedule={handleDeleteSchedule} onUpdateSchedule={handleUpdateSchedule} onUpdateProfile={(p) => setState(prev => ({ ...prev, profile: p }))} onToggleHighContrast={() => setState(prev => ({ ...prev, isHighContrast: !prev.isHighContrast }))} onLogBehavior={(log) => setState(prev => ({ ...prev, behaviorLogs: [...prev.behaviorLogs, { ...log, id: Date.now().toString(), timestamp: Date.now() }] }))} onMarkMessagesRead={handleMarkMessagesRead} />}
       {state.view === ViewState.MOOD && <MoodCheck profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} onSave={(entry) => setState(prev => ({ ...prev, moodLogs: [...prev.moodLogs, entry] }))} />}
       {state.view === ViewState.QUIZ && <EmotionQuiz age={state.profile.age} language={lang} stats={state.quizStats} onUpdateStats={(s) => setState(prev => ({ ...prev, quizStats: s, tokens: prev.tokens + (s.xp > prev.quizStats.xp ? 1 : 0) }))} onExit={() => navigateTo(ViewState.HOME)} />}
       {state.view === ViewState.SOCIAL && <SocialScenarioPractice age={state.profile.age} language={lang} onExit={() => navigateTo(ViewState.HOME)} onComplete={(success) => { if(success) setState(prev => ({ ...prev, tokens: prev.tokens + 2 })); }} />}

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Schedule, ScheduleStep, ChildProfile } from '../types';
 import { LongPressButton } from './LongPressButton';
+import { VideoGuidedStep } from './VideoGuidedStep';
 import { t } from '../utils/translations';
 
 interface ScheduleRunnerProps {
@@ -16,6 +17,9 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
   const [completedSubSteps, setCompletedSubSteps] = useState<Set<string>>(new Set());
   const [isCompleted, setIsCompleted] = useState(false);
   const [activeEncouragement, setActiveEncouragement] = useState('');
+  
+  // Initialize Camera Mode based on profile preference
+  const [isCameraMode, setIsCameraMode] = useState(profile?.defaultCameraOn || false);
   
   // Timer State for F38 & Visuals
   const DEFAULT_STEP_DURATION = 120; // 2 minutes default if not specified
@@ -54,11 +58,12 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
   }, [currentStepIndex]);
 
   // Play audio when step/encouragement changes, but wait for activeEncouragement to be set
+  // SKIP if camera mode is active (Camera component handles speech)
   useEffect(() => {
-     if (currentStep && !isCompleted && activeEncouragement) {
+     if (currentStep && !isCompleted && activeEncouragement && !isCameraMode) {
         playAudio(`${currentStep.instruction}. ${activeEncouragement}`);
      }
-  }, [currentStepIndex, isCompleted, activeEncouragement]);
+  }, [currentStepIndex, isCompleted, activeEncouragement, isCameraMode]);
 
   // Timer Tick & Transition Warnings (F38)
   useEffect(() => {
@@ -67,15 +72,17 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
         interval = setInterval(() => {
             setTimeLeft(prev => {
                 const next = prev - 1;
-                // Transition Warnings
-                if (next === 60) playAudio("One minute left!");
-                if (next === 10) playAudio("Ten seconds remaining!");
+                // Transition Warnings (skip audio if camera mode to avoid overlap)
+                if (!isCameraMode) {
+                    if (next === 60) playAudio("One minute left!");
+                    if (next === 10) playAudio("Ten seconds remaining!");
+                }
                 return next;
             });
         }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isTimerRunning, timeLeft, isCompleted]);
+  }, [isTimerRunning, timeLeft, isCompleted, isCameraMode]);
 
   const handleSubStepToggle = (subStepId: string) => {
       const newSet = new Set(completedSubSteps);
@@ -101,10 +108,8 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
     }, 4000);
   };
 
-  // Calculations for Pie Timer
   const calculateDashOffset = () => {
     const fraction = timeLeft / stepDuration;
-    // r=20, circumference approx 126
     return 126 * (1 - fraction);
   };
 
@@ -126,122 +131,135 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
   return (
     <div className="flex flex-col h-full bg-background relative">
       
-      {/* Transition Warning Banners (F38) */}
-      {timeLeft <= 60 && timeLeft > 55 && (
-          <div className="absolute top-0 left-0 right-0 bg-yellow-400 text-black text-center py-2 font-bold z-50 animate-pulse">
-              1 Minute Remaining!
-          </div>
-      )}
-      {timeLeft <= 10 && timeLeft > 0 && (
-          <div className="absolute top-0 left-0 right-0 bg-red-500 text-white text-center py-2 font-bold z-50 animate-pulse">
-              10 Seconds Left!
-          </div>
-      )}
-
-      {/* Top Bar with Child Lock Exit */}
-      <div className="bg-white p-4 flex justify-between items-center shadow-sm z-10 shrink-0">
+      {/* Top Bar */}
+      <div className="bg-white p-4 flex justify-between items-center shadow-sm z-20 shrink-0">
         <div className="flex items-center gap-2">
            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold">
              {currentStepIndex + 1}/{schedule.steps.length}
            </div>
-           <span className="font-bold text-gray-700 truncate max-w-[150px]">{schedule.title}</span>
+           <span className="font-bold text-gray-700 truncate max-w-[100px] sm:max-w-[150px]">{schedule.title}</span>
         </div>
         
-        {/* Child Lock Exit Button */}
-        <LongPressButton 
-          onComplete={onExit} 
-          duration={3000}
-          className="text-gray-400 hover:text-red-500 text-xs font-bold border rounded-full px-3 py-1 flex items-center gap-2"
-        >
-          <span>{t(lang, 'holdExit')}</span>
-        </LongPressButton>
-      </div>
-
-      {/* First / Then Board */}
-      <div className="bg-primary/10 p-2 flex justify-center gap-4 border-b border-primary/20 shrink-0">
-         <div className="flex items-center gap-2 opacity-100">
-            <span className="text-xs font-bold text-primary uppercase tracking-wide">{t(lang, 'now')}</span>
-            <span className="text-xl">{currentStep.emoji}</span>
-         </div>
-         {nextStep && (
-             <div className="flex items-center gap-2 opacity-60">
-                <i className="fa-solid fa-arrow-right text-primary/50 text-xs"></i>
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">{t(lang, 'then')}</span>
-                <span className="text-xl">{nextStep.emoji}</span>
-             </div>
-         )}
-      </div>
-
-      {/* Main Content - Scrollable Area */}
-      <div className="flex-1 overflow-y-auto w-full">
-        <div className="min-h-full flex flex-col items-center justify-center p-6 gap-6">
+        <div className="flex items-center gap-2">
+            {/* Camera Toggle */}
+            <button 
+                onClick={() => setIsCameraMode(!isCameraMode)}
+                className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border transition-colors ${
+                    isCameraMode ? 'bg-purple-100 text-purple-600 border-purple-200' : 'bg-gray-50 text-gray-500 border-gray-200'
+                }`}
+            >
+                <i className={`fa-solid ${isCameraMode ? 'fa-video' : 'fa-video-slash'}`}></i>
+                {isCameraMode ? t(lang, 'cameraGuideOn') : t(lang, 'cameraGuideOff')}
+            </button>
             
-            {/* Pie Timer (F3) */}
-            <div className="flex flex-col items-center justify-center gap-1">
-                <div className="relative w-16 h-16">
-                    <svg className="w-full h-full transform -rotate-90">
-                        <circle cx="32" cy="32" r="20" stroke="#e5e7eb" strokeWidth="6" fill="none" />
-                        <circle 
-                            cx="32" cy="32" r="20" 
-                            stroke={timeLeft < 10 ? '#ef4444' : '#3b82f6'} 
-                            strokeWidth="6" 
-                            fill="none" 
-                            strokeDasharray="126"
-                            strokeDashoffset={calculateDashOffset()}
-                            className="transition-all duration-1000 linear"
-                        />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-500">
-                        {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+            {/* Child Lock Exit */}
+            <LongPressButton 
+              onComplete={onExit} 
+              duration={3000}
+              className="text-gray-400 hover:text-red-500 text-xs font-bold border rounded-full px-3 py-1 flex items-center gap-2"
+            >
+              <span>{t(lang, 'holdExit')}</span>
+            </LongPressButton>
+        </div>
+      </div>
+
+      {/* First / Then Board (Hide in Camera Mode to save space) */}
+      {!isCameraMode && (
+          <div className="bg-primary/10 p-2 flex justify-center gap-4 border-b border-primary/20 shrink-0">
+             <div className="flex items-center gap-2 opacity-100">
+                <span className="text-xs font-bold text-primary uppercase tracking-wide">{t(lang, 'now')}</span>
+                <span className="text-xl">{currentStep.emoji}</span>
+             </div>
+             {nextStep && (
+                 <div className="flex items-center gap-2 opacity-60">
+                    <i className="fa-solid fa-arrow-right text-primary/50 text-xs"></i>
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">{t(lang, 'then')}</span>
+                    <span className="text-xl">{nextStep.emoji}</span>
+                 </div>
+             )}
+          </div>
+      )}
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-hidden relative">
+        {isCameraMode && profile ? (
+            <VideoGuidedStep 
+                step={currentStep} 
+                profile={profile} 
+                onComplete={handleNext}
+            />
+        ) : (
+            <div className="h-full overflow-y-auto w-full">
+                <div className="min-h-full flex flex-col items-center justify-center p-6 gap-6">
+                    
+                    {/* Pie Timer */}
+                    <div className="flex flex-col items-center justify-center gap-1">
+                        <div className="relative w-16 h-16">
+                            <svg className="w-full h-full transform -rotate-90">
+                                <circle cx="32" cy="32" r="20" stroke="#e5e7eb" strokeWidth="6" fill="none" />
+                                <circle 
+                                    cx="32" cy="32" r="20" 
+                                    stroke={timeLeft < 10 ? '#ef4444' : '#3b82f6'} 
+                                    strokeWidth="6" 
+                                    fill="none" 
+                                    strokeDasharray="126"
+                                    strokeDashoffset={calculateDashOffset()}
+                                    className="transition-all duration-1000 linear"
+                                />
+                            </svg>
+                            <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-500">
+                                {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div 
+                    onClick={() => playAudio(currentStep.instruction)}
+                    className="w-full max-w-sm bg-white rounded-3xl shadow-xl p-8 flex flex-col items-center border-4 border-transparent hover:border-primary/30 transition-all cursor-pointer transform hover:scale-[1.02] relative"
+                    >
+                    {currentStep.sensoryTip && (
+                        <div className="absolute top-4 right-4 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 animate-bounce">
+                            <i className="fa-solid fa-hand-sparkles"></i>
+                            {currentStep.sensoryTip}
+                        </div>
+                    )}
+
+                    <div className="text-6xl sm:text-8xl md:text-[8rem] leading-none mb-6 filter drop-shadow-sm">
+                        {currentStep.emoji}
+                    </div>
+                    <h2 className="text-3xl sm:text-4xl font-bold text-center text-gray-800 mb-2 font-sans">
+                        {currentStep.instruction}
+                    </h2>
+                    <p className="text-lg sm:text-xl text-primary font-bold text-center">
+                        "{activeEncouragement}"
+                    </p>
+                    
+                    {currentStep.subSteps && currentStep.subSteps.length > 0 && (
+                        <div className="mt-8 w-full space-y-3">
+                            {currentStep.subSteps.map(sub => (
+                                <div 
+                                    key={sub.id} 
+                                    onClick={(e) => { e.stopPropagation(); handleSubStepToggle(sub.id); }}
+                                    className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${completedSubSteps.has(sub.id) ? 'bg-green-50 border-green-200 opacity-60' : 'bg-gray-50 border-gray-100'}`}
+                                >
+                                    <div className={`w-6 h-6 rounded-md flex items-center justify-center border-2 ${completedSubSteps.has(sub.id) ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 bg-white'}`}>
+                                        {completedSubSteps.has(sub.id) && <i className="fa-solid fa-check text-xs"></i>}
+                                    </div>
+                                    <span className={`text-lg font-bold ${completedSubSteps.has(sub.id) ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+                                        {sub.text}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                     </div>
                 </div>
             </div>
-
-            <div 
-            onClick={() => playAudio(currentStep.instruction)}
-            className="w-full max-w-sm bg-white rounded-3xl shadow-xl p-8 flex flex-col items-center border-4 border-transparent hover:border-primary/30 transition-all cursor-pointer transform hover:scale-[1.02] relative"
-            >
-            {/* Sensory Tip Badge */}
-            {currentStep.sensoryTip && (
-                <div className="absolute top-4 right-4 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 animate-bounce">
-                    <i className="fa-solid fa-hand-sparkles"></i>
-                    {currentStep.sensoryTip}
-                </div>
-            )}
-
-            <div className="text-6xl sm:text-8xl md:text-[8rem] leading-none mb-6 filter drop-shadow-sm">
-                {currentStep.emoji}
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-bold text-center text-gray-800 mb-2 font-sans">
-                {currentStep.instruction}
-            </h2>
-            <p className="text-lg sm:text-xl text-primary font-bold text-center">
-                "{activeEncouragement}"
-            </p>
-            
-            {currentStep.subSteps && currentStep.subSteps.length > 0 && (
-                <div className="mt-8 w-full space-y-3">
-                    {currentStep.subSteps.map(sub => (
-                        <div 
-                            key={sub.id} 
-                            onClick={(e) => { e.stopPropagation(); handleSubStepToggle(sub.id); }}
-                            className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${completedSubSteps.has(sub.id) ? 'bg-green-50 border-green-200 opacity-60' : 'bg-gray-50 border-gray-100'}`}
-                        >
-                            <div className={`w-6 h-6 rounded-md flex items-center justify-center border-2 ${completedSubSteps.has(sub.id) ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 bg-white'}`}>
-                                {completedSubSteps.has(sub.id) && <i className="fa-solid fa-check text-xs"></i>}
-                            </div>
-                            <span className={`text-lg font-bold ${completedSubSteps.has(sub.id) ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
-                                {sub.text}
-                            </span>
-                        </div>
-                    ))}
-                </div>
-            )}
-            </div>
-        </div>
+        )}
       </div>
 
-      <div className="p-4 sm:p-6 bg-white border-t pb-8 sm:pb-6 shrink-0">
+      {/* Manual Next Button (Always visible) */}
+      <div className="p-4 sm:p-6 bg-white border-t pb-8 sm:pb-6 shrink-0 z-20">
         <button
           onClick={handleNext}
           className="w-full bg-primary hover:bg-secondary text-white text-2xl sm:text-3xl font-bold py-4 sm:py-6 rounded-2xl shadow-lg transform active:scale-95 transition-all flex items-center justify-center gap-4"

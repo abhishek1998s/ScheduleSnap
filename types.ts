@@ -35,6 +35,7 @@ export interface ChildProfile {
     pitch: number;      // 0.5 to 1.5
   };
   useThinkingMode?: boolean; // New: Enable deep reasoning
+  defaultCameraOn?: boolean; // New: Default to AI Vision mode
 }
 
 export interface MoodEntry {
@@ -139,6 +140,14 @@ export interface VisualScene {
   name: string;
   emoji: string;
   vocabulary: AACButton[];
+}
+
+export interface VideoAnalysisResult {
+  isOnTask: boolean;
+  taskProgress: number; // 0-100
+  isStuck: boolean;
+  feedback: string;
+  completed: boolean;
 }
 
 export interface AppState {

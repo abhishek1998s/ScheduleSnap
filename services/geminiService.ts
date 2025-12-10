@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { Schedule, ChildProfile, QuizQuestion, SocialScenario, BehaviorLog, BehaviorAnalysis, ResearchResult, RewardItem, AACButton, MoodEntry, CompletionLog, WeeklyReport } from "../types";
+import { Schedule, ChildProfile, QuizQuestion, SocialScenario, BehaviorLog, BehaviorAnalysis, ResearchResult, RewardItem, AACButton, MoodEntry, CompletionLog, WeeklyReport, VideoAnalysisResult } from "../types";
 
 // Initialize Gemini Client
 // Use a dummy key if missing to prevent initialization errors, checking process.env.API_KEY before calls.
@@ -713,6 +713,73 @@ export const generateWeeklyReport = async (
             improvements: [],
             concerns: [],
             wins: []
+        };
+    }
+};
+
+export const analyzeRoutineFrame = async (
+    frameBase64: string,
+    instruction: string,
+    profile: ChildProfile
+): Promise<VideoAnalysisResult> => {
+    if (!process.env.API_KEY) {
+        // Mock Response
+        return {
+            isOnTask: true,
+            taskProgress: 50,
+            isStuck: false,
+            feedback: "I see you! Keep going!",
+            completed: false
+        };
+    }
+
+    const prompt = `
+        Analyze this image of ${profile.name} (age ${profile.age}) performing a routine.
+        Task: "${instruction}".
+        
+        Is the child performing the task? What is the estimated progress (0-100)?
+        Are they stuck or distracted?
+        
+        Provide a short, 1-sentence encouraging feedback string spoken directly to the child (e.g., "Great brushing!", "Don't forget the top teeth!").
+        Language: ${profile.language || 'English'}.
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: {
+                parts: [
+                    { inlineData: { mimeType: 'image/jpeg', data: frameBase64 } },
+                    { text: prompt }
+                ]
+            },
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        isOnTask: { type: Type.BOOLEAN },
+                        taskProgress: { type: Type.NUMBER },
+                        isStuck: { type: Type.BOOLEAN },
+                        feedback: { type: Type.STRING },
+                        completed: { type: Type.BOOLEAN }
+                    },
+                    required: ['isOnTask', 'taskProgress', 'isStuck', 'feedback', 'completed']
+                }
+            }
+        });
+
+        const text = response.text;
+        if (!text) throw new Error("No response");
+        return JSON.parse(text);
+    } catch (e) {
+        console.warn("Video Analysis Failed", e);
+        return {
+            isOnTask: true,
+            taskProgress: 0,
+            isStuck: false,
+            feedback: "Keep going!",
+            completed: false
         };
     }
 };

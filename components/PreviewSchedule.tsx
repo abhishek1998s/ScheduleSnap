@@ -45,8 +45,18 @@ export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, prof
 
   const handleStepChange = (index: number, field: keyof ScheduleStep, value: string) => {
       const newSteps = [...localSchedule.steps];
+      const step = { ...newSteps[index] };
+
+      // Update the specific field
       // @ts-ignore
-      newSteps[index][field] = value;
+      step[field] = value;
+
+      // CRITICAL FIX: If updating encouragement, sync it to options so Runner uses the new text
+      if (field === 'encouragement') {
+          step.encouragementOptions = [value]; 
+      }
+
+      newSteps[index] = step;
       setLocalSchedule({ ...localSchedule, steps: newSteps });
   };
 
@@ -73,6 +83,7 @@ export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, prof
           emoji: '✨',
           instruction: 'New Step',
           encouragement: 'You can do it!',
+          encouragementOptions: ['You can do it!'], // Initialize options correctly
           completed: false
       };
       setLocalSchedule({ ...localSchedule, steps: [...localSchedule.steps, newStep] });
@@ -99,7 +110,7 @@ export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, prof
                 <input 
                     value={localSchedule.title}
                     onChange={(e) => setLocalSchedule({...localSchedule, title: e.target.value})}
-                    className="text-2xl font-bold text-gray-800 text-center bg-transparent border-b-2 border-transparent focus:border-primary outline-none w-full"
+                    className="text-2xl font-bold text-gray-800 text-center bg-transparent border-b-2 border-transparent focus:border-primary outline-none w-full placeholder-gray-400"
                     placeholder="Routine Title"
                 />
                 
@@ -138,7 +149,8 @@ export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, prof
                 <textarea 
                     value={localSchedule.socialStory}
                     onChange={(e) => setLocalSchedule({...localSchedule, socialStory: e.target.value})}
-                    className="w-full bg-transparent text-yellow-900 font-medium leading-relaxed outline-none resize-none min-h-[60px]"
+                    className="w-full bg-transparent text-yellow-900 font-medium leading-relaxed outline-none resize-none min-h-[60px] placeholder-yellow-700/50"
+                    placeholder="Write a short story about why we do this..."
                 />
             </div>
         </div>
@@ -153,22 +165,22 @@ export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, prof
                             <input 
                                 value={step.emoji}
                                 onChange={(e) => handleStepChange(index, 'emoji', e.target.value)}
-                                className="text-3xl bg-gray-50 w-12 h-12 rounded-xl flex items-center justify-center text-center outline-none focus:ring-2 focus:ring-primary/20"
+                                className="text-3xl bg-gray-50 w-12 h-12 rounded-xl flex items-center justify-center text-center outline-none focus:ring-2 focus:ring-primary/20 text-black"
                             />
                         </div>
 
-                        {/* Text Inputs */}
+                        {/* Text Inputs - Fixed Visibility */}
                         <div className="flex-1 space-y-1">
                             <input 
                                 value={step.instruction}
                                 onChange={(e) => handleStepChange(index, 'instruction', e.target.value)}
-                                className="font-bold text-gray-800 w-full outline-none border-b border-transparent focus:border-gray-200 placeholder-gray-300"
+                                className="font-bold text-gray-900 w-full outline-none border-b-2 border-gray-100 focus:border-primary bg-gray-50 placeholder-gray-400 p-1 rounded"
                                 placeholder="Step Instruction"
                             />
                             <input
                                 value={step.encouragement}
                                 onChange={(e) => handleStepChange(index, 'encouragement', e.target.value)}
-                                className="text-sm text-primary italic font-bold w-full outline-none border-b border-transparent focus:border-primary/20 placeholder-primary/30"
+                                className="text-sm text-primary italic font-bold w-full outline-none border-b-2 border-gray-100 focus:border-primary/50 bg-gray-50 placeholder-primary/30 p-1 rounded"
                                 placeholder="Encouragement phrase"
                             />
                             
@@ -244,7 +256,7 @@ export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, prof
             <input 
                 value={localSchedule.completionCelebration || ''}
                 onChange={(e) => setLocalSchedule({...localSchedule, completionCelebration: e.target.value})}
-                className="w-full bg-transparent text-green-900 font-medium leading-relaxed border-b border-green-200 focus:border-green-500 outline-none"
+                className="w-full bg-transparent text-green-900 font-medium leading-relaxed border-b border-green-200 focus:border-green-500 outline-none placeholder-green-700/50"
                 placeholder="Message to say when done..."
             />
         </div>
