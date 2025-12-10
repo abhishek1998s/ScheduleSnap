@@ -150,6 +150,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
     setIsEditingProfile(false);
   };
 
+  const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newLang = e.target.value;
+    onUpdateProfile({
+        ...profile,
+        language: newLang
+    });
+    setEditLanguage(newLang);
+  };
+
   const generateShareCode = () => {
      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
      setShareCode(code);
@@ -276,21 +285,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                     <input value={editInterests} onChange={e => setEditInterests(e.target.value)} className="w-full border-b p-1 bg-transparent" />
                                 </div>
                                 <div>
-                                    <label className="text-xs opacity-70">{t(lang, 'language')}</label>
-                                    <select value={editLanguage} onChange={(e) => setEditLanguage(e.target.value)} className="w-full border-b p-1 bg-transparent">
-                                        <option value="English">English</option>
-                                        <option value="Spanish">Spanish</option>
-                                        <option value="French">French</option>
-                                        <option value="German">German</option>
-                                        <option value="Chinese">Chinese (Simplified)</option>
-                                        <option value="Japanese">Japanese</option>
-                                        <option value="Korean">Korean</option>
-                                        <option value="Italian">Italian</option>
-                                        <option value="Portuguese">Portuguese</option>
-                                        <option value="Arabic">Arabic</option>
-                                    </select>
-                                </div>
-                                <div>
                                     <label className="text-xs opacity-70">{t(lang, 'voiceSpeed')} ({editSpeechRate}x)</label>
                                     <input 
                                         type="range" 
@@ -333,6 +327,29 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     </div>
 
                     <div className={`${isHighContrast ? 'bg-gray-900 border-2 border-yellow-400' : 'bg-white border-gray-100'} p-6 rounded-2xl shadow-sm border flex flex-col gap-6`}>
+                        
+                        {/* Language Selector */}
+                        <div className="flex items-center justify-between">
+                            <span className="font-bold">{t(lang, 'language')}</span>
+                            <select 
+                                value={profile.language || 'English'} 
+                                onChange={handleLanguageChange}
+                                className={`p-2 rounded-lg font-bold text-sm border ${isHighContrast ? 'bg-black text-yellow-300 border-yellow-400' : 'bg-gray-50 text-gray-700 border-gray-200'}`}
+                            >
+                                <option value="English">English</option>
+                                <option value="Hindi">हिन्दी (Hindi)</option>
+                                <option value="Spanish">Español</option>
+                                <option value="French">Français</option>
+                                <option value="German">Deutsch</option>
+                                <option value="Chinese">中文</option>
+                                <option value="Japanese">日本語</option>
+                                <option value="Korean">한국어</option>
+                                <option value="Italian">Italiano</option>
+                                <option value="Portuguese">Português</option>
+                                <option value="Arabic">العربية</option>
+                            </select>
+                        </div>
+
                         {/* High Contrast */}
                         <div className="flex items-center justify-between">
                             <span className="font-bold">{t(lang, 'highContrast')}</span>
@@ -583,6 +600,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
                      </div>
                 </div>
             )}
+        </div>
+        
+        {/* Apply Changes Button at bottom */}
+        <div className={`p-4 border-t shrink-0 ${isHighContrast ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-100'}`}>
+             <button 
+                onClick={onExit}
+                className={`w-full py-4 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-95 ${
+                    isHighContrast 
+                    ? 'bg-yellow-400 text-black' 
+                    : 'bg-primary text-white hover:bg-secondary'
+                }`}
+             >
+                <i className="fa-solid fa-check-circle"></i> {t(lang, 'applyExit')}
+             </button>
         </div>
     </div>
   );
