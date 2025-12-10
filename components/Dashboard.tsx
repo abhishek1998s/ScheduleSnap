@@ -17,6 +17,7 @@ interface DashboardProps {
   onSelectSchedule: (id: string) => void;
   onDeleteSchedule: (id: string) => void;
   onUpdateSchedule: (schedule: Schedule) => void;
+  onEditSchedule: (id: string) => void;
   onLogBehavior: (log: Omit<BehaviorLog, 'id' | 'timestamp'>) => void;
   onUpdateProfile: (profile: ChildProfile) => void;
   onToggleHighContrast: () => void;
@@ -25,7 +26,7 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
-  schedules, profile, moodLogs, behaviorLogs, completionLogs, voiceMessages, isHighContrast, caregiverPin, onExit, onSelectSchedule, onDeleteSchedule, onUpdateSchedule, onLogBehavior, onUpdateProfile, onToggleHighContrast, onUpdatePin, onMarkMessagesRead
+  schedules, profile, moodLogs, behaviorLogs, completionLogs, voiceMessages, isHighContrast, caregiverPin, onExit, onSelectSchedule, onDeleteSchedule, onUpdateSchedule, onEditSchedule, onLogBehavior, onUpdateProfile, onToggleHighContrast, onUpdatePin, onMarkMessagesRead
 }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pin, setPin] = useState('');
@@ -704,6 +705,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                          </ul>
                                      </div>
                                  </div>
+                                 
+                                 {/* Improvements Section */}
+                                 {weeklyReport.improvements.length > 0 && (
+                                     <div className="bg-blue-100 p-3 rounded-xl border border-blue-200">
+                                         <h4 className="font-bold text-blue-800 mb-1 text-xs uppercase">Suggested Improvements</h4>
+                                         <ul className="list-disc list-inside text-blue-700 text-xs">
+                                             {weeklyReport.improvements.map((imp,i) => <li key={i}>{imp}</li>)}
+                                         </ul>
+                                     </div>
+                                 )}
                              </div>
                          ) : (
                              <p className="text-indigo-400 text-sm text-center">Tap generate to analyze this week's progress.</p>
@@ -724,7 +735,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                         <p className="text-xs opacity-50">{schedule.steps.length} {t(lang, 'steps')}</p>
                                     </div>
                                 </div>
-                                <button onClick={() => onDeleteSchedule(schedule.id)} className="text-red-400 p-2"><i className="fa-solid fa-trash"></i></button>
+                                <div className="flex gap-2">
+                                    <button 
+                                        onClick={() => onEditSchedule(schedule.id)} 
+                                        className="text-blue-500 p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                                        title="Edit Routine"
+                                    >
+                                        <i className="fa-solid fa-pen"></i>
+                                    </button>
+                                    <button onClick={() => onDeleteSchedule(schedule.id)} className="text-red-400 p-2 hover:bg-red-50 rounded-lg transition-colors"><i className="fa-solid fa-trash"></i></button>
+                                </div>
                             </div>
                             
                             {/* Agentic Optimization Button */}
