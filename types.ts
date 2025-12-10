@@ -132,7 +132,7 @@ export interface ParentMessage {
     content: string; // text
     type: 'text' | 'audio' | 'video';
     mediaBase64?: string; // For audio/video content
-    mimeType?: string; // New: Store specific mime type (e.g. 'video/webm')
+    mimeType?: string; // New: Store specific mime type
     scheduledTime?: string; // "14:00", if null sends immediately
     timestamp: number;
     isDelivered: boolean;
@@ -246,6 +246,49 @@ export interface StoryBook {
   createdAt: number;
 }
 
+// NEW: Therapy Session Types
+export interface TherapySessionAnalysis {
+  duration: number; // in minutes
+  summary: string;
+
+  techniquesObserved: {
+    technique: string;      // "Discrete Trial Training"
+    effectiveness: string;  // "Child responded well"
+    timestamp: string;      // When it happened
+  }[];
+
+  breakthroughMoments: {
+    description: string;    // "First time child made eye contact for 5 seconds"
+    significance: string;   // Why this matters
+    timestamp: string;
+  }[];
+
+  challengingMoments: {
+    description: string;
+    suggestedApproach: string;
+    timestamp: string;
+  }[];
+
+  homePractice: {
+    activity: string;       // "Practice turn-taking with preferred toy"
+    duration: string;       // "5 minutes daily"
+    tips: string[];
+  }[];
+
+  progressComparedToLastSession: string;
+}
+
+export interface TherapySession {
+  id: string;
+  timestamp: number;
+  type: 'Audio' | 'Video';
+  // Note: We do NOT persist the heavy mediaBlob in localStorage to avoid quota limits. 
+  // It is analyzed transiently and then discarded, or could be uploaded to cloud in a real app.
+  analysis: TherapySessionAnalysis;
+  therapistName?: string;
+  notes?: string;
+}
+
 // NEW: Voice Companion Modes
 export type ConversationMode = 'routine_guide' | 'encouragement' | 'calm_support' | 'learning' | 'play' | 'transition_prep';
 
@@ -266,7 +309,8 @@ export enum ViewState {
   RESEARCH = 'research',
   KIDS_BUILDER = 'kids-builder',
   MAGIC_BOOKS = 'magic-books',
-  PARENT_INBOX = 'parent-inbox' // New View
+  PARENT_INBOX = 'parent-inbox',
+  THERAPY = 'therapy' // New View
 }
 
 export interface AppState {
@@ -282,10 +326,11 @@ export interface AppState {
   completionLogs: CompletionLog[]; 
   voiceMessages: VoiceMessage[];
   quizStats: QuizStats;
-  meltdownRisk?: 'Low' | 'Medium' | 'High'; // Simple legacy flag, kept for backward compatibility
+  meltdownRisk?: 'Low' | 'Medium' | 'High'; // Simple legacy flag
   caregiverPin?: string;
   customAACButtons: AACButton[]; 
   latestPrediction?: MeltdownPrediction | null;
   stories: StoryBook[];
-  parentMessages: ParentMessage[]; // New state for parent messages
+  parentMessages: ParentMessage[];
+  therapySessions: TherapySession[]; // New State
 }

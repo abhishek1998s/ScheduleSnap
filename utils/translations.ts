@@ -290,6 +290,20 @@ export const translations: Record<string, Record<string, string>> = {
     inboxEmpty: "No messages yet!",
     replySent: "Reply Sent!",
     parentOutbox: "Scheduled & Sent",
+    // Therapy
+    therapyTitle: "Therapy Recorder",
+    startSession: "Start New Session",
+    uploadSession: "Upload Recording",
+    analyzingSession: "Analyzing Session...",
+    sessionHistory: "Session History",
+    breakthroughs: "Breakthroughs",
+    techniques: "Techniques Used",
+    challenges: "Challenges",
+    homePractice: "Home Practice",
+    duration: "Duration",
+    minutes: "mins",
+    clinicalSummary: "Clinical Summary",
+    uploadPrompt: "Upload video or audio file (max 500MB)",
   },
   Hindi: {
     // ... existing translations ...
@@ -307,6 +321,7 @@ export const translations: Record<string, Record<string, string>> = {
     messageFromParent: "माता-पिता का संदेश",
     missYou: "आपकी याद आ रही है",
     proudOfYou: "मुझे तुम पर गर्व है!",
+    therapyTitle: "थेरेपी रिकॉर्डर",
     // ...
   },
   Spanish: {
@@ -325,6 +340,7 @@ export const translations: Record<string, Record<string, string>> = {
     messageFromParent: "Mensaje de Padre",
     missYou: "Te extraño",
     proudOfYou: "¡Estoy orgulloso de ti!",
+    therapyTitle: "Grabadora de Terapia",
     // ...
   }
 };

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { AppState, ViewState, Schedule, ChildProfile, MoodEntry, BehaviorLog, VoiceMessage, MeltdownPrediction, StoryBook, ParentMessage } from './types';
+import { AppState, ViewState, Schedule, ChildProfile, MoodEntry, BehaviorLog, VoiceMessage, MeltdownPrediction, StoryBook, ParentMessage, TherapySession } from './types';
 import { generateScheduleFromImage, predictMeltdownRisk } from './services/geminiService';
 import { CalmMode } from './components/CalmMode';
 import { AACBoard } from './components/AACBoard';
@@ -21,6 +21,7 @@ import { VoiceCompanion } from './components/VoiceCompanion';
 import { KidsRoutineBuilder } from './components/KidsRoutineBuilder';
 import { MagicBookLibrary } from './components/MagicBookLibrary';
 import { ParentMessageInbox } from './components/ParentMessageInbox';
+import { TherapyManager } from './components/TherapyManager';
 import { t } from './utils/translations';
 
 const INITIAL_PROFILE: ChildProfile = {
@@ -71,7 +72,8 @@ const App: React.FC = () => {
     customAACButtons: [],
     latestPrediction: null,
     stories: [],
-    parentMessages: []
+    parentMessages: [],
+    therapySessions: []
   });
 
   const [generatedSchedule, setGeneratedSchedule] = useState<Omit<Schedule, 'id' | 'createdAt'> | null>(null);
@@ -112,7 +114,8 @@ const App: React.FC = () => {
             completionLogs: parsed.completionLogs || [],
             latestPrediction: parsed.latestPrediction || null,
             stories: parsed.stories || [],
-            parentMessages: parsed.parentMessages || []
+            parentMessages: parsed.parentMessages || [],
+            therapySessions: parsed.therapySessions || []
         }));
       } catch (e) {
         console.error("Failed to load save data");
@@ -396,6 +399,11 @@ const App: React.FC = () => {
       }));
   };
 
+  // --- Therapy Handlers ---
+  const handleSaveTherapySession = (session: TherapySession) => {
+      setState(prev => ({ ...prev, therapySessions: [...prev.therapySessions, session] }));
+  };
+
   const handleSendMissYou = () => {
       const msg: VoiceMessage = {
           id: `missyou-${Date.now()}`,
@@ -435,7 +443,7 @@ const App: React.FC = () => {
     <div className={`h-full w-full relative ${themeClass} overflow-hidden`}>
       
       {/* Voice Companion */}
-      {state.view !== ViewState.COACH && state.view !== ViewState.CAMERA && state.view !== ViewState.KIDS_BUILDER && state.view !== ViewState.MAGIC_BOOKS && state.view !== ViewState.PARENT_INBOX && (
+      {state.view !== ViewState.COACH && state.view !== ViewState.CAMERA && state.view !== ViewState.KIDS_BUILDER && state.view !== ViewState.MAGIC_BOOKS && state.view !== ViewState.PARENT_INBOX && state.view !== ViewState.THERAPY && (
           <VoiceCompanion 
               profile={state.profile}
               currentView={state.view}
@@ -596,7 +604,7 @@ const App: React.FC = () => {
       {state.view === ViewState.CAMERA && <CameraCapture isLoading={isProcessing} onImageSelected={handleImageSelected} onCancel={() => navigateTo(ViewState.HOME)} language={lang} />}
       {state.view === ViewState.PREVIEW && generatedSchedule && <PreviewSchedule schedule={generatedSchedule} profile={state.profile} onSave={handleSaveSchedule} onCancel={() => { setGeneratedSchedule(null); setEditingScheduleId(null); navigateTo(ViewState.HOME); }} isEditing={!!editingScheduleId} />}
       {state.view === ViewState.RUNNER && activeSchedule && <ScheduleRunner schedule={activeSchedule} profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} onComplete={handleRoutineComplete} />}
-      {state.view === ViewState.DASHBOARD && <Dashboard schedules={state.schedules} profile={state.profile} moodLogs={state.moodLogs} behaviorLogs={state.behaviorLogs} completionLogs={state.completionLogs} voiceMessages={state.voiceMessages} isHighContrast={state.isHighContrast} caregiverPin={state.caregiverPin || '1234'} onUpdatePin={(p) => setState(prev => ({...prev, caregiverPin: p}))} onExit={() => navigateTo(ViewState.HOME)} onSelectSchedule={(id) => startRoutine(id)} onEditSchedule={handleEditScheduleRequest} onCreateCustom={handleCreateCustomRoutine} onDeleteSchedule={handleDeleteSchedule} onUpdateSchedule={handleUpdateSchedule} onUpdateProfile={(p) => setState(prev => ({ ...prev, profile: p }))} onToggleHighContrast={() => setState(prev => ({ ...prev, isHighContrast: !prev.isHighContrast }))} onLogBehavior={(log) => setState(prev => ({ ...prev, behaviorLogs: [...prev.behaviorLogs, { ...log, id: Date.now().toString(), timestamp: Date.now() }] }))} onMarkMessagesRead={handleMarkMessagesRead} parentMessages={state.parentMessages} onScheduleMessage={handleScheduleMessage} />}
+      {state.view === ViewState.DASHBOARD && <Dashboard schedules={state.schedules} profile={state.profile} moodLogs={state.moodLogs} behaviorLogs={state.behaviorLogs} completionLogs={state.completionLogs} voiceMessages={state.voiceMessages} isHighContrast={state.isHighContrast} caregiverPin={state.caregiverPin || '1234'} onUpdatePin={(p) => setState(prev => ({...prev, caregiverPin: p}))} onExit={() => navigateTo(ViewState.HOME)} onSelectSchedule={(id) => startRoutine(id)} onEditSchedule={handleEditScheduleRequest} onCreateCustom={handleCreateCustomRoutine} onDeleteSchedule={handleDeleteSchedule} onUpdateSchedule={handleUpdateSchedule} onUpdateProfile={(p) => setState(prev => ({ ...prev, profile: p }))} onToggleHighContrast={() => setState(prev => ({ ...prev, isHighContrast: !prev.isHighContrast }))} onLogBehavior={(log) => setState(prev => ({ ...prev, behaviorLogs: [...prev.behaviorLogs, { ...log, id: Date.now().toString(), timestamp: Date.now() }] }))} onMarkMessagesRead={handleMarkMessagesRead} parentMessages={state.parentMessages} onScheduleMessage={handleScheduleMessage} onOpenTherapy={() => navigateTo(ViewState.THERAPY)} />}
       {state.view === ViewState.MOOD && <MoodCheck profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} onSave={(entry) => setState(prev => ({ ...prev, moodLogs: [...prev.moodLogs, entry] }))} />}
       {state.view === ViewState.QUIZ && <EmotionQuiz age={state.profile.age} language={lang} stats={state.quizStats} onUpdateStats={(s) => setState(prev => ({ ...prev, quizStats: s, tokens: prev.tokens + (s.xp > prev.quizStats.xp ? 1 : 0) }))} onExit={() => navigateTo(ViewState.HOME)} />}
       {state.view === ViewState.SOCIAL && <SocialScenarioPractice age={state.profile.age} language={lang} onExit={() => navigateTo(ViewState.HOME)} onComplete={(success) => { if(success) setState(prev => ({ ...prev, tokens: prev.tokens + 2 })); }} />}
@@ -609,8 +617,9 @@ const App: React.FC = () => {
       {state.view === ViewState.KIDS_BUILDER && <KidsRoutineBuilder profile={state.profile} onSave={handleBuilderSave} onExit={() => navigateTo(ViewState.HOME)} />}
       {state.view === ViewState.MAGIC_BOOKS && <MagicBookLibrary stories={state.stories} profile={state.profile} onSaveStory={handleSaveStory} onDeleteStory={handleDeleteStory} onExit={() => navigateTo(ViewState.HOME)} />}
       {state.view === ViewState.PARENT_INBOX && <ParentMessageInbox messages={state.parentMessages} profile={state.profile} onRespond={handleChildRespond} onExit={() => navigateTo(ViewState.HOME)} onRecordReply={() => navigateTo(ViewState.VOICE_RECORDER)} />}
+      {state.view === ViewState.THERAPY && <TherapyManager sessions={state.therapySessions} profile={state.profile} onSaveSession={handleSaveTherapySession} onExit={() => navigateTo(ViewState.DASHBOARD)} />}
 
-      {state.view !== ViewState.CAMERA && state.view !== ViewState.CALM && state.view !== ViewState.KIDS_BUILDER && state.view !== ViewState.MAGIC_BOOKS && state.view !== ViewState.PARENT_INBOX && !state.isAACOpen && (
+      {state.view !== ViewState.CAMERA && state.view !== ViewState.CALM && state.view !== ViewState.KIDS_BUILDER && state.view !== ViewState.MAGIC_BOOKS && state.view !== ViewState.PARENT_INBOX && state.view !== ViewState.THERAPY && !state.isAACOpen && (
         <button 
             onClick={() => setState(s => ({...s, isAACOpen: true}))}
             className={`fixed bottom-6 right-6 w-16 h-16 rounded-full flex items-center justify-center active:scale-90 transition-transform z-50 ${state.isHighContrast ? 'bg-yellow-400 text-black border-4 border-white' : 'bg-blue-600 shadow-2xl text-white border-2 border-white'}`}

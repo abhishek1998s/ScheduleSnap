@@ -24,15 +24,14 @@ interface DashboardProps {
   onToggleHighContrast: () => void;
   onUpdatePin: (newPin: string) => void;
   onMarkMessagesRead: () => void;
-  // New props for parent messages (passed via App state management, but here we can just pass the state setters if needed, or assume handled upstream. 
-  // Ideally, App.tsx should pass message handling functions. For simplicity in this structure, I'll modify App.tsx to pass these.)
   parentMessages?: ParentMessage[];
   onScheduleMessage?: (msg: Omit<ParentMessage, 'id' | 'timestamp' | 'isDelivered' | 'isRead'>) => void;
+  onOpenTherapy?: () => void; // New prop
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
   schedules, profile, moodLogs, behaviorLogs, completionLogs, voiceMessages, isHighContrast, caregiverPin, onExit, onSelectSchedule, onDeleteSchedule, onUpdateSchedule, onEditSchedule, onCreateCustom, onLogBehavior, onUpdateProfile, onToggleHighContrast, onUpdatePin, onMarkMessagesRead,
-  parentMessages = [], onScheduleMessage
+  parentMessages = [], onScheduleMessage, onOpenTherapy
 }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pin, setPin] = useState('');
@@ -431,6 +430,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {/* ... Existing tabs (overview, routines, analytics, behavior) remain unchanged ... */}
             {activeTab === 'overview' && (
                 <>
+                    {/* Therapy Access Card - NEW */}
+                    {onOpenTherapy && (
+                        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg mb-6 flex items-center justify-between">
+                            <div>
+                                <h3 className="text-xl font-bold mb-1">{t(lang, 'therapyTitle')}</h3>
+                                <p className="text-white/80 text-sm">Analyze videos, track progress & get clinical insights.</p>
+                            </div>
+                            <button 
+                                onClick={onOpenTherapy}
+                                className="bg-white text-indigo-600 px-6 py-3 rounded-xl font-bold shadow-md hover:bg-gray-50 active:scale-95 transition-transform"
+                            >
+                                Open
+                            </button>
+                        </div>
+                    )}
+
                     <div className={`${isHighContrast ? 'bg-gray-900 border-2 border-yellow-400' : 'bg-white border-gray-100'} p-6 rounded-2xl shadow-sm border`}>
                         <div className="flex justify-between items-start mb-4">
                              <h2 className="text-lg font-bold">{t(lang, 'childProfile')}</h2>
@@ -513,6 +528,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </>
             )}
 
+            {/* ... Rest of tabs remain identical ... */}
             {activeTab === 'routines' && (
                 <div className="space-y-4">
                     <button 
@@ -740,9 +756,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
             )}
 
+            {/* Messages Tab logic unchanged, just visually consistent */}
             {activeTab === 'messages' && (
                 <div className="space-y-4">
-                    {/* Parent-Child Communication Bridge Interface */}
+                   {/* ... Message content preserved ... */}
+                   {/* Parent-Child Communication Bridge Interface */}
                     <div className="bg-pink-50 p-4 rounded-2xl border border-pink-100">
                         <h3 className="font-bold text-pink-700 mb-4">{t(lang, 'scheduleMessage')}</h3>
                         
@@ -817,7 +835,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         ))}
                     </div>
 
-                    {/* Existing Child -> Parent Messages */}
                     <h3 className="font-bold text-gray-700 mt-6">{t(lang, 'messages')} (Child)</h3>
                     {voiceMessages.length === 0 ? (
                         <div className="text-center text-gray-400 py-4">
@@ -826,7 +843,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     ) : (
                         voiceMessages.map(msg => (
                             <div key={msg.id} className={`p-4 rounded-2xl border transition-colors ${msg.read ? 'bg-white border-gray-100' : 'bg-blue-50 border-blue-200'}`}>
-                                {/* ... existing message display code ... */}
                                 <div className="flex justify-between items-start mb-2">
                                     <span className="text-xs font-bold text-gray-400">
                                         {new Date(msg.timestamp).toLocaleString()}
@@ -858,7 +874,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
              </button>
         </div>
         
-        {/* ... (Agentic Optimization Modal code omitted for brevity as it is unchanged) ... */}
+        {/* Optimization Modal */}
         {optimizationProposal && (
             <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 animate-fadeIn">
                 <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 shadow-2xl relative">
@@ -868,7 +884,25 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     >
                         <i className="fa-solid fa-times text-xl"></i>
                     </button>
-                    {/* ... (rest of modal) ... */}
+                    {/* ... (rest of modal content omitted for brevity, logic exists in original file) ... */}
+                    {/* To ensure no code loss, simplistic rendering here: */}
+                    <h3 className="text-xl font-bold mb-4">{t(lang, 'optTitle')}</h3>
+                     <div className="mb-4 bg-purple-50 p-4 rounded-xl">
+                        <h4 className="font-bold text-purple-800 text-sm uppercase mb-2">{t(lang, 'optImpact')}</h4>
+                        <div className="flex gap-4 text-sm">
+                            <div><span className="font-bold">{t(lang, 'optCompletion')}:</span> {optimizationProposal.predictedImprovement.completionRate}</div>
+                            <div><span className="font-bold">{t(lang, 'optTime')}:</span> {optimizationProposal.predictedImprovement.avgTime}</div>
+                        </div>
+                    </div>
+                    <div className="space-y-3 mb-6">
+                        {optimizationProposal.recommendations.map((rec, i) => (
+                            <div key={i} className="bg-gray-50 p-3 rounded-lg text-sm">
+                                <div className="font-bold text-gray-800">{rec.description}</div>
+                                <div className="text-gray-500 text-xs mt-1">{rec.reason}</div>
+                            </div>
+                        ))}
+                    </div>
+                    <button onClick={applyOptimization} className="w-full bg-purple-600 text-white py-3 rounded-xl font-bold">{t(lang, 'optApply')}</button>
                 </div>
             </div>
         )}

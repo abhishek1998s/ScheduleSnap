@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { Schedule, ChildProfile, QuizQuestion, SocialScenario, BehaviorLog, BehaviorAnalysis, ResearchResult, RewardItem, AACButton, MoodEntry, CompletionLog, WeeklyReport, VideoAnalysisResult, MeltdownPrediction, SpeechAnalysis, ScheduleOptimization, ConversationMode, BuilderFeedback, StoryBook } from "../types";
+import { Schedule, ChildProfile, QuizQuestion, SocialScenario, BehaviorLog, BehaviorAnalysis, ResearchResult, RewardItem, AACButton, MoodEntry, CompletionLog, WeeklyReport, VideoAnalysisResult, MeltdownPrediction, SpeechAnalysis, ScheduleOptimization, ConversationMode, BuilderFeedback, StoryBook, TherapySessionAnalysis } from "../types";
 
 // Initialize Gemini Client
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || 'dummy_key_for_init' });
@@ -285,8 +285,6 @@ export const generateScheduleOptimization = async (
                     type: Type.OBJECT,
                     properties: {
                         scheduleId: { type: Type.STRING },
-                        // Note: For complex nested objects like 'optimizedSchedule', we might simplify schema or rely on partial parsing
-                        // Here we just ask for the key components to reconstruct or specific fields
                         recommendations: {
                             type: Type.ARRAY,
                             items: {
@@ -314,8 +312,6 @@ export const generateScheduleOptimization = async (
         });
         
         const result = JSON.parse(response.text || '{}');
-        // Manually constructing the optimized schedule for simplicity in this demo, 
-        // normally we would ask AI to return the full schedule structure.
         return {
             ...result,
             scheduleId: schedule.id,
@@ -324,6 +320,113 @@ export const generateScheduleOptimization = async (
         };
     } catch (e) {
         return getMockOptimization(schedule);
+    }
+};
+
+export const analyzeTherapySession = async (
+    mediaBase64: string, 
+    mimeType: string, 
+    profile: ChildProfile,
+    previousSummary?: string
+): Promise<TherapySessionAnalysis> => {
+    if (!process.env.API_KEY) {
+        // Mock Response
+        return {
+            duration: 15,
+            summary: "Session focused on shared attention and turn taking.",
+            techniquesObserved: [
+                { technique: "Positive Reinforcement", effectiveness: "High", timestamp: "02:30" },
+                { technique: "Modeling", effectiveness: "Medium", timestamp: "05:15" }
+            ],
+            breakthroughMoments: [
+                { description: "Sustained eye contact during play", significance: "Major social milestone", timestamp: "10:00" }
+            ],
+            challengingMoments: [
+                { description: "Distraction during transition", suggestedApproach: "Use a visual timer", timestamp: "12:45" }
+            ],
+            homePractice: [
+                { activity: "Play 'My Turn, Your Turn'", duration: "10 mins", tips: ["Use favorite toy", "Exaggerate cues"] }
+            ],
+            progressComparedToLastSession: "Improvement in attention span."
+        };
+    }
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: {
+                parts: [
+                    { inlineData: { mimeType, data: mediaBase64 } },
+                    { text: `
+                        You are a clinical supervisor analyzing a therapy session for a ${profile.age} year old autistic child.
+                        Previous Context: ${previousSummary || "None"}.
+                        Analyze the video/audio. Identify techniques, breakthroughs, challenges, and assign home practice.
+                        Return strictly JSON.
+                    ` }
+                ]
+            },
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        duration: { type: Type.NUMBER },
+                        summary: { type: Type.STRING },
+                        techniquesObserved: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    technique: { type: Type.STRING },
+                                    effectiveness: { type: Type.STRING },
+                                    timestamp: { type: Type.STRING }
+                                }
+                            }
+                        },
+                        breakthroughMoments: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    description: { type: Type.STRING },
+                                    significance: { type: Type.STRING },
+                                    timestamp: { type: Type.STRING }
+                                }
+                            }
+                        },
+                        challengingMoments: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    description: { type: Type.STRING },
+                                    suggestedApproach: { type: Type.STRING },
+                                    timestamp: { type: Type.STRING }
+                                }
+                            }
+                        },
+                        homePractice: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    activity: { type: Type.STRING },
+                                    duration: { type: Type.STRING },
+                                    tips: { type: Type.ARRAY, items: { type: Type.STRING } }
+                                }
+                            }
+                        },
+                        progressComparedToLastSession: { type: Type.STRING }
+                    },
+                    required: ['summary', 'techniquesObserved', 'breakthroughMoments', 'homePractice']
+                }
+            }
+        });
+
+        return JSON.parse(response.text || '{}');
+    } catch (e) {
+        console.error("Therapy analysis failed", e);
+        throw e;
     }
 };
 
@@ -533,30 +636,22 @@ export const analyzeChildSpeech = async (audioBlob: Blob, profile: ChildProfile)
 export const searchAutismResources = async (query: string, language: string = 'English'): Promise<ResearchResult> => {
     if (!process.env.API_KEY) return { answer: "Mock answer about " + query, sources: [] };
     
-    // Note: googleSearch tool doesn't support JSON schema output directly usually, so we parse text manually or ask for JSON string.
-    // For simplicity in strict mode, we'll try to get text and assume we can parse it or present it as markdown.
-    // However, the interface expects ResearchResult structure.
-    
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: `Answer this question about autism for a parent: "${query}". Return valid JSON with 'answer' and 'sources'. Language: ${language}`,
             config: {
                 tools: [{ googleSearch: {} }],
-                // Note: Schema not supported with googleSearch in all cases, but we can try without strict schema or parse text
             }
         });
         
-        // When using tools, we might get grounding metadata
         const text = response.text || '';
         const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
         
-        // Construct result from grounding chunks if JSON parsing fails or isn't used
         const sources = chunks
             .map(c => c.web ? { title: c.web.title || 'Source', uri: c.web.uri || '' } : null)
             .filter(s => s !== null) as { title: string, uri: string }[];
 
-        // Try to see if model returned JSON in text despite tool use
         try {
             const json = JSON.parse(text);
             if (json.answer) return json;
