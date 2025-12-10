@@ -1,5 +1,6 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
-import { Schedule, ChildProfile, QuizQuestion, SocialScenario, BehaviorLog, BehaviorAnalysis, ResearchResult, RewardItem, AACButton, MoodEntry, CompletionLog, WeeklyReport, VideoAnalysisResult, MeltdownPrediction, SpeechAnalysis, ScheduleOptimization, ConversationMode, BuilderFeedback } from "../types";
+import { Schedule, ChildProfile, QuizQuestion, SocialScenario, BehaviorLog, BehaviorAnalysis, ResearchResult, RewardItem, AACButton, MoodEntry, CompletionLog, WeeklyReport, VideoAnalysisResult, MeltdownPrediction, SpeechAnalysis, ScheduleOptimization, ConversationMode, BuilderFeedback, StoryBook } from "../types";
 
 // Initialize Gemini Client
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || 'dummy_key_for_init' });
@@ -667,6 +668,77 @@ export const validateBuilderRoutine = async (
             missingSteps: [],
             suggestedOrder: steps
         };
+    }
+};
+
+export const generateMagicStory = async (
+    topic: string, 
+    concern: string, 
+    profile: ChildProfile
+): Promise<StoryBook> => {
+    if (!process.env.API_KEY) {
+        // Mock
+        return {
+            id: 'mock-story',
+            title: topic,
+            topic: topic,
+            coverEmoji: '📖',
+            pages: [
+                { text: `We are going to ${topic}.`, emoji: '👋', color: 'bg-blue-100' },
+                { text: `It might seem ${concern}, but it will be okay.`, emoji: '💪', color: 'bg-green-100' },
+                { text: "We will be brave!", emoji: '🌟', color: 'bg-yellow-100' }
+            ],
+            createdAt: Date.now()
+        };
+    }
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: `
+                Create a social story for a ${profile.age} year old autistic child about "${topic}".
+                Specific concern/fear: "${concern}".
+                Language: ${profile.language || 'English'}.
+                Create 5-8 pages. Text must be simple, affirmative, and 1st person ("I will...").
+                Suggest a relevant emoji and a tailwind background color (e.g., bg-blue-100) for each page.
+            `,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        title: { type: Type.STRING },
+                        coverEmoji: { type: Type.STRING },
+                        pages: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    text: { type: Type.STRING },
+                                    emoji: { type: Type.STRING },
+                                    color: { type: Type.STRING }
+                                },
+                                required: ['text', 'emoji', 'color']
+                            }
+                        }
+                    },
+                    required: ['title', 'pages', 'coverEmoji']
+                }
+            }
+        });
+
+        const data = JSON.parse(response.text || '{}');
+        return {
+            id: `story-${Date.now()}`,
+            topic,
+            title: data.title || topic,
+            coverEmoji: data.coverEmoji || '📖',
+            pages: data.pages || [],
+            createdAt: Date.now()
+        };
+    } catch (e) {
+        console.error(e);
+        throw new Error("Failed to generate story");
     }
 };
 

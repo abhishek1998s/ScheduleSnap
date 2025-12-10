@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { AppState, ViewState, Schedule, ChildProfile, MoodEntry, BehaviorLog, VoiceMessage, MeltdownPrediction } from './types';
+import { AppState, ViewState, Schedule, ChildProfile, MoodEntry, BehaviorLog, VoiceMessage, MeltdownPrediction, StoryBook } from './types';
 import { generateScheduleFromImage, predictMeltdownRisk } from './services/geminiService';
 import { CalmMode } from './components/CalmMode';
 import { AACBoard } from './components/AACBoard';
@@ -19,6 +19,7 @@ import { ResearchTool } from './components/ResearchTool';
 import { MeltdownPredictionAlert } from './components/MeltdownPredictionAlert';
 import { VoiceCompanion } from './components/VoiceCompanion';
 import { KidsRoutineBuilder } from './components/KidsRoutineBuilder';
+import { MagicBookLibrary } from './components/MagicBookLibrary';
 import { t } from './utils/translations';
 
 const INITIAL_PROFILE: ChildProfile = {
@@ -67,7 +68,8 @@ const App: React.FC = () => {
     meltdownRisk: 'Low',
     caregiverPin: '1234',
     customAACButtons: [], // Initial empty
-    latestPrediction: null
+    latestPrediction: null,
+    stories: [] // Initial empty
   });
 
   const [generatedSchedule, setGeneratedSchedule] = useState<Omit<Schedule, 'id' | 'createdAt'> | null>(null);
@@ -107,7 +109,8 @@ const App: React.FC = () => {
             quizStats: parsed.quizStats || { level: 1, xp: 0, totalAnswered: 0 },
             customAACButtons: parsed.customAACButtons || [],
             completionLogs: parsed.completionLogs || [],
-            latestPrediction: parsed.latestPrediction || null
+            latestPrediction: parsed.latestPrediction || null,
+            stories: parsed.stories || []
         }));
       } catch (e) {
         console.error("Failed to load save data");
@@ -342,6 +345,22 @@ const App: React.FC = () => {
       }));
   };
 
+  const handleSaveStory = (story: StoryBook) => {
+    setState(prev => ({
+        ...prev,
+        stories: [story, ...prev.stories]
+    }));
+  };
+
+  const handleDeleteStory = (id: string) => {
+    if (confirm("Delete this story?")) {
+        setState(prev => ({
+            ...prev,
+            stories: prev.stories.filter(s => s.id !== id)
+        }));
+    }
+  };
+
   const activeSchedule = state.schedules.find(s => s.id === state.activeScheduleId);
   const lang = state.profile.language;
   const unreadCount = state.voiceMessages.filter(m => !m.read).length;
@@ -360,7 +379,7 @@ const App: React.FC = () => {
     <div className={`h-full w-full relative ${themeClass} overflow-hidden`}>
       
       {/* Voice Companion "Snap" */}
-      {state.view !== ViewState.COACH && state.view !== ViewState.CAMERA && state.view !== ViewState.KIDS_BUILDER && (
+      {state.view !== ViewState.COACH && state.view !== ViewState.CAMERA && state.view !== ViewState.KIDS_BUILDER && state.view !== ViewState.MAGIC_BOOKS && (
           <VoiceCompanion 
               profile={state.profile}
               currentView={state.view}
@@ -418,13 +437,22 @@ const App: React.FC = () => {
                 <span className="text-2xl font-bold">{t(lang, 'snapRoutine')}</span>
             </button>
 
-            {/* NEW: Kids Builder Button */}
+            {/* Kids Builder Button */}
             <button 
                 onClick={() => navigateTo(ViewState.KIDS_BUILDER)}
                 className={`w-full p-6 rounded-3xl flex items-center justify-center gap-4 active:scale-95 transition-transform mb-6 ${state.isHighContrast ? 'bg-blue-900 border-4 border-yellow-400 text-yellow-300' : 'bg-gradient-to-r from-blue-400 to-cyan-400 text-white shadow-lg'}`}
             >
                 <i className="fa-solid fa-hammer text-3xl"></i>
                 <span className="text-xl font-bold">{t(lang, 'buildMyDay')}</span>
+            </button>
+
+            {/* Magic Books Button (New) */}
+            <button 
+                onClick={() => navigateTo(ViewState.MAGIC_BOOKS)}
+                className={`w-full p-6 rounded-3xl flex items-center justify-center gap-4 active:scale-95 transition-transform mb-6 ${state.isHighContrast ? 'bg-purple-900 border-4 border-yellow-400 text-yellow-300' : 'bg-gradient-to-r from-indigo-400 to-purple-400 text-white shadow-lg'}`}
+            >
+                <i className="fa-solid fa-book-sparkles text-3xl"></i>
+                <span className="text-xl font-bold">{t(lang, 'magicBooks')}</span>
             </button>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-8">
@@ -500,8 +528,9 @@ const App: React.FC = () => {
       {state.view === ViewState.COACH && <LiveVoiceCoach profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} />}
       {(state.view === ViewState.CALM) && <CalmMode onExit={() => navigateTo(ViewState.HOME)} language={lang} />}
       {state.view === ViewState.KIDS_BUILDER && <KidsRoutineBuilder profile={state.profile} onSave={handleBuilderSave} onExit={() => navigateTo(ViewState.HOME)} />}
-      
-      {state.view !== ViewState.CAMERA && state.view !== ViewState.CALM && state.view !== ViewState.KIDS_BUILDER && !state.isAACOpen && (
+      {state.view === ViewState.MAGIC_BOOKS && <MagicBookLibrary stories={state.stories} profile={state.profile} onSaveStory={handleSaveStory} onDeleteStory={handleDeleteStory} onExit={() => navigateTo(ViewState.HOME)} />}
+
+      {state.view !== ViewState.CAMERA && state.view !== ViewState.CALM && state.view !== ViewState.KIDS_BUILDER && state.view !== ViewState.MAGIC_BOOKS && !state.isAACOpen && (
         <button 
             onClick={() => setState(s => ({...s, isAACOpen: true}))}
             className={`fixed bottom-6 right-6 w-16 h-16 rounded-full flex items-center justify-center active:scale-90 transition-transform z-50 ${state.isHighContrast ? 'bg-yellow-400 text-black border-4 border-white' : 'bg-blue-600 shadow-2xl text-white border-2 border-white'}`}

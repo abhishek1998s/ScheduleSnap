@@ -217,6 +217,22 @@ export interface BuilderFeedback {
     suggestedOrder?: string[];
 }
 
+// NEW: Magic Books Types
+export interface StoryPage {
+  text: string;
+  emoji: string;
+  color: string; // Tailwind bg class
+}
+
+export interface StoryBook {
+  id: string;
+  title: string;
+  topic: string;
+  coverEmoji: string;
+  pages: StoryPage[];
+  createdAt: number;
+}
+
 // NEW: Voice Companion Modes
 export type ConversationMode = 'routine_guide' | 'encouragement' | 'calm_support' | 'learning' | 'play' | 'transition_prep';
 
@@ -235,7 +251,8 @@ export enum ViewState {
   VOICE_RECORDER = 'voice-recorder',
   TIMER = 'timer',
   RESEARCH = 'research',
-  KIDS_BUILDER = 'kids-builder'
+  KIDS_BUILDER = 'kids-builder',
+  MAGIC_BOOKS = 'magic-books'
 }
 
 export interface AppState {
@@ -254,5 +271,6 @@ export interface AppState {
   meltdownRisk?: 'Low' | 'Medium' | 'High'; // Simple legacy flag, kept for backward compatibility
   caregiverPin?: string;
   customAACButtons: AACButton[]; 
-  latestPrediction?: MeltdownPrediction | null; 
+  latestPrediction?: MeltdownPrediction | null;
+  stories: StoryBook[]; // New: Saved stories
 }

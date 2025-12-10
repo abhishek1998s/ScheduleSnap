@@ -259,6 +259,19 @@ export const translations: Record<string, Record<string, string>> = {
     builderLibrary: "Picture Library",
     dragHere: "Tap pictures to add them here!",
     saved: "Saved!",
+    // Magic Books
+    magicBooks: "Magic Books",
+    createStory: "Create New Story",
+    newStoryTitle: "Write a Magic Story",
+    storyTopic: "Topic",
+    storyConcern: "Specific Worry (Optional)",
+    writing: "Writing...",
+    create: "Create Magic",
+    yourLibrary: "Your Library",
+    noStories: "No stories yet. Create one!",
+    magicBook: "Magic Social Story",
+    theEnd: "The End",
+    closeBook: "Close Book",
   },
   Hindi: {
     // ... existing translations ...
@@ -270,6 +283,8 @@ export const translations: Record<string, Record<string, string>> = {
     savedRoutine: "मैंने आपका रूटीन सहेज लिया!",
     builderLibrary: "तस्वीर पुस्तकालय",
     dragHere: "तस्वीरें जोड़ने के लिए टैप करें!",
+    magicBooks: "जादुई किताबें",
+    createStory: "नई कहानी बनाएँ",
     // ...
   },
   Spanish: {
@@ -282,6 +297,8 @@ export const translations: Record<string, Record<string, string>> = {
     savedRoutine: "¡Guardé tu rutina!",
     builderLibrary: "Biblioteca de imágenes",
     dragHere: "¡Toca las imágenes para agregarlas aquí!",
+    magicBooks: "Libros Mágicos",
+    createStory: "Crear Nueva Historia",
     // ...
   }
 };
