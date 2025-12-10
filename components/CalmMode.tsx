@@ -25,17 +25,16 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language }) => {
   
   // Settings State
   const [pattern, setPattern] = useState<BreathingPattern>('Balanced');
-  const [visual, setVisual] = useState<VisualTheme>('Circle');
+  const [visual, setVisual] = useState<VisualTheme>('Stars'); // Default to Stars based on screenshot
   const [sound, setSound] = useState<Soundscape>('None');
 
   // Audio Refs
   const audioCtxRef = useRef<AudioContext | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
-  const oscillatorsRef = useRef<OscillatorNode[]>([]);
-  const noiseNodeRef = useRef<AudioBufferSourceNode | null>(null);
+  const oscillatorsRef = useRef<(OscillatorNode | AudioBufferSourceNode)[]>([]);
 
-  // Background Elements State (for Stars/Bubbles)
-  const [particles, setParticles] = useState<{ x: number, y: number, size: number, speed: number }[]>([]);
+  // Background Elements State
+  const [particles, setParticles] = useState<{ x: number, y: number, size: number, delay: number, duration: number }[]>([]);
 
   // Init Audio Context
   useEffect(() => {
@@ -50,28 +49,28 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language }) => {
     };
   }, []);
 
-  // Audio Engine
+  // Audio Engine with Cross-fading
   useEffect(() => {
       if (!audioCtxRef.current || !gainNodeRef.current) return;
       const ctx = audioCtxRef.current;
       const masterGain = gainNodeRef.current;
       
-      // Stop previous
-      oscillatorsRef.current.forEach(osc => osc.stop());
+      const fadeTime = 0.5;
+      
+      const oldSources = [...oscillatorsRef.current];
+      oldSources.forEach(src => {
+          try { src.stop(ctx.currentTime + fadeTime); } catch(e){}
+      });
       oscillatorsRef.current = [];
-      if (noiseNodeRef.current) {
-          noiseNodeRef.current.stop();
-          noiseNodeRef.current = null;
-      }
 
       if (ctx.state === 'suspended') ctx.resume();
 
-      if (sound === 'None') {
-          masterGain.gain.setValueAtTime(0, ctx.currentTime);
-          return;
-      }
+      masterGain.gain.cancelScheduledValues(ctx.currentTime);
+      masterGain.gain.setValueAtTime(0, ctx.currentTime);
+
+      if (sound === 'None') return;
       
-      masterGain.gain.setValueAtTime(0.1, ctx.currentTime); // Default low volume
+      masterGain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + fadeTime);
 
       if (sound === 'WhiteNoise' || sound === 'Rain') {
           const bufferSize = ctx.sampleRate * 2;
@@ -86,10 +85,9 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language }) => {
           noise.loop = true;
           
           if (sound === 'Rain') {
-             // Lowpass filter for rain
              const filter = ctx.createBiquadFilter();
              filter.type = 'lowpass';
-             filter.frequency.value = 800;
+             filter.frequency.value = 400;
              noise.connect(filter);
              filter.connect(masterGain);
           } else {
@@ -97,35 +95,40 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language }) => {
           }
           
           noise.start();
-          noiseNodeRef.current = noise;
+          oscillatorsRef.current.push(noise);
       } 
       else if (sound === 'Drone') {
           const osc1 = ctx.createOscillator();
           const osc2 = ctx.createOscillator();
           osc1.type = 'sine';
           osc2.type = 'triangle';
-          osc1.frequency.value = 110; // A2
-          osc2.frequency.value = 164.81; // E3
+          osc1.frequency.value = 110; 
+          osc2.frequency.value = 111.5;
           
+          const oscGain = ctx.createGain();
+          oscGain.gain.value = 0.5;
+
           osc1.connect(masterGain);
-          osc2.connect(masterGain); // Harmony
+          osc2.connect(oscGain);
+          oscGain.connect(masterGain);
+
           osc1.start();
           osc2.start();
           oscillatorsRef.current.push(osc1, osc2);
       }
       else if (sound === 'Heartbeat') {
-          // Heartbeat needs to be triggered in the rhythm loop, but simplified here:
-          // Just a low thrum for now, or handled in visual loop
           const osc = ctx.createOscillator();
-          osc.frequency.value = 60;
+          osc.frequency.value = 50;
           osc.type = 'sine';
+          
           const lfo = ctx.createOscillator();
-          lfo.frequency.value = 1.2; // ~70 BPM
+          lfo.frequency.value = 1.2; 
           const lfoGain = ctx.createGain();
-          lfoGain.gain.value = 50;
+          lfoGain.gain.value = 300; 
           
           lfo.connect(lfoGain);
           lfoGain.connect(masterGain.gain);
+          
           osc.connect(masterGain);
           osc.start();
           lfo.start();
@@ -136,12 +139,13 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language }) => {
 
   // Visual Particle Generator
   useEffect(() => {
-      const count = visual === 'Stars' ? 50 : visual === 'Bubbles' ? 20 : 0;
+      const count = visual === 'Stars' ? 60 : visual === 'Bubbles' ? 30 : 0;
       const newParticles = Array.from({ length: count }).map(() => ({
           x: Math.random() * 100,
           y: Math.random() * 100,
-          size: Math.random() * (visual === 'Stars' ? 0.3 : 2) + 0.1,
-          speed: Math.random() * 2 + 1
+          size: Math.random() * (visual === 'Stars' ? 0.3 : 1.5) + 0.2,
+          delay: Math.random() * 5,
+          duration: Math.random() * 10 + 10
       }));
       setParticles(newParticles);
   }, [visual]);
@@ -184,22 +188,15 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language }) => {
         }
         setText(label);
 
-        // Schedule next
         if (duration > 0) {
             timeout = setTimeout(() => {
-                if (next === 'In') {
-                    nextPhase(p.hold > 0 ? 'Hold' : 'Out');
-                } else if (next === 'Hold') {
-                    nextPhase('Out');
-                } else if (next === 'Out') {
-                    nextPhase(p.holdEmpty > 0 ? 'HoldEmpty' : 'In');
-                } else if (next === 'HoldEmpty') {
-                    nextPhase('In');
-                }
+                if (next === 'In') nextPhase(p.hold > 0 ? 'Hold' : 'Out');
+                else if (next === 'Hold') nextPhase('Out');
+                else if (next === 'Out') nextPhase(p.holdEmpty > 0 ? 'HoldEmpty' : 'In');
+                else if (next === 'HoldEmpty') nextPhase('In');
             }, duration * 1000);
         } else {
-            // Skip 0 duration phases immediately
-            if (next === 'In') nextPhase('Out'); // Quick fallback
+            if (next === 'In') nextPhase('Out');
             else if (next === 'Hold') nextPhase('Out');
             else if (next === 'HoldEmpty') nextPhase('In');
         }
@@ -213,7 +210,6 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language }) => {
     };
   }, [pattern, language]);
 
-  // Calculate dynamic duration for visual transitions
   const getPhaseDuration = () => {
       const p = PATTERNS[pattern];
       switch(phase) {
@@ -225,46 +221,38 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language }) => {
       }
   };
 
-  // Visual Renderers
   const renderVisuals = () => {
-      const durationStyle = { transitionDuration: `${getPhaseDuration()}s` };
+      const duration = getPhaseDuration();
+      const transitionStyle = { transitionDuration: `${duration}s` };
       
       switch(visual) {
           case 'Circle':
               return (
-                <div 
-                    className={`relative flex items-center justify-center transition-all ease-in-out
-                        ${phase === 'In' ? 'scale-150' : phase === 'Hold' ? 'scale-150' : 'scale-75'}
-                    `}
-                    style={durationStyle}
-                >
-                    <div className="w-64 h-64 bg-white/30 rounded-full absolute animate-ping opacity-20"></div>
-                    <div className="w-48 h-48 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm border-4 border-white/50 shadow-[0_0_60px_rgba(255,255,255,0.4)]">
-                        <span className="text-6xl drop-shadow-md">
-                            {phase === 'In' ? '🌬️' : phase === 'Hold' || phase === 'HoldEmpty' ? '😌' : '💨'}
-                        </span>
-                    </div>
+                <div className="absolute inset-0 flex items-center justify-center z-0">
+                    <div 
+                        className={`rounded-full bg-white/20 backdrop-blur-sm border-4 border-white/40 shadow-[0_0_60px_rgba(255,255,255,0.3)] transition-all ease-in-out
+                            ${phase === 'In' || phase === 'Hold' ? 'w-[70vw] h-[70vw] md:w-96 md:h-96' : 'w-[35vw] h-[35vw] md:w-48 md:h-48'}
+                        `}
+                        style={transitionStyle}
+                    />
                 </div>
               );
           case 'Waves':
                return (
-                  <div className="absolute inset-0 flex items-end overflow-hidden">
+                  <div className="absolute inset-0 flex items-end overflow-hidden z-0 bg-blue-50">
                       <div 
-                          className={`w-full bg-blue-400/30 backdrop-blur-sm transition-all ease-in-out
-                              ${phase === 'In' || phase === 'Hold' ? 'h-[90%]' : 'h-[20%]'}
+                          className={`w-full bg-blue-400/40 backdrop-blur-sm transition-all ease-in-out
+                              ${phase === 'In' || phase === 'Hold' ? 'h-[85%]' : 'h-[15%]'}
                           `}
-                          style={durationStyle}
+                          style={transitionStyle}
                       >
-                           <div className="absolute top-0 w-[200%] h-12 bg-white/30 rounded-[50%] animate-pulse -translate-y-1/2"></div>
-                      </div>
-                      <div className="absolute inset-0 flex items-center justify-center z-10">
-                           <span className="text-8xl drop-shadow-lg">{phase === 'In' ? '⬆️' : phase === 'Out' ? '⬇️' : '⏸️'}</span>
+                           <div className="absolute -top-6 left-0 right-0 h-12 bg-white/30 rounded-[100%] scale-x-150 animate-pulse"></div>
                       </div>
                   </div>
                );
           case 'Stars':
               return (
-                  <div className="absolute inset-0 bg-[#0B1026] overflow-hidden">
+                  <div className="absolute inset-0 bg-[#0B1026] overflow-hidden z-0">
                       {particles.map((p, i) => (
                           <div 
                              key={i}
@@ -274,37 +262,63 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language }) => {
                                  top: `${p.y}%`,
                                  width: `${p.size}rem`,
                                  height: `${p.size}rem`,
-                                 opacity: Math.random()
+                                 opacity: Math.random() * 0.7 + 0.3,
+                                 animationDuration: `${p.delay}s`
                              }}
                           />
                       ))}
-                      <div 
-                        className={`absolute inset-0 flex items-center justify-center transition-opacity ${phase === 'In' ? 'opacity-100' : 'opacity-40'}`}
-                        style={durationStyle}
-                      >
-                           <div className="w-64 h-64 bg-yellow-100/10 rounded-full blur-3xl"></div>
+                      
+                      {/* Central Breathing Guide - Translucent Ring/Glow for Text Contrast */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                         <div 
+                            className={`rounded-full bg-blue-500/10 blur-3xl transition-all ease-in-out
+                                ${phase === 'In' || phase === 'Hold' ? 'w-[80vw] h-[80vw] md:w-[500px] md:h-[500px] opacity-80' : 'w-[40vw] h-[40vw] md:w-[250px] md:h-[250px] opacity-40'}
+                            `}
+                            style={transitionStyle}
+                         />
+                         <div 
+                            className={`rounded-full border-2 border-white/20 shadow-[0_0_50px_rgba(100,200,255,0.3)] bg-white/5 transition-all ease-in-out
+                                ${phase === 'In' || phase === 'Hold' ? 'w-[60vw] h-[60vw] md:w-80 md:h-80' : 'w-[30vw] h-[30vw] md:w-40 md:h-40'}
+                            `}
+                            style={transitionStyle}
+                         />
                       </div>
                   </div>
               );
            case 'Bubbles':
                return (
-                   <div className="absolute inset-0 bg-blue-900 overflow-hidden">
+                   <div className="absolute inset-0 bg-gradient-to-b from-blue-900 to-blue-800 overflow-hidden z-0">
+                       <style>{`
+                         @keyframes floatUp {
+                           0% { transform: translateY(110vh); opacity: 0; }
+                           10% { opacity: 0.6; }
+                           90% { opacity: 0.6; }
+                           100% { transform: translateY(-10vh); opacity: 0; }
+                         }
+                       `}</style>
+                       
+                       <div className="absolute inset-0 flex items-center justify-center">
+                            <div 
+                                className={`rounded-full border-4 border-white/40 bg-white/10 backdrop-blur-md shadow-[0_0_40px_rgba(255,255,255,0.2)] transition-all ease-in-out
+                                    ${phase === 'In' || phase === 'Hold' ? 'w-[70vw] h-[70vw] md:w-80 md:h-80' : 'w-[35vw] h-[35vw] md:w-40 md:h-40'}
+                                `}
+                                style={transitionStyle}
+                            />
+                       </div>
+
                        {particles.map((p, i) => (
                            <div 
                               key={i}
-                              className={`absolute border-2 border-white/30 rounded-full bg-white/10 backdrop-blur-sm transition-transform duration-[4000ms] ease-linear`}
+                              className="absolute rounded-full border border-white/20 bg-white/5"
                               style={{
                                   left: `${p.x}%`,
-                                  bottom: `-20%`,
-                                  width: `${p.size * 2}rem`,
-                                  height: `${p.size * 2}rem`,
-                                  transform: phase === 'In' ? `translateY(-${100 + Math.random()*20}vh)` : 'translateY(0)'
+                                  width: `${p.size}rem`,
+                                  height: `${p.size}rem`,
+                                  animation: `floatUp ${p.duration}s linear infinite`,
+                                  animationDelay: `-${p.delay}s` 
                               }}
                            />
                        ))}
-                       <div className="absolute inset-0 flex items-center justify-center z-10">
-                          <span className="text-6xl text-white/80">{phase === 'In' ? '🫧' : ''}</span>
-                       </div>
                    </div>
                );
       }
@@ -314,16 +328,16 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language }) => {
       if (visual === 'Stars') return 'bg-[#0B1026] text-white';
       if (visual === 'Bubbles') return 'bg-blue-900 text-white';
       if (visual === 'Waves') return 'bg-blue-50 text-blue-800';
-      return 'bg-[#C8E6C9] text-primary'; // Circle/Default
+      return 'bg-[#C8E6C9] text-primary'; 
   };
 
   return (
-    <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center transition-colors duration-1000 ${getBgColor()}`}>
+    <div className={`fixed inset-0 z-50 flex flex-col ${getBgColor()}`}>
       
       {/* Settings Toggle */}
       <button 
         onClick={() => setSettingsOpen(!settingsOpen)}
-        className="absolute top-6 left-6 bg-black/20 text-white p-3 rounded-full hover:bg-black/30 transition-colors z-20 backdrop-blur-md"
+        className="absolute top-6 left-6 bg-black/20 text-white p-3 rounded-full hover:bg-black/30 transition-colors z-30 backdrop-blur-md"
       >
         <i className="fa-solid fa-sliders"></i>
       </button>
@@ -331,14 +345,14 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language }) => {
       {/* Exit */}
       <button 
         onClick={onExit}
-        className="absolute top-6 right-6 bg-black/20 text-white p-3 rounded-full hover:bg-black/30 transition-colors z-20 backdrop-blur-md"
+        className="absolute top-6 right-6 bg-black/20 text-white p-3 rounded-full hover:bg-black/30 transition-colors z-30 backdrop-blur-md"
       >
         <i className="fa-solid fa-times text-2xl"></i>
       </button>
 
       {/* Settings Panel */}
       {settingsOpen && (
-          <div className="absolute top-20 left-6 right-6 bg-white/90 backdrop-blur-lg rounded-3xl p-6 shadow-2xl z-30 animate-slideUp text-gray-800 max-w-md mx-auto">
+          <div className="absolute top-20 left-6 right-6 bg-white/90 backdrop-blur-lg rounded-3xl p-6 shadow-2xl z-40 transition-all duration-300 text-gray-800 max-w-md mx-auto">
              
              <div className="space-y-4">
                  <div>
@@ -391,15 +405,21 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language }) => {
           </div>
       )}
 
-      {/* Visual Render */}
+      {/* Visual Render Layer */}
       {renderVisuals()}
 
-      {/* Text Overlay */}
-      <div className="absolute bottom-20 text-center z-10 px-4">
-        <div className="text-4xl md:text-5xl font-bold opacity-90 drop-shadow-lg mb-2 transition-all">
-            {text}
-        </div>
-        <p className="text-lg opacity-70 font-medium">{t(language, `pattern${pattern}`)}</p>
+      {/* Text Overlay Layer - Perfectly Centered */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20 p-4">
+         <div className="text-center transition-all duration-300 transform">
+            <h1 className={`text-6xl md:text-8xl font-bold drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)] mb-6 tracking-wide transition-opacity duration-500 ${visual === 'Waves' ? 'text-blue-900' : 'text-white'}`}>
+                {text}
+            </h1>
+            <div className="inline-block px-6 py-2 rounded-full bg-black/20 backdrop-blur-md border border-white/10 shadow-lg">
+                <p className="text-sm md:text-base font-bold text-white/90 uppercase tracking-widest">
+                    {t(language, `pattern${pattern}`)}
+                </p>
+            </div>
+         </div>
       </div>
     </div>
   );
