@@ -22,6 +22,9 @@ export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, language, stats, 
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
+  
+  // Track previous question's answer to avoid repetition
+  const [lastTopic, setLastTopic] = useState<string | undefined>(undefined);
 
   const loadQuestion = async () => {
     setLoading(true);
@@ -31,8 +34,9 @@ export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, language, stats, 
     setShowLevelUp(false);
     
     try {
-        const q = await generateEmotionQuiz(age, stats.level, language);
+        const q = await generateEmotionQuiz(age, stats.level, language, lastTopic);
         setQuestion(q);
+        setLastTopic(q.correctAnswer);
     } catch (e) {
         console.error(e);
     } finally {
@@ -40,7 +44,11 @@ export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, language, stats, 
     }
   };
 
-  useEffect(() => { loadQuestion(); }, [age, stats.level]);
+  useEffect(() => { 
+      // Reset avoidance when level changes to allow fresh start
+      setLastTopic(undefined);
+      loadQuestion(); 
+  }, [age, stats.level]);
 
   const handleAnswer = (option: string) => {
     if(!question) return;

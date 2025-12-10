@@ -28,18 +28,48 @@ const getMockSchedule = (): Omit<Schedule, 'id' | 'createdAt'> => ({
   ]
 });
 
-const getMockQuiz = (level: number = 1): QuizQuestion => ({
-    question: level === 1 ? "Which face looks SAD?" : "You dropped your ice cream. How do you feel?",
-    emoji: level === 1 ? "😢" : "🍦⬇️😢",
-    options: ["Happy", "Sad", "Excited", "Sleepy"],
-    correctAnswer: "Sad",
-    hint: level === 1 ? "Look for the frown." : "Think about losing something yummy.",
-    explanation: level === 1 
-      ? "The mouth is curved down and there is a tear. That means Sad." 
-      : "When we lose something we like, we usually feel Sad.",
-    visualType: level === 1 ? 'face' : 'scenario',
-    difficultyLevel: level
-});
+const getMockQuiz = (level: number = 1, avoid?: string): QuizQuestion => {
+    const basicEmotions = [
+        { name: "Happy", emoji: "😊", hint: "Look for the smile." },
+        { name: "Sad", emoji: "😢", hint: "Look for the frown." },
+        { name: "Angry", emoji: "😠", hint: "Look for the eyebrows." },
+        { name: "Surprised", emoji: "😲", hint: "Look for the open mouth." },
+        { name: "Silly", emoji: "🤪", hint: "Look for the tongue." }
+    ];
+
+    // Filter out the 'avoid' emotion if possible
+    const available = basicEmotions.filter(e => e.name !== avoid);
+    const target = available[Math.floor(Math.random() * available.length)];
+    
+    // Generate simple wrong options
+    const others = basicEmotions.filter(e => e.name !== target.name).map(e => e.name);
+    const wrongOptions = others.sort(() => 0.5 - Math.random()).slice(0, 3);
+    const options = [target.name, ...wrongOptions].sort(() => 0.5 - Math.random());
+
+    if (level === 1) {
+        return {
+            question: `Which face looks ${target.name.toUpperCase()}?`,
+            emoji: target.emoji,
+            options: options,
+            correctAnswer: target.name,
+            hint: target.hint,
+            explanation: `The face has specific features like a ${target.name === 'Happy' ? 'smile' : 'frown'} that show it is ${target.name}.`,
+            visualType: 'face',
+            difficultyLevel: level
+        };
+    } else {
+        return {
+            question: "You dropped your ice cream. How do you feel?",
+            emoji: "🍦⬇️😢",
+            options: ["Happy", "Sad", "Excited", "Sleepy"],
+            correctAnswer: "Sad",
+            hint: "Think about losing something yummy.",
+            explanation: "When we lose something we like, we usually feel Sad.",
+            visualType: 'scenario',
+            difficultyLevel: level
+        };
+    }
+};
 
 const getMockScenario = (): SocialScenario => ({
     title: "Sharing Toys",
@@ -211,13 +241,17 @@ export const generateMicroSteps = async (
     }
 };
 
-export const generateEmotionQuiz = async (age: number, level: number = 1, lang: string = 'English'): Promise<QuizQuestion> => {
-    if (!process.env.API_KEY) return getMockQuiz(level);
+export const generateEmotionQuiz = async (age: number, level: number = 1, lang: string = 'English', avoidTopic?: string): Promise<QuizQuestion> => {
+    if (!process.env.API_KEY) return getMockQuiz(level, avoidTopic);
 
-    let prompt = `Generate emotion quiz for ${age}yo child. Level: ${level}. Language: ${lang}.`;
+    let prompt = `Generate a RANDOM emotion quiz for ${age}yo child. Level: ${level}. Language: ${lang}.`;
     
+    if (avoidTopic) {
+        prompt += ` STRICTLY EXCLUDE the emotion or answer: "${avoidTopic}". Please choose a DIFFERENT emotion to ensure variety.`;
+    }
+
     if (level === 1) {
-        prompt += ` Focus on identifying basic emotions (Happy, Sad, Angry, Scared, Surprised) from a face. 
+        prompt += ` Focus on identifying basic emotions (Happy, Sad, Angry, Scared, Surprised, Silly, Tired, Excited). 
         Visual Type: 'face'. 
         The question should be "Which face shows [Emotion]?" or "How does this face feel?". 
         Emoji should be a single large face.`;
@@ -262,7 +296,7 @@ export const generateEmotionQuiz = async (age: number, level: number = 1, lang: 
         return { ...data, difficultyLevel: level };
     } catch (e) {
         console.warn("Quiz generation failed, using mock");
-        return getMockQuiz(level);
+        return getMockQuiz(level, avoidTopic);
     }
 };
 
