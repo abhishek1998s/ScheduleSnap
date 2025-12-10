@@ -201,14 +201,14 @@ export const analyzeBehaviorLogs = async (logs: BehaviorLog[], profile: ChildPro
     }
 };
 
-export const analyzeBehaviorVideo = async (base64: string, profile: ChildProfile): Promise<BehaviorAnalysis> => {
+export const analyzeBehaviorVideo = async (base64: string, profile: ChildProfile, mimeType: string = 'video/mp4'): Promise<BehaviorAnalysis> => {
     if (!process.env.API_KEY) return getMockAnalysis();
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: {
                 parts: [
-                    { inlineData: { mimeType: 'video/mp4', data: base64 } },
+                    { inlineData: { mimeType: mimeType, data: base64 } },
                     { text: "Analyze this video for behavioral triggers and signs of distress or engagement." }
                 ]
             },

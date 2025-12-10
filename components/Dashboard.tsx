@@ -181,7 +181,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
         reader.onloadend = async () => {
             const base64 = (reader.result as string).split(',')[1];
             try {
-                const result = await analyzeBehaviorVideo(base64, profile);
+                // Pass mimeType to service
+                const result = await analyzeBehaviorVideo(base64, profile, file.type);
                 setAnalysis(result);
             } catch (error) {
                 alert("Video analysis failed.");
