@@ -213,14 +213,31 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language }) => {
     };
   }, [pattern, language]);
 
+  // Calculate dynamic duration for visual transitions
+  const getPhaseDuration = () => {
+      const p = PATTERNS[pattern];
+      switch(phase) {
+          case 'In': return p.in;
+          case 'Hold': return p.hold;
+          case 'Out': return p.out;
+          case 'HoldEmpty': return p.holdEmpty;
+          default: return 1;
+      }
+  };
+
   // Visual Renderers
   const renderVisuals = () => {
+      const durationStyle = { transitionDuration: `${getPhaseDuration()}s` };
+      
       switch(visual) {
           case 'Circle':
               return (
-                <div className={`relative flex items-center justify-center transition-all duration-1000 ease-in-out
-                    ${phase === 'In' ? 'scale-150' : phase === 'Hold' ? 'scale-150' : 'scale-75'}
-                `}>
+                <div 
+                    className={`relative flex items-center justify-center transition-all ease-in-out
+                        ${phase === 'In' ? 'scale-150' : phase === 'Hold' ? 'scale-150' : 'scale-75'}
+                    `}
+                    style={durationStyle}
+                >
                     <div className="w-64 h-64 bg-white/30 rounded-full absolute animate-ping opacity-20"></div>
                     <div className="w-48 h-48 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm border-4 border-white/50 shadow-[0_0_60px_rgba(255,255,255,0.4)]">
                         <span className="text-6xl drop-shadow-md">
@@ -232,9 +249,12 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language }) => {
           case 'Waves':
                return (
                   <div className="absolute inset-0 flex items-end overflow-hidden">
-                      <div className={`w-full bg-blue-400/30 backdrop-blur-sm transition-all ease-in-out duration-[3000ms]
-                          ${phase === 'In' || phase === 'Hold' ? 'h-[90%]' : 'h-[20%]'}
-                      `}>
+                      <div 
+                          className={`w-full bg-blue-400/30 backdrop-blur-sm transition-all ease-in-out
+                              ${phase === 'In' || phase === 'Hold' ? 'h-[90%]' : 'h-[20%]'}
+                          `}
+                          style={durationStyle}
+                      >
                            <div className="absolute top-0 w-[200%] h-12 bg-white/30 rounded-[50%] animate-pulse -translate-y-1/2"></div>
                       </div>
                       <div className="absolute inset-0 flex items-center justify-center z-10">
@@ -258,7 +278,10 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language }) => {
                              }}
                           />
                       ))}
-                      <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-1000 ${phase === 'In' ? 'opacity-100' : 'opacity-40'}`}>
+                      <div 
+                        className={`absolute inset-0 flex items-center justify-center transition-opacity ${phase === 'In' ? 'opacity-100' : 'opacity-40'}`}
+                        style={durationStyle}
+                      >
                            <div className="w-64 h-64 bg-yellow-100/10 rounded-full blur-3xl"></div>
                       </div>
                   </div>
