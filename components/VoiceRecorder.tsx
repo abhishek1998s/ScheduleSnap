@@ -65,7 +65,8 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onSave, onExit, la
         id: Date.now().toString(),
         timestamp: Date.now(),
         audioBlob: blob,
-        transcription: transcription
+        transcription: transcription,
+        read: false
       });
       onExit();
     }

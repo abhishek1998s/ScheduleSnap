@@ -58,6 +58,15 @@ export interface QuizQuestion {
   options: string[];
   correctAnswer: string;
   hint: string;
+  explanation: string; // New: Educational feedback
+  visualType: 'face' | 'scenario'; // New: Determines layout
+  difficultyLevel: number;
+}
+
+export interface QuizStats {
+  level: number;
+  xp: number;
+  totalAnswered: number;
 }
 
 export interface SocialScenario {
@@ -83,6 +92,7 @@ export interface VoiceMessage {
   timestamp: number;
   audioBlob: Blob; 
   transcription?: string;
+  read: boolean; // Track if parent has viewed the message
 }
 
 export interface ResearchResult {
@@ -108,6 +118,7 @@ export interface AppState {
   moodLogs: MoodEntry[];
   behaviorLogs: BehaviorLog[];
   voiceMessages: VoiceMessage[];
+  quizStats: QuizStats; // New
   meltdownRisk?: 'Low' | 'Medium' | 'High';
   caregiverPin?: string;
 }

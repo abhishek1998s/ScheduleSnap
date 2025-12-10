@@ -58,6 +58,7 @@ const App: React.FC = () => {
     moodLogs: [],
     behaviorLogs: [],
     voiceMessages: [],
+    quizStats: { level: 1, xp: 0, totalAnswered: 0 },
     meltdownRisk: 'Low',
     caregiverPin: '1234'
   });
@@ -67,6 +68,11 @@ const App: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
+    // Request Notification permission on mount
+    if ('Notification' in window && Notification.permission !== 'granted') {
+      Notification.requestPermission();
+    }
+
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
@@ -76,6 +82,8 @@ const App: React.FC = () => {
             ...parsed, 
             view: ViewState.HOME, 
             isAACOpen: false,
+            // Migrate voice messages to include read property if missing
+            voiceMessages: (parsed.voiceMessages || []).map((m: any) => ({ ...m, read: m.read ?? true })),
             profile: { 
                 ...prev.profile, 
                 ...parsed.profile, 
@@ -83,7 +91,8 @@ const App: React.FC = () => {
                 audioPreferences: parsed.profile?.audioPreferences || { speechRate: 1, pitch: 1 } 
             },
             isHighContrast: parsed.isHighContrast || false,
-            caregiverPin: parsed.caregiverPin || '1234'
+            caregiverPin: parsed.caregiverPin || '1234',
+            quizStats: parsed.quizStats || { level: 1, xp: 0, totalAnswered: 0 }
         }));
       } catch (e) {
         console.error("Failed to load save data");
@@ -165,8 +174,32 @@ const App: React.FC = () => {
     }
   };
 
+  const handleSaveVoiceMessage = (msg: VoiceMessage) => {
+      setState(prev => ({ ...prev, voiceMessages: [msg, ...prev.voiceMessages] }));
+      
+      // Trigger Notification if supported
+      if ('Notification' in window && Notification.permission === 'granted') {
+          try {
+            new Notification(t(state.profile.language, 'newMessageNotification'), {
+                body: msg.transcription || "Click to listen",
+                icon: 'https://cdn-icons-png.flaticon.com/512/2040/2040653.png' // Generic chat icon
+            });
+          } catch(e) {
+            console.warn("Notification trigger failed", e);
+          }
+      }
+  };
+
+  const handleMarkMessagesRead = () => {
+    setState(prev => ({
+        ...prev,
+        voiceMessages: prev.voiceMessages.map(m => ({ ...m, read: true }))
+    }));
+  };
+
   const activeSchedule = state.schedules.find(s => s.id === state.activeScheduleId);
   const lang = state.profile.language;
+  const unreadCount = state.voiceMessages.filter(m => !m.read).length;
 
   if (!isLoaded) return null;
 
@@ -206,9 +239,17 @@ const App: React.FC = () => {
                 </button>
                 <button 
                     onClick={() => navigateTo(ViewState.DASHBOARD)}
-                    className={`${state.isHighContrast ? 'bg-black border border-yellow-400 text-yellow-400' : 'bg-white text-gray-400'} w-10 h-10 rounded-full shadow-sm flex items-center justify-center`}
+                    className={`${state.isHighContrast ? 'bg-black border border-yellow-400 text-yellow-400' : 'bg-white text-gray-400'} w-10 h-10 rounded-full shadow-sm flex items-center justify-center relative`}
                 >
                     <i className="fa-solid fa-gear"></i>
+                    {unreadCount > 0 && (
+                        <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 text-[10px] text-white font-bold items-center justify-center">
+                                {unreadCount > 9 ? '9+' : unreadCount}
+                            </span>
+                        </span>
+                    )}
                 </button>
             </div>
           </div>
@@ -291,11 +332,11 @@ const App: React.FC = () => {
       {state.view === ViewState.CAMERA && <CameraCapture isLoading={isProcessing} onImageSelected={handleImageSelected} onCancel={() => navigateTo(ViewState.HOME)} language={lang} />}
       {state.view === ViewState.PREVIEW && generatedSchedule && <PreviewSchedule schedule={generatedSchedule} profile={state.profile} onSave={handleSaveSchedule} onCancel={() => { setGeneratedSchedule(null); navigateTo(ViewState.HOME); }} />}
       {state.view === ViewState.RUNNER && activeSchedule && <ScheduleRunner schedule={activeSchedule} profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} onComplete={() => { setState(prev => ({ ...prev, tokens: prev.tokens + 5 })); navigateTo(ViewState.HOME); }} />}
-      {state.view === ViewState.DASHBOARD && <Dashboard schedules={state.schedules} profile={state.profile} moodLogs={state.moodLogs} behaviorLogs={state.behaviorLogs} voiceMessages={state.voiceMessages} isHighContrast={state.isHighContrast} caregiverPin={state.caregiverPin || '1234'} onUpdatePin={(p) => setState(prev => ({...prev, caregiverPin: p}))} onExit={() => navigateTo(ViewState.HOME)} onSelectSchedule={(id) => startRoutine(id)} onDeleteSchedule={handleDeleteSchedule} onUpdateSchedule={handleUpdateSchedule} onUpdateProfile={(p) => setState(prev => ({ ...prev, profile: p }))} onToggleHighContrast={() => setState(prev => ({ ...prev, isHighContrast: !prev.isHighContrast }))} onLogBehavior={(log) => setState(prev => ({ ...prev, behaviorLogs: [...prev.behaviorLogs, { ...log, id: Date.now().toString(), timestamp: Date.now() }] }))} />}
+      {state.view === ViewState.DASHBOARD && <Dashboard schedules={state.schedules} profile={state.profile} moodLogs={state.moodLogs} behaviorLogs={state.behaviorLogs} voiceMessages={state.voiceMessages} isHighContrast={state.isHighContrast} caregiverPin={state.caregiverPin || '1234'} onUpdatePin={(p) => setState(prev => ({...prev, caregiverPin: p}))} onExit={() => navigateTo(ViewState.HOME)} onSelectSchedule={(id) => startRoutine(id)} onDeleteSchedule={handleDeleteSchedule} onUpdateSchedule={handleUpdateSchedule} onUpdateProfile={(p) => setState(prev => ({ ...prev, profile: p }))} onToggleHighContrast={() => setState(prev => ({ ...prev, isHighContrast: !prev.isHighContrast }))} onLogBehavior={(log) => setState(prev => ({ ...prev, behaviorLogs: [...prev.behaviorLogs, { ...log, id: Date.now().toString(), timestamp: Date.now() }] }))} onMarkMessagesRead={handleMarkMessagesRead} />}
       {state.view === ViewState.MOOD && <MoodCheck profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} onSave={(entry) => setState(prev => ({ ...prev, moodLogs: [...prev.moodLogs, entry] }))} />}
-      {state.view === ViewState.QUIZ && <EmotionQuiz age={state.profile.age} language={lang} onExit={() => navigateTo(ViewState.HOME)} onCorrect={() => setState(prev => ({ ...prev, tokens: prev.tokens + 1 }))} />}
+      {state.view === ViewState.QUIZ && <EmotionQuiz age={state.profile.age} language={lang} stats={state.quizStats} onUpdateStats={(s) => setState(prev => ({ ...prev, quizStats: s, tokens: prev.tokens + (s.xp > prev.quizStats.xp ? 1 : 0) }))} onExit={() => navigateTo(ViewState.HOME)} />}
       {state.view === ViewState.SOCIAL && <SocialScenarioPractice age={state.profile.age} language={lang} onExit={() => navigateTo(ViewState.HOME)} onComplete={(success) => { if(success) setState(prev => ({ ...prev, tokens: prev.tokens + 2 })); }} />}
-      {state.view === ViewState.VOICE_RECORDER && <VoiceRecorder onExit={() => navigateTo(ViewState.HOME)} onSave={(msg) => setState(prev => ({ ...prev, voiceMessages: [msg, ...prev.voiceMessages] }))} language={lang} />}
+      {state.view === ViewState.VOICE_RECORDER && <VoiceRecorder onExit={() => navigateTo(ViewState.HOME)} onSave={handleSaveVoiceMessage} language={lang} />}
       {state.view === ViewState.TIMER && <WaitTimer onExit={() => navigateTo(ViewState.HOME)} language={lang} />}
       {state.view === ViewState.RESEARCH && <ResearchTool onExit={() => navigateTo(ViewState.HOME)} language={lang} />}
       {state.view === ViewState.STORE && <RewardStore tokens={state.tokens} profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} onRedeem={(cost) => setState(prev => ({ ...prev, tokens: prev.tokens - cost }))} />}

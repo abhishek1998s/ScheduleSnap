@@ -20,10 +20,11 @@ interface DashboardProps {
   onUpdateProfile: (profile: ChildProfile) => void;
   onToggleHighContrast: () => void;
   onUpdatePin: (newPin: string) => void;
+  onMarkMessagesRead: () => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
-  schedules, profile, moodLogs, behaviorLogs, voiceMessages, isHighContrast, caregiverPin, onExit, onSelectSchedule, onDeleteSchedule, onUpdateSchedule, onLogBehavior, onUpdateProfile, onToggleHighContrast, onUpdatePin
+  schedules, profile, moodLogs, behaviorLogs, voiceMessages, isHighContrast, caregiverPin, onExit, onSelectSchedule, onDeleteSchedule, onUpdateSchedule, onLogBehavior, onUpdateProfile, onToggleHighContrast, onUpdatePin, onMarkMessagesRead
 }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pin, setPin] = useState('');
@@ -174,6 +175,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
       }
   };
 
+  const unreadCount = voiceMessages.filter(m => !m.read).length;
+
   if (!isAuthenticated) {
     return (
       <div className="flex flex-col h-full bg-background items-center justify-center p-6 overflow-y-auto">
@@ -243,14 +246,23 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {['overview', 'routines', 'behavior', 'messages'].map(tab => (
                 <button 
                     key={tab}
-                    onClick={() => setActiveTab(tab as any)}
-                    className={`px-4 py-2 rounded-full text-sm font-bold capitalize whitespace-nowrap ${
+                    onClick={() => {
+                        setActiveTab(tab as any);
+                        if (tab === 'messages') onMarkMessagesRead();
+                    }}
+                    className={`px-4 py-2 rounded-full text-sm font-bold capitalize whitespace-nowrap relative ${
                         activeTab === tab 
                             ? (isHighContrast ? 'bg-yellow-400 text-black' : 'bg-primary text-white') 
                             : (isHighContrast ? 'bg-gray-800 text-yellow-200' : 'bg-gray-100 text-gray-500')
                     }`}
                 >
                     {t(lang, tab)}
+                    {tab === 'messages' && unreadCount > 0 && activeTab !== 'messages' && (
+                        <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                        </span>
+                    )}
                 </button>
             ))}
         </div>
@@ -468,8 +480,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                      <h3 className="font-bold">{t(lang, 'messages')}</h3>
                      {voiceMessages.length === 0 ? <p className="opacity-50">{t(lang, 'noMessages')}</p> : 
                         voiceMessages.map(msg => (
-                            <div key={msg.id} className="bg-white text-black p-4 rounded-2xl shadow-sm">
-                                <p className="text-xs text-gray-400 mb-2">{new Date(msg.timestamp).toLocaleString()}</p>
+                            <div key={msg.id} className={`p-4 rounded-2xl shadow-sm border ${msg.read ? 'bg-white border-transparent' : 'bg-blue-50 border-blue-200 text-blue-900'}`}>
+                                <div className="flex justify-between items-center mb-2">
+                                     <p className="text-xs opacity-60">{new Date(msg.timestamp).toLocaleString()}</p>
+                                     {!msg.read && <span className="bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">New</span>}
+                                </div>
                                 <audio controls src={URL.createObjectURL(msg.audioBlob)} className="w-full mb-3" />
                                 {msg.transcription && (
                                     <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">

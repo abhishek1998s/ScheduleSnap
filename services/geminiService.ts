@@ -28,12 +28,17 @@ const getMockSchedule = (): Omit<Schedule, 'id' | 'createdAt'> => ({
   ]
 });
 
-const getMockQuiz = (): QuizQuestion => ({
-    question: "How does someone feel when they drop their ice cream?",
-    emoji: "🍦😢",
+const getMockQuiz = (level: number = 1): QuizQuestion => ({
+    question: level === 1 ? "Which face looks SAD?" : "You dropped your ice cream. How do you feel?",
+    emoji: level === 1 ? "😢" : "🍦⬇️😢",
     options: ["Happy", "Sad", "Excited", "Sleepy"],
     correctAnswer: "Sad",
-    hint: "Look at the tears!"
+    hint: level === 1 ? "Look for the frown." : "Think about losing something yummy.",
+    explanation: level === 1 
+      ? "The mouth is curved down and there is a tear. That means Sad." 
+      : "When we lose something we like, we usually feel Sad.",
+    visualType: level === 1 ? 'face' : 'scenario',
+    difficultyLevel: level
 });
 
 const getMockScenario = (): SocialScenario => ({
@@ -206,16 +211,33 @@ export const generateMicroSteps = async (
     }
 };
 
-export const generateEmotionQuiz = async (age: number, lang: string = 'English'): Promise<QuizQuestion> => {
-    if (!process.env.API_KEY) return getMockQuiz();
+export const generateEmotionQuiz = async (age: number, level: number = 1, lang: string = 'English'): Promise<QuizQuestion> => {
+    if (!process.env.API_KEY) return getMockQuiz(level);
 
-    const emotions = ["happy", "sad", "angry", "surprised", "scared", "tired", "excited", "bored", "frustrated"];
-    const randomEmotion = emotions[Math.floor(Math.random() * emotions.length)];
+    let prompt = `Generate emotion quiz for ${age}yo child. Level: ${level}. Language: ${lang}.`;
+    
+    if (level === 1) {
+        prompt += ` Focus on identifying basic emotions (Happy, Sad, Angry, Scared, Surprised) from a face. 
+        Visual Type: 'face'. 
+        The question should be "Which face shows [Emotion]?" or "How does this face feel?". 
+        Emoji should be a single large face.`;
+    } else if (level === 2) {
+        prompt += ` Focus on simple cause-and-effect. 
+        Visual Type: 'scenario'.
+        The question should describe a simple event (e.g., "You dropped your ice cream", "You got a present").
+        Emoji should be a sequence (e.g., "🍦⬇️").
+        Emotions: Happy, Sad, Angry, Scared, Excited, Tired, Bored.`;
+    } else {
+        prompt += ` Focus on complex social situations.
+        Visual Type: 'scenario'.
+        The question should be a short social story (e.g., "Your friend didn't say hi to you").
+        Emotions: Frustrated, Disappointed, Proud, Jealous, Overwhelmed, Confused.`;
+    }
 
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: `Generate emotion quiz for ${age}yo. Emotion: "${randomEmotion}". Language: ${lang}. JSON output.`,
+            contents: prompt,
             config: {
                 responseMimeType: "application/json",
                 responseSchema: {
@@ -225,19 +247,22 @@ export const generateEmotionQuiz = async (age: number, lang: string = 'English')
                         emoji: { type: Type.STRING },
                         options: { type: Type.ARRAY, items: { type: Type.STRING } },
                         correctAnswer: { type: Type.STRING },
-                        hint: { type: Type.STRING }
+                        hint: { type: Type.STRING },
+                        explanation: { type: Type.STRING, description: "Educational feedback explaining WHY it is this emotion, citing facial cues or situation." },
+                        visualType: { type: Type.STRING, enum: ['face', 'scenario'] }
                     },
-                    required: ['question', 'emoji', 'options', 'correctAnswer', 'hint']
+                    required: ['question', 'emoji', 'options', 'correctAnswer', 'hint', 'explanation', 'visualType']
                 }
             }
         });
         
         const text = response.text;
         if (!text) throw new Error("No quiz");
-        return JSON.parse(text);
+        const data = JSON.parse(text);
+        return { ...data, difficultyLevel: level };
     } catch (e) {
         console.warn("Quiz generation failed, using mock");
-        return getMockQuiz();
+        return getMockQuiz(level);
     }
 };
 

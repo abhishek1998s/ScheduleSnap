@@ -64,6 +64,7 @@ export const translations: Record<string, Record<string, string>> = {
     autoImprove: "Auto-Improve with AI Agent",
     agentOptimizing: "Agent Optimizing...",
     agentThinking: "Deep thinking agent is analyzing behavioral logs to reduce friction...",
+    newMessageNotification: "New Message from Child!",
     // Recorder
     recordMessage: "Record a message",
     recording: "Recording...",
@@ -150,7 +151,13 @@ export const translations: Record<string, Record<string, string>> = {
     soundHeartbeat: "Heartbeat",
     soundDrone: "Calm Hum",
     soundRain: "Rain",
-    holdEmpty: "Hold Empty..."
+    holdEmpty: "Hold Empty...",
+    // Quiz New
+    level: "Level",
+    levelUp: "Level Up!",
+    scenario: "Scenario",
+    newChallenges: "New Challenges Unlocked!",
+    continue: "Continue"
   },
   Hindi: {
     appTitle: "ScheduleSnap",
@@ -212,6 +219,7 @@ export const translations: Record<string, Record<string, string>> = {
     autoImprove: "AI सुधार",
     agentOptimizing: "अनुकूलन...",
     agentThinking: "AI बेहतर बनाने के लिए सोच रहा है...",
+    newMessageNotification: "बच्चे का नया संदेश!",
     recordMessage: "रिकॉर्ड करें",
     recording: "रिकॉर्डिंग...",
     tapStart: "शुरू करें",
@@ -293,7 +301,12 @@ export const translations: Record<string, Record<string, string>> = {
     soundHeartbeat: "दिल की धड़कन",
     soundDrone: "शांत गुंजन",
     soundRain: "बारिश",
-    holdEmpty: "खाली रखें..."
+    holdEmpty: "खाली रखें...",
+    level: "स्तर",
+    levelUp: "स्तर ऊपर!",
+    scenario: "दृश्य",
+    newChallenges: "नई चुनौतियां अनलॉक!",
+    continue: "जारी रखें"
   },
   Spanish: {
     appTitle: "ScheduleSnap",
@@ -355,6 +368,7 @@ export const translations: Record<string, Record<string, string>> = {
     autoImprove: "Mejora IA",
     agentOptimizing: "Optimizando...",
     agentThinking: "Agente pensando para mejorar rutina...",
+    newMessageNotification: "¡Nuevo mensaje del niño!",
     recordMessage: "Grabar mensaje",
     recording: "Grabando...",
     tapStart: "Toca para Iniciar",
@@ -435,7 +449,12 @@ export const translations: Record<string, Record<string, string>> = {
     soundHeartbeat: "Latido",
     soundDrone: "Zumbido Calma",
     soundRain: "Lluvia",
-    holdEmpty: "Mantén Vacío..."
+    holdEmpty: "Mantén Vacío...",
+    level: "Nivel",
+    levelUp: "¡Nivel Superado!",
+    scenario: "Escenario",
+    newChallenges: "¡Nuevos Retos!",
+    continue: "Continuar"
   }
 };
 
