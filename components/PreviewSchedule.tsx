@@ -88,7 +88,14 @@ export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, prof
 
         <div className="space-y-4">
             {localSchedule.steps.map((step, index) => (
-                <div key={index} className="bg-white p-4 rounded-2xl shadow-sm">
+                <div key={index} className="bg-white p-4 rounded-2xl shadow-sm relative overflow-hidden">
+                    {/* Sensory Tip Marker */}
+                    {step.sensoryTip && (
+                        <div className="absolute top-0 right-0 bg-yellow-100 text-yellow-700 px-2 py-1 text-[10px] font-bold rounded-bl-lg">
+                            <i className="fa-solid fa-hand-sparkles mr-1"></i> {step.sensoryTip}
+                        </div>
+                    )}
+                    
                     <div className="flex items-start gap-4">
                         <div className="text-3xl bg-gray-50 w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0">
                             {step.emoji}
@@ -97,7 +104,7 @@ export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, prof
                             <div className="flex justify-between items-start">
                                 <div>
                                     <h4 className="font-bold text-gray-800">{step.instruction}</h4>
-                                    <p className="text-sm text-primary italic">"{step.encouragement}"</p>
+                                    <p className="text-sm text-primary italic font-bold">"{step.encouragement}"</p>
                                 </div>
                                 <button 
                                     onClick={() => handleMagicWand(index)}

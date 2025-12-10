@@ -4,6 +4,8 @@ export interface ScheduleStep {
   emoji: string;
   instruction: string;
   encouragement: string;
+  encouragementOptions?: string[]; // New: Variations
+  sensoryTip?: string; // New: Sensory warning/tip
   completed: boolean;
   subSteps?: { id: string; text: string; completed: boolean }[];
 }

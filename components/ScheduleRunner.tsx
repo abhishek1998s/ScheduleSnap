@@ -47,7 +47,7 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
 
   // Timer Tick & Transition Warnings (F38)
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (isTimerRunning && timeLeft > 0 && !isCompleted) {
         interval = setInterval(() => {
             setTimeLeft(prev => {
@@ -183,16 +183,24 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
 
             <div 
             onClick={() => playAudio(currentStep.instruction)}
-            className="w-full max-w-sm bg-white rounded-3xl shadow-xl p-8 flex flex-col items-center border-4 border-transparent hover:border-primary/30 transition-all cursor-pointer transform hover:scale-[1.02]"
+            className="w-full max-w-sm bg-white rounded-3xl shadow-xl p-8 flex flex-col items-center border-4 border-transparent hover:border-primary/30 transition-all cursor-pointer transform hover:scale-[1.02] relative"
             >
+            {/* Sensory Tip Badge */}
+            {currentStep.sensoryTip && (
+                <div className="absolute top-4 right-4 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 animate-bounce">
+                    <i className="fa-solid fa-hand-sparkles"></i>
+                    {currentStep.sensoryTip}
+                </div>
+            )}
+
             <div className="text-6xl sm:text-8xl md:text-[8rem] leading-none mb-6 filter drop-shadow-sm">
                 {currentStep.emoji}
             </div>
             <h2 className="text-3xl sm:text-4xl font-bold text-center text-gray-800 mb-2 font-sans">
                 {currentStep.instruction}
             </h2>
-            <p className="text-lg sm:text-xl text-primary font-medium text-center">
-                {currentStep.encouragement}
+            <p className="text-lg sm:text-xl text-primary font-bold text-center">
+                "{currentStep.encouragement}"
             </p>
             
             {currentStep.subSteps && currentStep.subSteps.length > 0 && (

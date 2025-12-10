@@ -26,9 +26,9 @@ export const generateScheduleFromImage = async (
           type: "Morning",
           socialStory: "In the morning, we wake up and get ready. We do things in order so we feel happy and ready to play!",
           steps: [
-            { id: '1', emoji: "🛏️", instruction: "Wake up", encouragement: "Good morning sunshine!", completed: false },
+            { id: '1', emoji: "🛏️", instruction: "Wake up", encouragement: "Good morning sunshine!", sensoryTip: "Stretch under warm covers", completed: false },
             { id: '2', emoji: "🚽", instruction: "Use bathroom", encouragement: "Great job!", completed: false },
-            { id: '3', emoji: "🦷", instruction: "Brush teeth", encouragement: "Sparkly smile!", completed: false },
+            { id: '3', emoji: "🦷", instruction: "Brush teeth", encouragement: "Sparkly smile!", sensoryTip: "Minty fresh tingle", completed: false },
             { id: '4', emoji: "👕", instruction: "Get dressed", encouragement: "Looking good!", completed: false },
           ]
         });
@@ -37,13 +37,25 @@ export const generateScheduleFromImage = async (
   }
 
   const prompt = `
-    Analyze this image and create a structured visual schedule for a ${profile.age}-year-old child named ${profile.name}.
-    The child likes: ${profile.interests.join(', ')}.
-    OUTPUT LANGUAGE: ${profile.language || 'English'}.
-    
-    Determine the most likely routine type (Morning, Bedtime, Meal, Play, or General).
-    Create 4-6 distinct steps based on the objects visible or implied by the context.
-    Also generate a short "Social Story" (2 sentences) explaining WHY we do this routine, suitable for the child.
+    Act as an expert pediatric occupational therapist using the "ScheduleSnap" methodology.
+    Analyze the provided image to create a highly personalized visual schedule for ${profile.name}, age ${profile.age}.
+
+    Child Profile:
+    - Interests: ${profile.interests.join(', ')} (IMPORTANT: Use these to theme the encouragements!)
+    - Sensory Profile: ${profile.sensoryProfile.soundSensitivity} sound sensitivity.
+    - Output Language: ${profile.language || 'English'}.
+
+    TASK:
+    1. IMAGE ANALYSIS: deeply analyze the image. Identify the setting, objects present, and objects that are *missing* but logically needed for this routine.
+    2. SEQUENCING: Create a logical sequence of 4-8 steps.
+       - If the routine is complex, insert a "Sensory Break" or "Check-in" step.
+    3. STEP CONTENT:
+       - Instruction: Clear, simple, action-oriented text.
+       - Emoji: A specific visual for the step.
+       - Encouragement Options: Generate 3 distinct encouragement phrases. They MUST be themed around the child's interests (e.g., if they like Space, say "Blast off to the bathroom!" or "Stellar teeth brushing!").
+       - Sensory Tip: If a step involves sensory input (touch, taste, sound, temperature), provide a brief, helpful tip (e.g., "Water might be cold", "Toothpaste tastes minty").
+
+    4. SOCIAL STORY: Write a short, motivating 2-sentence story explaining WHY we do this routine.
   `;
 
   // Use Thinking Mode if enabled in profile
@@ -67,7 +79,7 @@ export const generateScheduleFromImage = async (
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            title: { type: Type.STRING, description: "Title of the routine" },
+            title: { type: Type.STRING, description: "Title of the routine (e.g. Bedtime Mission)" },
             type: { type: Type.STRING, enum: ['Morning', 'Bedtime', 'Meal', 'Play', 'General'] },
             socialStory: { type: Type.STRING, description: "Simple explanation of the routine's purpose" },
             steps: {
@@ -77,9 +89,14 @@ export const generateScheduleFromImage = async (
                 properties: {
                   emoji: { type: Type.STRING },
                   instruction: { type: Type.STRING },
-                  encouragement: { type: Type.STRING }
+                  encouragementOptions: { 
+                    type: Type.ARRAY, 
+                    items: { type: Type.STRING },
+                    description: "3 interest-themed encouragement variations"
+                  },
+                  sensoryTip: { type: Type.STRING, description: "Optional sensory warning or tip" }
                 },
-                required: ['emoji', 'instruction', 'encouragement']
+                required: ['emoji', 'instruction', 'encouragementOptions']
               }
             }
           },
@@ -96,6 +113,10 @@ export const generateScheduleFromImage = async (
     const stepsWithIds = data.steps.map((step: any, index: number) => ({
       ...step,
       id: `step-${Date.now()}-${index}`,
+      // Use the first option as the default, but store all
+      encouragement: step.encouragementOptions?.[0] || "Great job!",
+      encouragementOptions: step.encouragementOptions || ["Good job!"],
+      sensoryTip: step.sensoryTip,
       completed: false
     }));
 

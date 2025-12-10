@@ -11,7 +11,7 @@ export const WaitTimer: React.FC<WaitTimerProps> = ({ onExit }) => {
   const [isRunning, setIsRunning] = useState(false);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (isRunning && timeLeft !== null && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft(prev => prev !== null ? prev - 1 : 0);

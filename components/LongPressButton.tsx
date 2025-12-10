@@ -18,7 +18,7 @@ export const LongPressButton: React.FC<LongPressButtonProps> = ({
 }) => {
   const [isPressing, setIsPressing] = useState(false);
   const [progress, setProgress] = useState(0);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(0);
 
   const startPress = (e: React.TouchEvent | React.MouseEvent) => {

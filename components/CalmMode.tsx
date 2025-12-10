@@ -9,7 +9,7 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit }) => {
   const [text, setText] = useState('Breathe In...');
 
   useEffect(() => {
-    let timeout: NodeJS.Timeout;
+    let timeout: ReturnType<typeof setTimeout>;
     
     const cycle = () => {
       // In: 4s
