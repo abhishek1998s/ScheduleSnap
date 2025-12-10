@@ -23,6 +23,7 @@ import { MagicBookLibrary } from './components/MagicBookLibrary';
 import { ParentMessageInbox } from './components/ParentMessageInbox';
 import { TherapyManager } from './components/TherapyManager';
 import { LearningPathDashboard } from './components/LearningPathDashboard';
+import { EnvironmentScanner } from './components/EnvironmentScanner';
 import { t } from './utils/translations';
 
 const INITIAL_PROFILE: ChildProfile = {
@@ -460,7 +461,7 @@ const App: React.FC = () => {
     <div className={`h-full w-full relative ${themeClass} overflow-hidden`}>
       
       {/* Voice Companion */}
-      {state.view !== ViewState.COACH && state.view !== ViewState.CAMERA && state.view !== ViewState.KIDS_BUILDER && state.view !== ViewState.MAGIC_BOOKS && state.view !== ViewState.PARENT_INBOX && state.view !== ViewState.THERAPY && state.view !== ViewState.LEARNING && (
+      {state.view !== ViewState.COACH && state.view !== ViewState.CAMERA && state.view !== ViewState.KIDS_BUILDER && state.view !== ViewState.MAGIC_BOOKS && state.view !== ViewState.PARENT_INBOX && state.view !== ViewState.THERAPY && state.view !== ViewState.LEARNING && state.view !== ViewState.SCANNER && (
           <VoiceCompanion 
               profile={state.profile}
               currentView={state.view}
@@ -527,7 +528,7 @@ const App: React.FC = () => {
                 <span className="text-xl font-bold">{t(lang, 'buildMyDay')}</span>
             </button>
 
-            {/* Learning Path Button - NEW */}
+            {/* Learning Path Button */}
             <button 
                 onClick={() => navigateTo(ViewState.LEARNING)}
                 className={`w-full p-6 rounded-3xl flex items-center justify-center gap-4 active:scale-95 transition-transform mb-6 ${state.isHighContrast ? 'bg-green-900 border-4 border-yellow-400 text-yellow-300' : 'bg-gradient-to-r from-emerald-400 to-teal-400 text-white shadow-lg'}`}
@@ -593,6 +594,10 @@ const App: React.FC = () => {
                 <button onClick={() => navigateTo(ViewState.QUIZ)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-orange-100 text-orange-600')}`}>
                     <i className="fa-solid fa-puzzle-piece text-3xl"></i><span className="font-bold">{t(lang, 'quiz')}</span>
                 </button>
+                {/* Scanner Button */}
+                <button onClick={() => navigateTo(ViewState.SCANNER)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-slate-700 text-white')}`}>
+                    <i className="fa-solid fa-radar text-3xl"></i><span className="font-bold">{t(lang, 'envScanner')}</span>
+                </button>
             </div>
 
             <div>
@@ -645,8 +650,9 @@ const App: React.FC = () => {
       {state.view === ViewState.PARENT_INBOX && <ParentMessageInbox messages={state.parentMessages} profile={state.profile} onRespond={handleChildRespond} onExit={() => navigateTo(ViewState.HOME)} onRecordReply={() => navigateTo(ViewState.VOICE_RECORDER)} />}
       {state.view === ViewState.THERAPY && <TherapyManager sessions={state.therapySessions} profile={state.profile} onSaveSession={handleSaveTherapySession} onExit={() => navigateTo(ViewState.DASHBOARD)} />}
       {state.view === ViewState.LEARNING && <LearningPathDashboard profile={state.profile} paths={state.learningPaths} onUpdatePath={handleUpdateLearningPath} onExit={() => navigateTo(ViewState.HOME)} />}
+      {state.view === ViewState.SCANNER && <EnvironmentScanner profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} />}
 
-      {state.view !== ViewState.CAMERA && state.view !== ViewState.CALM && state.view !== ViewState.KIDS_BUILDER && state.view !== ViewState.MAGIC_BOOKS && state.view !== ViewState.PARENT_INBOX && state.view !== ViewState.THERAPY && state.view !== ViewState.LEARNING && !state.isAACOpen && (
+      {state.view !== ViewState.CAMERA && state.view !== ViewState.CALM && state.view !== ViewState.KIDS_BUILDER && state.view !== ViewState.MAGIC_BOOKS && state.view !== ViewState.PARENT_INBOX && state.view !== ViewState.THERAPY && state.view !== ViewState.LEARNING && state.view !== ViewState.SCANNER && !state.isAACOpen && (
         <button 
             onClick={() => setState(s => ({...s, isAACOpen: true}))}
             className={`fixed bottom-6 right-6 w-16 h-16 rounded-full flex items-center justify-center active:scale-90 transition-transform z-50 ${state.isHighContrast ? 'bg-yellow-400 text-black border-4 border-white' : 'bg-blue-600 shadow-2xl text-white border-2 border-white'}`}

@@ -319,6 +319,15 @@ export const translations: Record<string, Record<string, string>> = {
     areaCommunication: "Communication",
     areaDaily: "Daily Living",
     areaSafety: "Safety",
+    // Environment Scanner
+    envScanner: "Environment Scanner",
+    scanningRoom: "Scanning Room...",
+    lightLevel: "Light Level",
+    visualClutter: "Visual Clutter",
+    noiseLevel: "Noise Level",
+    recommendations: "Recommendations",
+    scanAgain: "Scan Again",
+    envRisk: "Overall Sensory Risk",
   },
   Hindi: {
     // ... existing translations ...
@@ -338,6 +347,7 @@ export const translations: Record<string, Record<string, string>> = {
     proudOfYou: "मुझे तुम पर गर्व है!",
     therapyTitle: "थेरेपी रिकॉर्डर",
     myLearning: "मेरा सीखना",
+    envScanner: "पर्यावरण स्कैनर",
     // ...
   },
   Spanish: {
@@ -358,6 +368,7 @@ export const translations: Record<string, Record<string, string>> = {
     proudOfYou: "¡Estoy orgulloso de ti!",
     therapyTitle: "Grabadora de Terapia",
     myLearning: "Mi Aprendizaje",
+    envScanner: "Escáner Ambiental",
     // ...
   }
 };

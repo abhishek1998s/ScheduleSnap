@@ -311,7 +311,22 @@ export interface LearningPath {
   colorTheme: string; // Tailwind class prefix, e.g., "blue"
 }
 
-// NEW: Voice Companion Modes
+// NEW: Environment Scanner Types
+export interface EnvironmentScan {
+  lightLevel: 'too bright' | 'good' | 'too dim';
+  lightSuggestion?: string;
+
+  visualClutter: 'high' | 'medium' | 'low';
+  clutterSuggestion?: string;
+
+  noiseLevel: number; // approximate relative dB level 0-100
+  noiseSuggestion?: string;
+
+  colorAnalysis: string;
+  overallRisk: 'low' | 'medium' | 'high';
+  recommendations: string[];
+}
+
 export type ConversationMode = 'routine_guide' | 'encouragement' | 'calm_support' | 'learning' | 'play' | 'transition_prep';
 
 export enum ViewState {
@@ -333,7 +348,8 @@ export enum ViewState {
   MAGIC_BOOKS = 'magic-books',
   PARENT_INBOX = 'parent-inbox',
   THERAPY = 'therapy',
-  LEARNING = 'learning' // New View
+  LEARNING = 'learning',
+  SCANNER = 'scanner' // New
 }
 
 export interface AppState {
@@ -356,5 +372,5 @@ export interface AppState {
   stories: StoryBook[];
   parentMessages: ParentMessage[];
   therapySessions: TherapySession[];
-  learningPaths: LearningPath[]; // New State
+  learningPaths: LearningPath[];
 }
