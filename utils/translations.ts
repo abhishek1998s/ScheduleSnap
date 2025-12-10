@@ -119,7 +119,7 @@ export const translations: Record<string, Record<string, string>> = {
     youAreFeeling: "You are feeling",
     thinkingIdeas: "Thinking of ideas...",
     letsTry: "Let's try this",
-    feelBetter: "Mejor",
+    feelBetter: "I Feel Better",
     socialSkills: "Social Skills",
     settingScene: "Setting the scene...",
     whatDo: "What should you do?",
