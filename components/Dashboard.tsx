@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Schedule, ChildProfile, BehaviorLog, MoodEntry, BehaviorAnalysis, VoiceMessage, CompletionLog, WeeklyReport, ScheduleOptimization, ParentMessage } from '../types';
 import { analyzeBehaviorLogs, analyzeBehaviorVideo, generateScheduleOptimization, generateWeeklyReport } from '../services/geminiService';
@@ -353,4 +352,387 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {activeTab === 'overview' && (
                 <>
                     {/* Weekly Report Section */}
-                     <div className="bg-yellow-50 p-4 rounded-2xl border
+                     <div className="bg-yellow-50 p-4 rounded-2xl border border-yellow-200">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-bold text-yellow-800 flex items-center gap-2">
+                                <i className="fa-solid fa-wand-magic-sparkles"></i> {t(lang, 'aiInsights')}
+                            </h3>
+                            <button 
+                                onClick={handleGenerateReport} 
+                                disabled={generatingReport}
+                                className="bg-yellow-600 text-white px-3 py-1 rounded-lg text-sm font-bold shadow-sm"
+                            >
+                                {generatingReport ? t(lang, 'analyzing') : "Generate Report"}
+                            </button>
+                        </div>
+                        
+                        {weeklyReport ? (
+                            <div className="space-y-4 animate-fadeIn">
+                                <div className="bg-white p-3 rounded-xl border border-yellow-100 shadow-sm">
+                                    <p className="text-gray-700 text-sm leading-relaxed">{weeklyReport.summary}</p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="bg-green-100 p-3 rounded-xl">
+                                        <h4 className="text-green-800 font-bold text-xs uppercase mb-1">{t(lang, 'wins')}</h4>
+                                        <ul className="text-xs space-y-1 text-green-900">
+                                            {weeklyReport.wins.map((w,i) => <li key={i}>• {w}</li>)}
+                                        </ul>
+                                    </div>
+                                    <div className="bg-orange-100 p-3 rounded-xl">
+                                        <h4 className="text-orange-800 font-bold text-xs uppercase mb-1">{t(lang, 'suggestions')}</h4>
+                                        <ul className="text-xs space-y-1 text-orange-900">
+                                            {weeklyReport.suggestions.map((s,i) => <li key={i}>• {s}</li>)}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-center text-yellow-700/50 text-sm py-2">
+                                <p>Tap generate to see AI insights for the week.</p>
+                            </div>
+                        )}
+                     </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        {goals.map(goal => (
+                            <div key={goal.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center">
+                                <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center mb-2">
+                                    <i className={`fa-solid ${goal.icon}`}></i>
+                                </div>
+                                <h3 className="font-bold text-gray-700 text-sm">{goal.text}</h3>
+                                <div className="mt-2 w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                                    <div className="bg-blue-500 h-full transition-all" style={{ width: `${Math.min((goal.current / goal.target) * 100, 100)}%` }}></div>
+                                </div>
+                                <p className="text-xs text-gray-400 mt-1">{goal.current} / {goal.target}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-bold text-gray-700">{t(lang, 'childProfile')}</h3>
+                            <button onClick={() => setIsEditingProfile(!isEditingProfile)} className="text-primary text-sm font-bold">
+                                {isEditingProfile ? t(lang, 'cancel') : t(lang, 'edit')}
+                            </button>
+                        </div>
+                        
+                        {isEditingProfile ? (
+                            <div className="space-y-3 animate-fadeIn">
+                                <input value={editName} onChange={e => setEditName(e.target.value)} className="w-full p-2 border rounded" placeholder={t(lang, 'name')} />
+                                <input value={editAge} onChange={e => setEditAge(Number(e.target.value))} className="w-full p-2 border rounded" placeholder={t(lang, 'age')} type="number" />
+                                <input value={editInterests} onChange={e => setEditInterests(e.target.value)} className="w-full p-2 border rounded" placeholder={t(lang, 'interests')} />
+                                <select value={editLanguage} onChange={e => setEditLanguage(e.target.value)} className="w-full p-2 border rounded">
+                                    <option value="English">English</option>
+                                    <option value="Spanish">Spanish</option>
+                                    <option value="Hindi">Hindi</option>
+                                </select>
+                                
+                                <div className="flex items-center gap-2">
+                                    <input type="checkbox" checked={editDefaultCamera} onChange={e => setEditDefaultCamera(e.target.checked)} />
+                                    <span className="text-sm">{t(lang, 'defaultCamera')}</span>
+                                </div>
+
+                                <button onClick={saveProfile} className="w-full bg-primary text-white py-2 rounded font-bold">{t(lang, 'save')}</button>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-4">
+                                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center text-2xl">
+                                    {profile.name[0]}
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold">{profile.name}, {profile.age}</h2>
+                                    <p className="text-gray-500 text-sm">{profile.interests.join(' • ')}</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </>
+            )}
+
+            {activeTab === 'routines' && (
+                <div className="space-y-4">
+                    <button 
+                        onClick={onCreateCustom}
+                        className="w-full p-4 border-2 border-dashed border-primary/50 rounded-xl text-primary font-bold flex items-center justify-center gap-2 hover:bg-primary/5"
+                    >
+                        <i className="fa-solid fa-plus"></i> {t(lang, 'createCustom')}
+                    </button>
+
+                    {schedules.map(schedule => (
+                        <div key={schedule.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 relative group">
+                            <div className="flex items-center gap-4">
+                                <span className="text-3xl">{schedule.steps[0]?.emoji}</span>
+                                <div className="flex-1">
+                                    <h3 className="font-bold text-gray-800">{schedule.title}</h3>
+                                    <p className="text-xs text-gray-400">{schedule.steps.length} {t(lang, 'steps')}</p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button 
+                                        onClick={() => onOpenOptimizer(schedule.id)}
+                                        className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center hover:bg-purple-200"
+                                        title="Auto-Improve with AI"
+                                    >
+                                        <i className="fa-solid fa-wand-magic-sparkles text-xs"></i>
+                                    </button>
+                                    <button onClick={() => onEditSchedule(schedule.id)} className="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center" aria-label="Edit Schedule"><i className="fa-solid fa-pen text-xs"></i></button>
+                                    <button onClick={() => onDeleteSchedule(schedule.id)} className="w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center" aria-label="Delete Schedule"><i className="fa-solid fa-trash text-xs"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {activeTab === 'behavior' && (
+                <div className="space-y-6">
+                    <div className="bg-white p-4 rounded-2xl shadow-sm">
+                        <h3 className="font-bold mb-4">{t(lang, 'quickLog')}</h3>
+                        <div className="flex gap-2 mb-4 overflow-x-auto">
+                            {['Meltdown', 'Aggression', 'Elopement', 'Stimming', 'Refusal'].map(b => (
+                                <button 
+                                    key={b}
+                                    onClick={() => setNewLogBehavior(b)}
+                                    className={`px-3 py-1 rounded-full text-sm border ${newLogBehavior === b ? 'bg-primary text-white border-primary' : 'border-gray-200'}`}
+                                >
+                                    {b}
+                                </button>
+                            ))}
+                        </div>
+                        <input 
+                            placeholder={t(lang, 'triggerOptional')}
+                            value={newLogTrigger}
+                            onChange={e => setNewLogTrigger(e.target.value)}
+                            className="w-full p-3 bg-gray-50 rounded-xl mb-3 text-sm"
+                        />
+                        <div className="flex gap-2">
+                            {(['Mild', 'Moderate', 'Severe'] as const).map(i => (
+                                <button 
+                                    key={i} 
+                                    onClick={() => setNewLogIntensity(i)}
+                                    className={`flex-1 py-2 rounded-lg text-xs font-bold ${newLogIntensity === i ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500'}`}
+                                >
+                                    {i}
+                                </button>
+                            ))}
+                        </div>
+                        <button onClick={submitBehavior} className="w-full mt-4 bg-primary text-white py-3 rounded-xl font-bold shadow-md">{t(lang, 'logIncident')}</button>
+                    </div>
+
+                    <div className="bg-purple-50 p-6 rounded-2xl border border-purple-100 text-center">
+                        <i className="fa-solid fa-brain text-4xl text-purple-300 mb-4"></i>
+                        <h3 className="font-bold text-purple-900 mb-2">{t(lang, 'aiInsights')}</h3>
+                        
+                        {!analysis ? (
+                            <div className="space-y-3">
+                                <p className="text-sm text-purple-700 mb-4">{t(lang, 'needLogs')}</p>
+                                <button 
+                                    onClick={runAnalysis}
+                                    disabled={isAnalyzing}
+                                    className="w-full bg-white text-purple-600 py-3 rounded-xl font-bold shadow-sm"
+                                >
+                                    {isAnalyzing ? t(lang, 'analyzing') : t(lang, 'analyze')}
+                                </button>
+                                <div className="relative">
+                                    <button 
+                                        onClick={() => videoInputRef.current?.click()}
+                                        className="w-full bg-purple-200 text-purple-800 py-3 rounded-xl font-bold"
+                                    >
+                                        <i className="fa-solid fa-video mr-2"></i> {t(lang, 'video')} Analysis
+                                    </button>
+                                    <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} />
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-left bg-white p-4 rounded-xl shadow-sm animate-fadeIn">
+                                <h4 className="font-bold text-sm text-purple-800 uppercase mb-2">{t(lang, 'insight')}</h4>
+                                <p className="text-sm text-gray-700 mb-4">{analysis.insight}</p>
+                                
+                                <h4 className="font-bold text-sm text-purple-800 uppercase mb-2">{t(lang, 'likelyTriggers')}</h4>
+                                <div className="flex flex-wrap gap-2 mb-4">
+                                    {analysis.triggers.map(t => <span key={t} className="bg-red-100 text-red-600 px-2 py-1 rounded text-xs font-bold">{t}</span>)}
+                                </div>
+
+                                <h4 className="font-bold text-sm text-purple-800 uppercase mb-2">{t(lang, 'suggestions')}</h4>
+                                <ul className="text-sm space-y-1 text-gray-600">
+                                    {analysis.suggestions.map((s, i) => <li key={i}>• {s}</li>)}
+                                </ul>
+                                <button onClick={() => setAnalysis(null)} className="mt-4 text-xs text-gray-400 underline">Clear</button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'messages' && (
+                <div className="space-y-4">
+                    {/* Parent Inbox (Send Message) */}
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                        <h3 className="font-bold text-gray-700 mb-4">{t(lang, 'scheduleMessage')}</h3>
+                        
+                        <textarea 
+                            value={msgContent}
+                            onChange={(e) => setMsgContent(e.target.value)}
+                            placeholder={t(lang, 'typeMessage')}
+                            className="w-full p-3 bg-gray-50 rounded-xl mb-3 text-sm min-h-[80px]"
+                        />
+                        
+                        {msgMedia && (
+                            <div className="bg-blue-50 p-2 rounded-lg mb-3 flex items-center justify-between text-sm text-blue-700">
+                                <span><i className={`fa-solid ${msgMedia.type === 'video' ? 'fa-video' : 'fa-microphone'}`}></i> Media attached</span>
+                                <button onClick={() => setMsgMedia(null)}><i className="fa-solid fa-times"></i></button>
+                            </div>
+                        )}
+
+                        <div className="flex items-center gap-2 mb-4">
+                            <i className="fa-regular fa-clock text-gray-400"></i>
+                            <input 
+                                type="time" 
+                                value={msgTime}
+                                onChange={(e) => setMsgTime(e.target.value)}
+                                className="bg-transparent text-sm font-bold text-gray-600 outline-none"
+                            />
+                            <span className="text-xs text-gray-400">({t(lang, 'scheduleFor')})</span>
+                        </div>
+
+                        <div className="flex gap-2">
+                            <button 
+                                onClick={() => msgFileInputRef.current?.click()}
+                                className="p-3 bg-gray-100 rounded-xl text-gray-600 hover:bg-gray-200"
+                            >
+                                <i className="fa-solid fa-paperclip"></i>
+                            </button>
+                            <input ref={msgFileInputRef} type="file" accept="video/*,audio/*" className="hidden" onChange={handleMsgMediaUpload} />
+                            
+                            <button 
+                                onClick={() => handleSendMessage()}
+                                className="flex-1 bg-blue-500 text-white py-3 rounded-xl font-bold shadow-md"
+                            >
+                                {t(lang, 'send')}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Quick Replies */}
+                    <div className="flex gap-2 overflow-x-auto pb-2">
+                        {['I love you ❤️', 'Proud of you 🌟', 'See you soon 🏠'].map(txt => (
+                            <button 
+                                key={txt}
+                                onClick={() => handleSendMessage(txt)}
+                                className="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-bold text-gray-600 whitespace-nowrap hover:bg-gray-50"
+                            >
+                                {txt}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Received Voice Messages */}
+                    <div>
+                        <h3 className="font-bold text-gray-500 uppercase text-xs mb-3 mt-4 tracking-wide">{t(lang, 'messages')}</h3>
+                        {voiceMessages.length === 0 ? (
+                            <p className="text-center text-gray-400 text-sm py-4">{t(lang, 'noMessages')}</p>
+                        ) : (
+                            <div className="space-y-3">
+                                {voiceMessages.map(msg => (
+                                    <div key={msg.id} className={`bg-white p-4 rounded-xl shadow-sm border-l-4 ${msg.read ? 'border-gray-200' : 'border-blue-500'}`}>
+                                        <div className="flex justify-between items-start mb-2">
+                                            <span className="text-xs font-bold text-gray-400">{new Date(msg.timestamp).toLocaleString()}</span>
+                                            {!msg.read && <span className="bg-blue-100 text-blue-600 text-[10px] px-2 py-0.5 rounded-full font-bold">NEW</span>}
+                                        </div>
+                                        
+                                        {msg.transcription && (
+                                            <p className="font-bold text-gray-800 mb-2">"{msg.transcription}"</p>
+                                        )}
+
+                                        {/* AI Analysis of Message */}
+                                        {msg.analysis && (
+                                            <div className="bg-blue-50 p-3 rounded-lg text-sm mb-3">
+                                                <div className="flex gap-2 mb-1">
+                                                    <span className="font-bold text-blue-700">{t(lang, 'interpretation')}:</span>
+                                                    <span>{msg.analysis.interpretedMeaning}</span>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <span className="font-bold text-blue-700">{t(lang, 'tone')}:</span>
+                                                    <span>{msg.analysis.emotionalTone}</span>
+                                                </div>
+                                                {/* Suggested Replies */}
+                                                <div className="mt-2 flex flex-wrap gap-2">
+                                                    {msg.analysis.suggestedResponses.map((reply, i) => (
+                                                        <button 
+                                                            key={i}
+                                                            onClick={() => handleSendMessage(reply)}
+                                                            className="text-xs bg-white border border-blue-200 px-2 py-1 rounded-full text-blue-600 hover:bg-blue-50"
+                                                        >
+                                                            Reply: "{reply}"
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <audio controls src={URL.createObjectURL(msg.audioBlob)} className="w-full h-8" />
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'analytics' && (
+                <div className="space-y-6">
+                    {/* Goal Progress */}
+                    <div className="grid grid-cols-2 gap-4">
+                        {goals.map(goal => (
+                            <div key={goal.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
+                                <div className="text-3xl text-yellow-400 mb-2"><i className={`fa-solid ${goal.icon}`}></i></div>
+                                <div className="text-2xl font-bold text-gray-800">{goal.current}</div>
+                                <div className="text-xs text-gray-400 uppercase font-bold">{goal.text}</div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Mood Chart Placeholder */}
+                    <div className="bg-white p-6 rounded-2xl shadow-sm">
+                        <h3 className="font-bold text-gray-700 mb-4">{t(lang, 'feelings')}</h3>
+                        <div className="h-32 flex items-end justify-between px-2 gap-2">
+                            {moodLogs.slice(-7).map((log, i) => (
+                                <div key={i} className="flex flex-col items-center gap-2 flex-1">
+                                    <div 
+                                        className={`w-full rounded-t-lg transition-all ${
+                                            log.mood === 'Happy' ? 'bg-green-400 h-24' : 
+                                            log.mood === 'Sad' ? 'bg-blue-400 h-12' : 
+                                            log.mood === 'Angry' ? 'bg-red-400 h-16' : 'bg-gray-300 h-10'
+                                        }`}
+                                    ></div>
+                                    <span className="text-[10px] font-bold text-gray-400">{new Date(log.timestamp).getDate()}</span>
+                                </div>
+                            ))}
+                            {moodLogs.length === 0 && <p className="w-full text-center text-gray-300 text-sm">No mood data yet</p>}
+                        </div>
+                    </div>
+
+                    {/* Behavior Stats */}
+                    <div className="bg-white p-6 rounded-2xl shadow-sm">
+                        <h3 className="font-bold text-gray-700 mb-4">{t(lang, 'behavior')}</h3>
+                        <div className="space-y-3">
+                            {getBehaviorStats().map((stat, i) => (
+                                <div key={i}>
+                                    <div className="flex justify-between text-sm font-bold text-gray-600 mb-1">
+                                        <span>{stat.name}</span>
+                                        <span>{stat.count}</span>
+                                    </div>
+                                    <div className="w-full bg-gray-100 rounded-full h-2">
+                                        <div className="bg-purple-500 h-full rounded-full" style={{ width: `${stat.percent}%` }}></div>
+                                    </div>
+                                </div>
+                            ))}
+                            {behaviorLogs.length === 0 && <p className="text-center text-gray-300 text-sm">No behavior data yet</p>}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+        </div>
+    </div>
+  );
+};
