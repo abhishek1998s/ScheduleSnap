@@ -510,6 +510,7 @@ const App: React.FC = () => {
               activeScheduleTitle={activeSchedule?.title}
               meltdownRisk={state.latestPrediction || null}
               onEnterLiveMode={() => navigateTo(ViewState.COACH)}
+              audioEnabled={audioEnabled} // Pass the global audio state
           />
       )}
       

@@ -10,10 +10,11 @@ interface VoiceCompanionProps {
   activeScheduleTitle?: string;
   meltdownRisk: MeltdownPrediction | null;
   onEnterLiveMode: () => void;
+  audioEnabled?: boolean; // NEW: Respect global audio setting
 }
 
 export const VoiceCompanion: React.FC<VoiceCompanionProps> = ({ 
-  profile, currentView, schedules, activeScheduleTitle, meltdownRisk, onEnterLiveMode 
+  profile, currentView, schedules, activeScheduleTitle, meltdownRisk, onEnterLiveMode, audioEnabled = true
 }) => {
   const [message, setMessage] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(true);
@@ -27,8 +28,8 @@ export const VoiceCompanion: React.FC<VoiceCompanionProps> = ({
 
   // Helper to speak text
   const speak = (text: string) => {
-    // Safety Check: Block if child has high sound sensitivity
-    if (profile.sensoryProfile.soundSensitivity === 'high') {
+    // Safety Check: Block if audio is disabled globally OR child has high sound sensitivity
+    if (!audioEnabled || profile.sensoryProfile.soundSensitivity === 'high') {
         setMessage(text); // Only show text, don't speak
         setTimeout(() => setMessage(null), 5000);
         return;
