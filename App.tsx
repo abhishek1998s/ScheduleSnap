@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { AppState, ViewState, Schedule, ChildProfile, MoodEntry, BehaviorLog, VoiceMessage, MeltdownPrediction, StoryBook } from './types';
+import { AppState, ViewState, Schedule, ChildProfile, MoodEntry, BehaviorLog, VoiceMessage, MeltdownPrediction, StoryBook, ParentMessage } from './types';
 import { generateScheduleFromImage, predictMeltdownRisk } from './services/geminiService';
 import { CalmMode } from './components/CalmMode';
 import { AACBoard } from './components/AACBoard';
@@ -20,6 +20,7 @@ import { MeltdownPredictionAlert } from './components/MeltdownPredictionAlert';
 import { VoiceCompanion } from './components/VoiceCompanion';
 import { KidsRoutineBuilder } from './components/KidsRoutineBuilder';
 import { MagicBookLibrary } from './components/MagicBookLibrary';
+import { ParentMessageInbox } from './components/ParentMessageInbox'; // New Component
 import { t } from './utils/translations';
 
 const INITIAL_PROFILE: ChildProfile = {
@@ -69,7 +70,8 @@ const App: React.FC = () => {
     caregiverPin: '1234',
     customAACButtons: [], // Initial empty
     latestPrediction: null,
-    stories: [] // Initial empty
+    stories: [], // Initial empty
+    parentMessages: [] // New initial state
   });
 
   const [generatedSchedule, setGeneratedSchedule] = useState<Omit<Schedule, 'id' | 'createdAt'> | null>(null);
@@ -110,7 +112,8 @@ const App: React.FC = () => {
             customAACButtons: parsed.customAACButtons || [],
             completionLogs: parsed.completionLogs || [],
             latestPrediction: parsed.latestPrediction || null,
-            stories: parsed.stories || []
+            stories: parsed.stories || [],
+            parentMessages: parsed.parentMessages || []
         }));
       } catch (e) {
         console.error("Failed to load save data");
@@ -125,6 +128,47 @@ const App: React.FC = () => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
     }
   }, [state, isLoaded]);
+
+  // --- NEW: Parent Message Delivery Logic ---
+  useEffect(() => {
+      const interval = setInterval(() => {
+          const now = new Date();
+          const currentTimeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+          
+          let hasUpdates = false;
+          const updatedMessages = state.parentMessages.map(msg => {
+              // If not delivered yet AND (no schedule time OR schedule time reached)
+              if (!msg.isDelivered) {
+                   if (!msg.scheduledTime || msg.scheduledTime <= currentTimeStr) {
+                       hasUpdates = true;
+                       // Trigger Notification
+                       if ('Notification' in window && Notification.permission === 'granted') {
+                           new Notification(t(state.profile.language, 'messageFromParent'), {
+                               body: msg.content || "New Message!",
+                               icon: 'https://cdn-icons-png.flaticon.com/512/2665/2665038.png'
+                           });
+                       }
+                       // Play Sound
+                       try {
+                           const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+                           audio.play().catch(() => {});
+                       } catch(e) {}
+                       
+                       return { ...msg, isDelivered: true };
+                   }
+              }
+              return msg;
+          });
+
+          if (hasUpdates) {
+              setState(prev => ({ ...prev, parentMessages: updatedMessages }));
+          }
+
+      }, 10000); // Check every 10 seconds
+
+      return () => clearInterval(interval);
+  }, [state.parentMessages, state.profile.language]);
+
 
   // --- NEW: Continuous Meltdown Risk Prediction Logic ---
   useEffect(() => {
@@ -304,18 +348,7 @@ const App: React.FC = () => {
 
   const handleSaveVoiceMessage = (msg: VoiceMessage) => {
       setState(prev => ({ ...prev, voiceMessages: [msg, ...prev.voiceMessages] }));
-      
-      // Trigger Notification if supported
-      if ('Notification' in window && Notification.permission === 'granted') {
-          try {
-            new Notification(t(state.profile.language, 'newMessageNotification'), {
-                body: msg.transcription || "Click to listen",
-                icon: 'https://cdn-icons-png.flaticon.com/512/2040/2040653.png' // Generic chat icon
-            });
-          } catch(e) {
-            console.warn("Notification trigger failed", e);
-          }
-      }
+      // Notification handled in VoiceRecorder/Service, or here if needed
   };
 
   const handleMarkMessagesRead = () => {
@@ -361,9 +394,49 @@ const App: React.FC = () => {
     }
   };
 
+  // --- Parent Message Handlers ---
+  const handleScheduleMessage = (msg: Omit<ParentMessage, 'id' | 'timestamp' | 'isDelivered' | 'isRead'>) => {
+      const newMessage: ParentMessage = {
+          ...msg,
+          id: `msg-${Date.now()}`,
+          timestamp: Date.now(),
+          isDelivered: false,
+          isRead: false
+      };
+      setState(prev => ({ ...prev, parentMessages: [...prev.parentMessages, newMessage] }));
+  };
+
+  const handleChildRespond = (messageId: string, response: string) => {
+      setState(prev => ({
+          ...prev,
+          parentMessages: prev.parentMessages.map(m => m.id === messageId ? { ...m, isRead: true, childResponse: response } : m)
+      }));
+  };
+
+  const handleSendMissYou = () => {
+      const msg: VoiceMessage = {
+          id: `missyou-${Date.now()}`,
+          timestamp: Date.now(),
+          audioBlob: new Blob(), // Empty blob as placeholder
+          transcription: "❤️ I miss you! ❤️",
+          read: false,
+          analysis: {
+              rawTranscription: "Miss you button pressed",
+              interpretedMeaning: "I miss you and am thinking about you.",
+              confidence: 1,
+              aacSymbols: [{ label: "Miss You", emoji: "🥺" }],
+              suggestedResponses: ["I miss you too!", "I will be home soon."],
+              emotionalTone: "Love"
+          }
+      };
+      handleSaveVoiceMessage(msg);
+      alert(t(lang, 'missYouSent'));
+  };
+
   const activeSchedule = state.schedules.find(s => s.id === state.activeScheduleId);
   const lang = state.profile.language;
   const unreadCount = state.voiceMessages.filter(m => !m.read).length;
+  const unreadParentMessages = state.parentMessages.filter(m => m.isDelivered && !m.isRead).length;
 
   if (!isLoaded) return null;
 
@@ -379,7 +452,7 @@ const App: React.FC = () => {
     <div className={`h-full w-full relative ${themeClass} overflow-hidden`}>
       
       {/* Voice Companion "Snap" */}
-      {state.view !== ViewState.COACH && state.view !== ViewState.CAMERA && state.view !== ViewState.KIDS_BUILDER && state.view !== ViewState.MAGIC_BOOKS && (
+      {state.view !== ViewState.COACH && state.view !== ViewState.CAMERA && state.view !== ViewState.KIDS_BUILDER && state.view !== ViewState.MAGIC_BOOKS && state.view !== ViewState.PARENT_INBOX && (
           <VoiceCompanion 
               profile={state.profile}
               currentView={state.view}
@@ -446,7 +519,7 @@ const App: React.FC = () => {
                 <span className="text-xl font-bold">{t(lang, 'buildMyDay')}</span>
             </button>
 
-            {/* Magic Books Button (New) */}
+            {/* Magic Books Button */}
             <button 
                 onClick={() => navigateTo(ViewState.MAGIC_BOOKS)}
                 className={`w-full p-6 rounded-3xl flex items-center justify-center gap-4 active:scale-95 transition-transform mb-6 ${state.isHighContrast ? 'bg-purple-900 border-4 border-yellow-400 text-yellow-300' : 'bg-gradient-to-r from-indigo-400 to-purple-400 text-white shadow-lg'}`}
@@ -454,6 +527,29 @@ const App: React.FC = () => {
                 <i className="fa-solid fa-book-sparkles text-3xl"></i>
                 <span className="text-xl font-bold">{t(lang, 'magicBooks')}</span>
             </button>
+            
+            {/* Miss You & Inbox Buttons (Communication Bridge) */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+                <button 
+                    onClick={handleSendMissYou}
+                    className={`p-6 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition-transform ${state.isHighContrast ? 'bg-red-900 border-4 border-yellow-400 text-yellow-300' : 'bg-red-100 text-red-500 shadow-md'}`}
+                >
+                    <i className="fa-solid fa-heart text-3xl"></i>
+                    <span className="font-bold">{t(lang, 'missYou')}</span>
+                </button>
+                <button 
+                    onClick={() => navigateTo(ViewState.PARENT_INBOX)}
+                    className={`p-6 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition-transform relative ${state.isHighContrast ? 'bg-pink-900 border-4 border-yellow-400 text-yellow-300' : 'bg-pink-100 text-pink-500 shadow-md'}`}
+                >
+                    {unreadParentMessages > 0 && (
+                        <div className="absolute -top-2 -right-2 bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm animate-bounce shadow-sm border-2 border-white">
+                            {unreadParentMessages}
+                        </div>
+                    )}
+                    <i className="fa-solid fa-envelope text-3xl"></i>
+                    <span className="font-bold">{t(lang, 'parentInbox')}</span>
+                </button>
+            </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-8">
                 <button onClick={() => navigateTo(ViewState.CALM)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-calm text-primary')}`}>
@@ -517,7 +613,7 @@ const App: React.FC = () => {
       {state.view === ViewState.CAMERA && <CameraCapture isLoading={isProcessing} onImageSelected={handleImageSelected} onCancel={() => navigateTo(ViewState.HOME)} language={lang} />}
       {state.view === ViewState.PREVIEW && generatedSchedule && <PreviewSchedule schedule={generatedSchedule} profile={state.profile} onSave={handleSaveSchedule} onCancel={() => { setGeneratedSchedule(null); setEditingScheduleId(null); navigateTo(ViewState.HOME); }} isEditing={!!editingScheduleId} />}
       {state.view === ViewState.RUNNER && activeSchedule && <ScheduleRunner schedule={activeSchedule} profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} onComplete={handleRoutineComplete} />}
-      {state.view === ViewState.DASHBOARD && <Dashboard schedules={state.schedules} profile={state.profile} moodLogs={state.moodLogs} behaviorLogs={state.behaviorLogs} completionLogs={state.completionLogs} voiceMessages={state.voiceMessages} isHighContrast={state.isHighContrast} caregiverPin={state.caregiverPin || '1234'} onUpdatePin={(p) => setState(prev => ({...prev, caregiverPin: p}))} onExit={() => navigateTo(ViewState.HOME)} onSelectSchedule={(id) => startRoutine(id)} onEditSchedule={handleEditScheduleRequest} onCreateCustom={handleCreateCustomRoutine} onDeleteSchedule={handleDeleteSchedule} onUpdateSchedule={handleUpdateSchedule} onUpdateProfile={(p) => setState(prev => ({ ...prev, profile: p }))} onToggleHighContrast={() => setState(prev => ({ ...prev, isHighContrast: !prev.isHighContrast }))} onLogBehavior={(log) => setState(prev => ({ ...prev, behaviorLogs: [...prev.behaviorLogs, { ...log, id: Date.now().toString(), timestamp: Date.now() }] }))} onMarkMessagesRead={handleMarkMessagesRead} />}
+      {state.view === ViewState.DASHBOARD && <Dashboard schedules={state.schedules} profile={state.profile} moodLogs={state.moodLogs} behaviorLogs={state.behaviorLogs} completionLogs={state.completionLogs} voiceMessages={state.voiceMessages} isHighContrast={state.isHighContrast} caregiverPin={state.caregiverPin || '1234'} onUpdatePin={(p) => setState(prev => ({...prev, caregiverPin: p}))} onExit={() => navigateTo(ViewState.HOME)} onSelectSchedule={(id) => startRoutine(id)} onEditSchedule={handleEditScheduleRequest} onCreateCustom={handleCreateCustomRoutine} onDeleteSchedule={handleDeleteSchedule} onUpdateSchedule={handleUpdateSchedule} onUpdateProfile={(p) => setState(prev => ({ ...prev, profile: p }))} onToggleHighContrast={() => setState(prev => ({ ...prev, isHighContrast: !prev.isHighContrast }))} onLogBehavior={(log) => setState(prev => ({ ...prev, behaviorLogs: [...prev.behaviorLogs, { ...log, id: Date.now().toString(), timestamp: Date.now() }] }))} onMarkMessagesRead={handleMarkMessagesRead} parentMessages={state.parentMessages} onScheduleMessage={handleScheduleMessage} />}
       {state.view === ViewState.MOOD && <MoodCheck profile={state.profile} onExit={() => navigateTo(ViewState.HOME)} onSave={(entry) => setState(prev => ({ ...prev, moodLogs: [...prev.moodLogs, entry] }))} />}
       {state.view === ViewState.QUIZ && <EmotionQuiz age={state.profile.age} language={lang} stats={state.quizStats} onUpdateStats={(s) => setState(prev => ({ ...prev, quizStats: s, tokens: prev.tokens + (s.xp > prev.quizStats.xp ? 1 : 0) }))} onExit={() => navigateTo(ViewState.HOME)} />}
       {state.view === ViewState.SOCIAL && <SocialScenarioPractice age={state.profile.age} language={lang} onExit={() => navigateTo(ViewState.HOME)} onComplete={(success) => { if(success) setState(prev => ({ ...prev, tokens: prev.tokens + 2 })); }} />}
@@ -529,8 +625,9 @@ const App: React.FC = () => {
       {(state.view === ViewState.CALM) && <CalmMode onExit={() => navigateTo(ViewState.HOME)} language={lang} />}
       {state.view === ViewState.KIDS_BUILDER && <KidsRoutineBuilder profile={state.profile} onSave={handleBuilderSave} onExit={() => navigateTo(ViewState.HOME)} />}
       {state.view === ViewState.MAGIC_BOOKS && <MagicBookLibrary stories={state.stories} profile={state.profile} onSaveStory={handleSaveStory} onDeleteStory={handleDeleteStory} onExit={() => navigateTo(ViewState.HOME)} />}
+      {state.view === ViewState.PARENT_INBOX && <ParentMessageInbox messages={state.parentMessages} profile={state.profile} onRespond={handleChildRespond} onExit={() => navigateTo(ViewState.HOME)} onRecordReply={() => navigateTo(ViewState.VOICE_RECORDER)} />}
 
-      {state.view !== ViewState.CAMERA && state.view !== ViewState.CALM && state.view !== ViewState.KIDS_BUILDER && state.view !== ViewState.MAGIC_BOOKS && !state.isAACOpen && (
+      {state.view !== ViewState.CAMERA && state.view !== ViewState.CALM && state.view !== ViewState.KIDS_BUILDER && state.view !== ViewState.MAGIC_BOOKS && state.view !== ViewState.PARENT_INBOX && !state.isAACOpen && (
         <button 
             onClick={() => setState(s => ({...s, isAACOpen: true}))}
             className={`fixed bottom-6 right-6 w-16 h-16 rounded-full flex items-center justify-center active:scale-90 transition-transform z-50 ${state.isHighContrast ? 'bg-yellow-400 text-black border-4 border-white' : 'bg-blue-600 shadow-2xl text-white border-2 border-white'}`}

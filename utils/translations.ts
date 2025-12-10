@@ -272,6 +272,24 @@ export const translations: Record<string, Record<string, string>> = {
     magicBook: "Magic Social Story",
     theEnd: "The End",
     closeBook: "Close Book",
+    // Parent Communication
+    parentInbox: "My Messages",
+    messageFromParent: "Message from Parent",
+    sendReply: "Send Reply",
+    missYou: "Miss You",
+    missYouSent: "Sent 'Miss You'!",
+    proudOfYou: "I'm proud of you!",
+    loveYou: "Love you!",
+    seeYouSoon: "See you soon!",
+    scheduleMessage: "Schedule Message",
+    messageSent: "Message Scheduled!",
+    typeMessage: "Type a message...",
+    uploadMedia: "Upload Video/Audio",
+    sendNow: "Send Now",
+    scheduleFor: "Schedule for:",
+    inboxEmpty: "No messages yet!",
+    replySent: "Reply Sent!",
+    parentOutbox: "Scheduled & Sent",
   },
   Hindi: {
     // ... existing translations ...
@@ -285,6 +303,10 @@ export const translations: Record<string, Record<string, string>> = {
     dragHere: "तस्वीरें जोड़ने के लिए टैप करें!",
     magicBooks: "जादुई किताबें",
     createStory: "नई कहानी बनाएँ",
+    parentInbox: "मेरे संदेश",
+    messageFromParent: "माता-पिता का संदेश",
+    missYou: "आपकी याद आ रही है",
+    proudOfYou: "मुझे तुम पर गर्व है!",
     // ...
   },
   Spanish: {
@@ -299,6 +321,10 @@ export const translations: Record<string, Record<string, string>> = {
     dragHere: "¡Toca las imágenes para agregarlas aquí!",
     magicBooks: "Libros Mágicos",
     createStory: "Crear Nueva Historia",
+    parentInbox: "Mis Mensajes",
+    messageFromParent: "Mensaje de Padre",
+    missYou: "Te extraño",
+    proudOfYou: "¡Estoy orgulloso de ti!",
     // ...
   }
 };

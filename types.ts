@@ -127,6 +127,18 @@ export interface VoiceMessage {
   read: boolean; // Track if parent has viewed the message
 }
 
+export interface ParentMessage {
+    id: string;
+    content: string; // text
+    type: 'text' | 'audio' | 'video';
+    mediaBase64?: string; // For audio/video content
+    scheduledTime?: string; // "14:00", if null sends immediately
+    timestamp: number;
+    isDelivered: boolean;
+    isRead: boolean;
+    childResponse?: string; // Emoji response like '❤️'
+}
+
 export interface ResearchResult {
   answer: string;
   sources: { title: string; uri: string }[];
@@ -252,7 +264,8 @@ export enum ViewState {
   TIMER = 'timer',
   RESEARCH = 'research',
   KIDS_BUILDER = 'kids-builder',
-  MAGIC_BOOKS = 'magic-books'
+  MAGIC_BOOKS = 'magic-books',
+  PARENT_INBOX = 'parent-inbox' // New View
 }
 
 export interface AppState {
@@ -272,5 +285,6 @@ export interface AppState {
   caregiverPin?: string;
   customAACButtons: AACButton[]; 
   latestPrediction?: MeltdownPrediction | null;
-  stories: StoryBook[]; // New: Saved stories
+  stories: StoryBook[];
+  parentMessages: ParentMessage[]; // New state for parent messages
 }
