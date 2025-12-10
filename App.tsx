@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AppState, ViewState, Schedule, ChildProfile, MoodEntry, BehaviorLog, VoiceMessage, MeltdownPrediction } from './types';
 import { generateScheduleFromImage, predictMeltdownRisk } from './services/geminiService';
 import { CalmMode } from './components/CalmMode';
@@ -73,6 +73,9 @@ const App: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  // Ref to debounce automatic logging of predictions
+  const lastPredictionLogTime = useRef<number>(0);
+
   useEffect(() => {
     // Request Notification permission on mount
     if ('Notification' in window && Notification.permission !== 'granted') {
@@ -126,12 +129,48 @@ const App: React.FC = () => {
          // Optimization: Only predict if we have enough data (at least 2 logs total)
          if (state.behaviorLogs.length + state.moodLogs.length < 2) return;
          
-         // Don't predict if we just did it recently (e.g., last 10 mins) - for demo we ignore this
-         
          const activeScheduleTitle = state.schedules.find(s => s.id === state.activeScheduleId)?.title;
          
          try {
              const prediction = await predictMeltdownRisk(state.profile, state.behaviorLogs, state.moodLogs, activeScheduleTitle);
+             
+             // Check for High/Imminent Risk to Alert & Log
+             if (prediction.riskLevel === 'high' || prediction.riskLevel === 'imminent') {
+                 const now = Date.now();
+                 // Only alert/log if we haven't done so in the last 30 minutes to prevent loops/spam
+                 if (now - lastPredictionLogTime.current > 30 * 60 * 1000) {
+                     lastPredictionLogTime.current = now;
+
+                     // 1. Audio/Visual Alert
+                     try {
+                         const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+                         audio.play().catch(() => {});
+                         if ('Notification' in window && Notification.permission === 'granted') {
+                             new Notification(`⚠️ ${t(state.profile.language, 'riskHigh')}`, {
+                                 body: `${t(state.profile.language, 'whyRisk')}: ${prediction.riskFactors.map(r => r.factor).join(', ')}`,
+                                 icon: 'https://cdn-icons-png.flaticon.com/512/564/564619.png'
+                             });
+                         }
+                     } catch(e) { console.warn("Alert failed", e); }
+
+                     // 2. Auto-Log Incident
+                     const autoLog: BehaviorLog = {
+                         id: now.toString(),
+                         timestamp: now,
+                         behavior: "Predicted High Risk",
+                         intensity: 'Severe',
+                         trigger: `AI Prediction: ${prediction.riskFactors.map(f => `${f.factor}`).join('; ')}`
+                     };
+
+                     setState(prev => ({ 
+                         ...prev, 
+                         latestPrediction: prediction,
+                         behaviorLogs: [...prev.behaviorLogs, autoLog] 
+                     }));
+                     return;
+                 }
+             }
+
              setState(prev => ({ ...prev, latestPrediction: prediction }));
          } catch (e) {
              console.warn("Auto-prediction failed", e);
@@ -140,7 +179,7 @@ const App: React.FC = () => {
 
      // Run prediction when logs change
      runPrediction();
-  }, [state.behaviorLogs, state.moodLogs, state.activeScheduleId, isLoaded]);
+  }, [state.behaviorLogs, state.moodLogs, state.activeScheduleId, state.profile, isLoaded]);
 
   const navigateTo = (view: ViewState) => setState(prev => ({ ...prev, view }));
   
