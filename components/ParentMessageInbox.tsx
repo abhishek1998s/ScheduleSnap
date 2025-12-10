@@ -9,9 +9,10 @@ interface ParentMessageInboxProps {
   onRespond: (messageId: string, response: string) => void;
   onExit: () => void;
   onRecordReply: () => void;
+  audioEnabled?: boolean; // New prop
 }
 
-export const ParentMessageInbox: React.FC<ParentMessageInboxProps> = ({ messages, profile, onRespond, onExit, onRecordReply }) => {
+export const ParentMessageInbox: React.FC<ParentMessageInboxProps> = ({ messages, profile, onRespond, onExit, onRecordReply, audioEnabled = true }) => {
   const [activeMessageId, setActiveMessageId] = useState<string | null>(null);
   
   // Show newest delivered messages first
@@ -26,6 +27,9 @@ export const ParentMessageInbox: React.FC<ParentMessageInboxProps> = ({ messages
           setTimeout(() => setActiveMessageId(null), 1000);
       }
   };
+
+  // Determine if audio is restricted
+  const isAudioRestricted = !audioEnabled || profile.sensoryProfile.soundSensitivity === 'high';
 
   return (
     <div className="h-full flex flex-col bg-pink-50 relative">
@@ -99,23 +103,30 @@ export const ParentMessageInbox: React.FC<ParentMessageInboxProps> = ({ messages
                     {/* Content */}
                     <div className="flex-1 overflow-y-auto mb-6 flex flex-col items-center">
                         {activeMessage.mediaBase64 ? (
-                             activeMessage.type === 'video' ? (
-                                 <video 
-                                    src={`data:${activeMessage.mimeType || 'video/mp4'};base64,${activeMessage.mediaBase64}`} 
-                                    controls 
-                                    autoPlay 
-                                    className="w-full rounded-2xl shadow-sm bg-black max-h-64" 
-                                 />
-                             ) : activeMessage.type === 'audio' ? (
-                                 <div className="bg-pink-50 p-6 rounded-3xl flex flex-col items-center gap-4 w-full">
-                                     <i className="fa-solid fa-headphones text-6xl text-pink-300"></i>
-                                     <audio 
-                                        src={`data:${activeMessage.mimeType || 'audio/mp3'};base64,${activeMessage.mediaBase64}`} 
-                                        controls 
-                                        className="w-full"
-                                     />
+                             isAudioRestricted ? (
+                                 <div className="bg-gray-100 p-6 rounded-3xl flex flex-col items-center gap-2 w-full text-center">
+                                     <i className="fa-solid fa-volume-xmark text-4xl text-gray-400"></i>
+                                     <p className="text-sm font-bold text-gray-500">Audio/Video hidden due to sensory settings.</p>
                                  </div>
-                             ) : null
+                             ) : (
+                                 activeMessage.type === 'video' ? (
+                                     <video 
+                                        src={`data:${activeMessage.mimeType || 'video/mp4'};base64,${activeMessage.mediaBase64}`} 
+                                        controls 
+                                        autoPlay 
+                                        className="w-full rounded-2xl shadow-sm bg-black max-h-64" 
+                                     />
+                                 ) : activeMessage.type === 'audio' ? (
+                                     <div className="bg-pink-50 p-6 rounded-3xl flex flex-col items-center gap-4 w-full">
+                                         <i className="fa-solid fa-headphones text-6xl text-pink-300"></i>
+                                         <audio 
+                                            src={`data:${activeMessage.mimeType || 'audio/mp3'};base64,${activeMessage.mediaBase64}`} 
+                                            controls 
+                                            className="w-full"
+                                         />
+                                     </div>
+                                 ) : null
+                             )
                         ) : null}
 
                         {activeMessage.content && (
