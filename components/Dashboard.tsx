@@ -209,6 +209,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
       }
   };
 
+  const speakText = (text: string) => {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    const langCode = profile.language === 'Spanish' ? 'es-ES' : profile.language === 'Hindi' ? 'hi-IN' : 'en-US';
+    u.lang = langCode;
+    window.speechSynthesis.speak(u);
+  };
+
   const unreadCount = voiceMessages.filter(m => !m.read).length;
 
   const getMoodPoints = () => {
@@ -503,7 +511,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </>
             )}
 
-            {/* ... Routines and Analytics Tabs unchanged ... */}
             {activeTab === 'routines' && (
                 <div className="space-y-4">
                     <button 
@@ -883,7 +890,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                                 <p className="font-bold text-xs text-purple-500 uppercase mb-1">{t(lang, 'suggestedReplies')}</p>
                                                 <ul className="list-disc pl-4 space-y-1">
                                                     {msg.analysis.suggestedResponses.map((res, i) => (
-                                                        <li key={i} className="text-xs text-gray-600">{res}</li>
+                                                        <li key={i} className="text-xs text-gray-600 flex items-center justify-between group">
+                                                            <span>{res}</span>
+                                                            <button 
+                                                                onClick={() => speakText(res)} 
+                                                                className="text-gray-300 hover:text-purple-500 ml-2 transition-colors p-1"
+                                                                title="Listen"
+                                                            >
+                                                                <i className="fa-solid fa-volume-high"></i>
+                                                            </button>
+                                                        </li>
                                                     ))}
                                                 </ul>
                                             </div>
