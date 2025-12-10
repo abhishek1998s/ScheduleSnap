@@ -310,6 +310,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, o
              }}
              className="px-3 py-1 bg-white/20 rounded-full backdrop-blur-md text-xs font-bold"
              disabled={!!preview || isRecording}
+             aria-label={mode === 'photo' ? "Switch to Video" : "Switch to Photo"}
         >
              {mode === 'photo' ? <i className="fa-solid fa-video"></i> : <i className="fa-solid fa-camera"></i>}
         </button>
@@ -357,7 +358,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onImageSelected, o
 
       {/* Controls */}
       {!isLoading && (
-        <div className="bg-black/80 backdrop-blur-sm p-4 sm:p-8 flex justify-between items-center pb-8 sm:pb-12">
+        <div className="bg-black/80 backdrop-blur-sm p-4 sm:p-8 pb-8 sm:pb-12 flex justify-between items-center">
           {!preview ? (
             <>
                {/* Upload Button */}

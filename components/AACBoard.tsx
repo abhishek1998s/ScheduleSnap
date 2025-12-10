@@ -149,7 +149,8 @@ export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, c
                                     speak(`${t(language, 'aacIWantToGoTo')} ${scene.name}`);
                                     setActiveScene(scene);
                                 }}
-                                className="aspect-square bg-white rounded-2xl shadow-md border-2 border-gray-100 flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform"
+                                tabIndex={0}
+                                className="aspect-square bg-white rounded-2xl shadow-md border-2 border-gray-100 flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform hover:bg-gray-50 focus:ring-4 focus:ring-blue-200"
                                 aria-label={`Open scene ${scene.name}`}
                             >
                                 <span className="text-6xl">{scene.emoji}</span>
@@ -164,7 +165,7 @@ export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, c
              return (
                  <div className="flex flex-col h-full">
                      <div className="p-2 border-b flex items-center gap-2 bg-gray-50 shrink-0">
-                         <button onClick={() => setActiveScene(null)} className="px-3 py-1 bg-white border rounded-lg text-sm font-bold shadow-sm" aria-label="Back to scenes">
+                         <button onClick={() => setActiveScene(null)} className="px-3 py-1 bg-white border rounded-lg text-sm font-bold shadow-sm hover:bg-gray-100" aria-label="Back to scenes">
                              <i className="fa-solid fa-arrow-left mr-1"></i> Back
                          </button>
                          <span className="font-bold text-lg">{activeScene.emoji} {activeScene.name}</span>
@@ -175,7 +176,9 @@ export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, c
                                 <button
                                     key={btn.id}
                                     onClick={() => speak(btn.voice)}
-                                    className={`${btn.color} text-white p-2 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-md active:scale-95 transition-transform aspect-square`}
+                                    tabIndex={0}
+                                    onKeyDown={(e) => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); speak(btn.voice); } }}
+                                    className={`${btn.color} text-white p-2 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-md active:scale-95 transition-transform aspect-square focus:ring-4 focus:ring-offset-2`}
                                     aria-label={`Say ${btn.label}`}
                                 >
                                     <span className="text-4xl">{btn.emoji}</span>
@@ -198,12 +201,14 @@ export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, c
                     <button
                         key={btn.id}
                         onClick={() => speak(btn.voice)}
+                        tabIndex={0}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
+                             e.preventDefault();
                              speak(btn.voice);
                           }
                         }}
-                        className={`${btn.color} text-white p-2 rounded-2xl flex flex-col items-center justify-center gap-2 shadow-md active:scale-95 transition-transform aspect-square`}
+                        className={`${btn.color} text-white p-2 rounded-2xl flex flex-col items-center justify-center gap-2 shadow-md active:scale-95 transition-transform aspect-square focus:ring-4 focus:ring-offset-2`}
                         aria-label={`Say ${btn.label}`}
                     >
                         <span className="text-4xl sm:text-5xl">{btn.emoji}</span>
@@ -220,11 +225,13 @@ export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, c
                             placeholder={t(language, 'enterWord')}
                             className="w-full text-center p-1 bg-white rounded border text-sm"
                             disabled={isAdding}
+                            aria-label="Enter new button label"
                         />
                         <button 
                             onClick={handleCreateCustom}
                             disabled={!newButtonLabel || isAdding}
-                            className="w-full bg-gray-800 text-white py-2 rounded-lg text-xs font-bold"
+                            className="w-full bg-gray-800 text-white py-2 rounded-lg text-xs font-bold hover:bg-gray-700"
+                            aria-label="Add new button"
                         >
                             {isAdding ? <i className="fa-solid fa-circle-notch fa-spin"></i> : <i className="fa-solid fa-plus"></i>} {t(language, 'addCustom')}
                         </button>
@@ -244,20 +251,22 @@ export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, c
           </h2>
           <button 
             onClick={onClose}
-            className="w-10 h-10 bg-white border border-gray-200 rounded-full hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors flex items-center justify-center shadow-sm"
+            className="w-12 h-12 bg-white border border-gray-200 rounded-full hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors flex items-center justify-center shadow-sm"
             aria-label="Close AAC Board"
           >
-            <i className="fa-solid fa-times"></i>
+            <i className="fa-solid fa-times text-xl"></i>
           </button>
         </div>
 
         {/* Categories Tabs */}
-        <div className="flex overflow-x-auto bg-white border-b shrink-0 no-scrollbar">
+        <div className="flex overflow-x-auto bg-white border-b shrink-0 no-scrollbar" role="tablist">
             {CATEGORIES.map(cat => (
                 <button
                     key={cat.id}
                     onClick={() => { setActiveCategory(cat.id); setActiveScene(null); }}
-                    className={`flex flex-col items-center justify-center p-3 min-w-[70px] sm:min-w-[80px] border-b-4 transition-colors ${
+                    role="tab"
+                    aria-selected={activeCategory === cat.id}
+                    className={`flex flex-col items-center justify-center p-3 min-w-[60px] sm:min-w-[80px] border-b-4 transition-colors ${
                         activeCategory === cat.id 
                             ? 'border-blue-500 bg-blue-50 text-blue-600' 
                             : 'border-transparent text-gray-500 hover:bg-gray-50'

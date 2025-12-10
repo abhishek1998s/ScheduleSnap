@@ -54,7 +54,7 @@ export const RewardStore: React.FC<RewardStoreProps> = ({ tokens, profile, onRed
     <div className="h-full bg-purple-50 flex flex-col relative">
         {/* Header */}
         <div className="bg-white p-4 shadow-sm flex items-center justify-between sticky top-0 z-10 shrink-0">
-            <button onClick={onExit} aria-label="Back"><i className="fa-solid fa-arrow-left text-xl"></i></button>
+            <button onClick={onExit} aria-label="Back" className="p-2"><i className="fa-solid fa-arrow-left text-xl"></i></button>
             <h1 className="text-xl font-bold text-purple-700">{t(lang, 'rewardStore')}</h1>
             <div className="bg-yellow-100 px-3 py-1 rounded-full flex items-center gap-1">
                 <i className="fa-solid fa-star text-yellow-500"></i>
@@ -80,6 +80,7 @@ export const RewardStore: React.FC<RewardStoreProps> = ({ tokens, profile, onRed
                                 className={`bg-white p-4 rounded-2xl shadow-sm flex flex-col items-center gap-2 border-b-4 transition-all
                                     ${canAfford ? 'border-purple-200 active:border-purple-100 active:translate-y-1 hover:scale-105' : 'border-gray-200 opacity-50 grayscale cursor-not-allowed'}
                                 `}
+                                aria-label={`Buy ${reward.name} for ${reward.cost} tokens`}
                             >
                                 <span className="text-5xl mb-2 filter drop-shadow-sm">{reward.emoji}</span>
                                 <span className="font-bold text-gray-800 text-sm leading-tight">{reward.name}</span>
