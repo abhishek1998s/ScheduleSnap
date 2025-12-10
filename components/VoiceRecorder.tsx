@@ -1,19 +1,16 @@
 
 import React, { useState, useRef } from 'react';
-import { VoiceMessage, SpeechAnalysis } from '../types';
+import { VoiceMessage, SpeechAnalysis, ChildProfile } from '../types';
 import { analyzeChildSpeech } from '../services/geminiService';
 import { t } from '../utils/translations';
 
 interface VoiceRecorderProps {
   onSave: (msg: VoiceMessage) => void;
   onExit: () => void;
-  language?: string;
+  profile: ChildProfile; // Changed from language string to full profile for AI context
 }
 
-// Temporary profile mock if not passed. In real app, pass from App.tsx
-const TEMP_PROFILE = { name: 'Child', age: 6, interests: [], language: 'English', sensoryProfile: { soundSensitivity: 'medium' } as any };
-
-export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onSave, onExit, language }) => {
+export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onSave, onExit, profile }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<SpeechAnalysis | null>(null);
@@ -22,6 +19,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onSave, onExit, la
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const language = profile.language;
 
   const startRecording = async () => {
     setError(null);
@@ -41,8 +39,8 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onSave, onExit, la
         
         setIsAnalyzing(true);
         try {
-            // Pass actual profile in production
-            const result = await analyzeChildSpeech(audioBlob, { ...TEMP_PROFILE, language: language || 'English' });
+            // Use the actual child profile for better intent analysis
+            const result = await analyzeChildSpeech(audioBlob, profile);
             setAnalysis(result);
         } catch (e) {
             setError("Failed to analyze speech. Please try again.");

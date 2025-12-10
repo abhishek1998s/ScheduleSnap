@@ -851,22 +851,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 {msg.analysis ? (
                                     <div className="space-y-2 text-sm">
                                         <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
-                                            <p className="font-bold text-xs text-gray-500 uppercase">Interpretation</p>
+                                            <p className="font-bold text-xs text-gray-500 uppercase">{t(lang, 'interpretation')}</p>
                                             <p className="text-gray-800 font-bold">"{msg.analysis.interpretedMeaning}"</p>
                                         </div>
                                         <div className="grid grid-cols-2 gap-2">
                                             <div>
-                                                <p className="font-bold text-xs text-gray-400 uppercase">Raw Audio</p>
+                                                <p className="font-bold text-xs text-gray-400 uppercase">{t(lang, 'rawAudio')}</p>
                                                 <p className="text-xs text-gray-600 italic">"{msg.analysis.rawTranscription}"</p>
                                             </div>
                                             <div>
-                                                <p className="font-bold text-xs text-gray-400 uppercase">Tone</p>
+                                                <p className="font-bold text-xs text-gray-400 uppercase">{t(lang, 'tone')}</p>
                                                 <p className="text-xs text-gray-600 font-bold">{msg.analysis.emotionalTone}</p>
                                             </div>
                                         </div>
                                         {msg.analysis.suggestedResponses && msg.analysis.suggestedResponses.length > 0 && (
                                             <div className="pt-2 border-t border-gray-100 mt-2">
-                                                <p className="font-bold text-xs text-purple-500 uppercase mb-1">Suggested Replies</p>
+                                                <p className="font-bold text-xs text-purple-500 uppercase mb-1">{t(lang, 'suggestedReplies')}</p>
                                                 <ul className="list-disc pl-4 space-y-1">
                                                     {msg.analysis.suggestedResponses.map((res, i) => (
                                                         <li key={i} className="text-xs text-gray-600">{res}</li>
