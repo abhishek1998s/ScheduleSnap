@@ -68,8 +68,13 @@ export interface QuizQuestion {
   options: string[];
   correctAnswer: string;
   hint: string;
-  explanation: string; // New: Educational feedback
-  visualType: 'face' | 'scenario'; // New: Determines layout
+  explanation: {
+      text: string;
+      facialFeatures?: string;
+      bodyLanguage?: string;
+      whyItLooksThisWay?: string;
+  };
+  visualType: 'face' | 'scenario' | 'emoji' | 'cartoon' | 'photo';
   difficultyLevel: number;
 }
 
@@ -99,9 +104,10 @@ export interface BehaviorAnalysis {
 
 export interface WeeklyReport {
   summary: string;
-  improvements: string[];
-  concerns: string[];
+  improvements: string[]; // maps to 'wins' in some contexts
+  concerns: string[];     // maps to 'challenges'
   wins: string[];
+  suggestions: string[];
 }
 
 // NEW: Speech Interpretation Types
@@ -124,7 +130,7 @@ export interface VoiceMessage {
   timestamp: number;
   audioBlob: Blob; 
   transcription?: string; // Keeping for backward compatibility
-  analysis?: SpeechAnalysis; // Full AI analysis
+  analysis?: SpeechAnalysis; // Full analysis
   read: boolean; // Track if parent has viewed the message
 }
 
@@ -215,6 +221,7 @@ export interface ScheduleOptimization {
     reason: string;            // "Alex completes faster when dressed first"
     evidence: string;         // "3 of 5 faster completions had this order"
     confidence: number;        // 85%
+    impact: 'high' | 'medium' | 'low'; // NEW
   }[];
 
   predictedImprovement: {

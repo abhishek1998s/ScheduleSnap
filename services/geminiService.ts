@@ -12,6 +12,17 @@ ALWAYS generate content in the following language: ${lang}.
 Keep language simple, direct, and positive. Use emojis heavily.
 `;
 
+// Helper for Deep Thinking Config
+const getThinkingConfig = (taskType: 'simple' | 'medium' | 'complex' | 'maximum') => {
+  const budgets = {
+    simple: 1024,      // micro-steps, coping strategies
+    medium: 2048,      // schedules, quizzes
+    complex: 4096,     // behavior analysis, predictions
+    maximum: 8192      // video analysis, agentic tasks
+  };
+  return { thinkingConfig: { thinkingBudget: budgets[taskType] } };
+};
+
 // Helper for Blob to Base64
 const blobToBase64 = (blob: Blob): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -58,6 +69,7 @@ export const generateScheduleFromImage = async (
         ]
       },
       config: {
+        ...getThinkingConfig('medium'),
         systemInstruction: getSystemInstruction(profile.language),
         responseMimeType: "application/json",
         responseSchema: {
@@ -107,6 +119,7 @@ export const generateMicroSteps = async (instruction: string, profile: ChildProf
             model: 'gemini-3-pro-preview',
             contents: `Break down the task "${instruction}" into 3-5 very simple micro-steps for a ${profile.age} year old.`,
             config: {
+                ...getThinkingConfig('simple'),
                 responseMimeType: "application/json",
                 responseSchema: { type: Type.ARRAY, items: { type: Type.STRING } }
             }
@@ -122,6 +135,7 @@ export const predictMeltdownRisk = async (profile: ChildProfile, behaviorLogs: B
             model: 'gemini-3-pro-preview',
             contents: `Analyze risk of meltdown. Profile: ${JSON.stringify(profile)}. Behaviors: ${JSON.stringify(behaviorLogs.slice(-5))}. Context: ${scheduleContext || 'Free'}.`,
             config: {
+                ...getThinkingConfig('complex'),
                 responseMimeType: "application/json",
                 responseSchema: {
                     type: Type.OBJECT,
@@ -148,6 +162,7 @@ export const analyzeBehaviorLogs = async (logs: BehaviorLog[], profile: ChildPro
             model: 'gemini-3-pro-preview',
             contents: `Analyze these behavior logs for patterns and triggers for a ${profile.age} year old: ${JSON.stringify(logs)}`,
             config: {
+                ...getThinkingConfig('complex'),
                 responseMimeType: "application/json",
                 responseSchema: {
                     type: Type.OBJECT,
@@ -169,8 +184,9 @@ export const analyzeBehaviorVideo = async (base64: string, profile: ChildProfile
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-preview',
-            contents: { parts: [{ inlineData: { mimeType, data: base64 } }, { text: "Analyze video for behavioral triggers." }] },
+            contents: { parts: [{ inlineData: { mimeType, data: base64 } }, { text: "Analyze video for behavioral triggers and sensory input." }] },
             config: {
+                ...getThinkingConfig('maximum'),
                 responseMimeType: "application/json",
                 responseSchema: {
                     type: Type.OBJECT,
@@ -188,12 +204,13 @@ export const analyzeBehaviorVideo = async (base64: string, profile: ChildProfile
 };
 
 export const generateWeeklyReport = async (moods: MoodEntry[], behaviors: BehaviorLog[], completions: CompletionLog[], profile: ChildProfile): Promise<WeeklyReport> => {
-    if (!process.env.API_KEY) return { summary: "Great week!", improvements: [], concerns: [], wins: [] };
+    if (!process.env.API_KEY) return { summary: "Great week!", improvements: [], concerns: [], wins: [], suggestions: [] };
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-preview',
-            contents: `Generate report. Moods: ${JSON.stringify(moods)}. Behaviors: ${JSON.stringify(behaviors)}.`,
+            contents: `Generate report. Moods: ${JSON.stringify(moods)}. Behaviors: ${JSON.stringify(behaviors)}. Completions: ${JSON.stringify(completions)}.`,
             config: {
+                ...getThinkingConfig('complex'),
                 responseMimeType: "application/json",
                 responseSchema: {
                     type: Type.OBJECT,
@@ -201,13 +218,14 @@ export const generateWeeklyReport = async (moods: MoodEntry[], behaviors: Behavi
                         summary: { type: Type.STRING },
                         improvements: { type: Type.ARRAY, items: { type: Type.STRING } },
                         concerns: { type: Type.ARRAY, items: { type: Type.STRING } },
-                        wins: { type: Type.ARRAY, items: { type: Type.STRING } }
+                        wins: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        suggestions: { type: Type.ARRAY, items: { type: Type.STRING } }
                     }
                 }
             }
         });
         return JSON.parse(response.text || '{}');
-    } catch (e) { return { summary: "N/A", improvements: [], concerns: [], wins: [] }; }
+    } catch (e) { return { summary: "N/A", improvements: [], concerns: [], wins: [], suggestions: [] }; }
 };
 
 export const generateScheduleOptimization = async (schedule: Schedule, behaviorLogs: BehaviorLog[], completionLogs: CompletionLog[], profile: ChildProfile): Promise<ScheduleOptimization> => {
@@ -215,14 +233,15 @@ export const generateScheduleOptimization = async (schedule: Schedule, behaviorL
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-preview',
-            contents: `Optimize schedule. Schedule: ${JSON.stringify(schedule)}. Logs: ${JSON.stringify(behaviorLogs)}.`,
+            contents: `Optimize schedule based on behavior and completion logs. Schedule: ${JSON.stringify(schedule)}. Logs: ${JSON.stringify(behaviorLogs)}.`,
             config: {
+                ...getThinkingConfig('maximum'),
                 responseMimeType: "application/json",
                 responseSchema: {
                     type: Type.OBJECT,
                     properties: {
                         scheduleId: { type: Type.STRING },
-                        recommendations: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { type: { type: Type.STRING }, description: { type: Type.STRING }, reason: { type: Type.STRING }, evidence: { type: Type.STRING }, confidence: { type: Type.NUMBER } } } },
+                        recommendations: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { type: { type: Type.STRING }, description: { type: Type.STRING }, reason: { type: Type.STRING }, evidence: { type: Type.STRING }, confidence: { type: Type.NUMBER }, impact: { type: Type.STRING, enum: ['high', 'medium', 'low'] } } } },
                         predictedImprovement: { type: Type.OBJECT, properties: { completionRate: { type: Type.STRING }, avgTime: { type: Type.STRING }, stressLevel: { type: Type.STRING } } }
                     }
                 }
@@ -238,8 +257,9 @@ export const analyzeTherapySession = async (mediaBase64: string, mimeType: strin
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-preview',
-            contents: { parts: [{ inlineData: { mimeType, data: mediaBase64 } }, { text: "Analyze therapy session." }] },
+            contents: { parts: [{ inlineData: { mimeType, data: mediaBase64 } }, { text: "Analyze therapy session for techniques, breakthroughs, and challenges." }] },
             config: {
+                ...getThinkingConfig('maximum'),
                 responseMimeType: "application/json",
                 responseSchema: {
                     type: Type.OBJECT,
@@ -266,6 +286,7 @@ export const generateLearningPath = async (profile: ChildProfile, skillArea: str
             model: 'gemini-3-pro-preview',
             contents: `Create learning path for ${skillArea} for ${profile.age}yo.`,
             config: {
+                ...getThinkingConfig('medium'),
                 responseMimeType: "application/json",
                 responseSchema: {
                     type: Type.OBJECT,
@@ -285,7 +306,10 @@ export const generateLessonContent = async (lesson: Lesson, profile: ChildProfil
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-preview',
             contents: `Generate content for lesson ${lesson.title} (${lesson.type}).`,
-            config: { responseMimeType: "application/json" }
+            config: { 
+                ...getThinkingConfig('medium'),
+                responseMimeType: "application/json" 
+            }
         });
         return JSON.parse(response.text || '{}');
     } catch (e) { return {}; }
@@ -298,6 +322,7 @@ export const generateAACSymbol = async (label: string, language: string): Promis
             model: 'gemini-3-pro-preview',
             contents: `Create AAC symbol for "${label}".`,
             config: {
+                ...getThinkingConfig('simple'),
                 responseMimeType: "application/json",
                 responseSchema: { type: Type.OBJECT, properties: { label: { type: Type.STRING }, emoji: { type: Type.STRING }, voice: { type: Type.STRING }, color: { type: Type.STRING }, category: { type: Type.STRING } } }
             }
@@ -312,24 +337,65 @@ export const generateCopingStrategy = async (mood: string, profile: ChildProfile
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-preview',
             contents: `Strategies for ${mood}.`,
-            config: { responseMimeType: "application/json", responseSchema: { type: Type.ARRAY, items: { type: Type.STRING } } }
+            config: { 
+                ...getThinkingConfig('simple'),
+                responseMimeType: "application/json", 
+                responseSchema: { type: Type.ARRAY, items: { type: Type.STRING } } 
+            }
         });
         return JSON.parse(response.text || '[]');
     } catch (e) { return ["Breathe"]; }
 };
 
-export const generateEmotionQuiz = async (age: number, level: number, language: string, lastTopic?: string): Promise<QuizQuestion> => {
+export const generateEmotionQuiz = async (age: number, level: number, language: string, lastTopic?: string, visualType: string = 'emoji'): Promise<QuizQuestion> => {
     if (!process.env.API_KEY) return getMockQuiz();
     try {
+        const prompt = `
+        Generate an emotion recognition quiz for a ${age}-year-old child.
+        
+        Visual Type: ${visualType}
+        
+        Create:
+        1. ${visualType === 'emoji' ? 'An emoji face showing the emotion' :
+             visualType === 'cartoon' ? 'Describe a cartoon character expression in detail (eyebrows, mouth shape, body posture)' :
+             'Describe a realistic scenario where this emotion would show'}
+        2. A short scenario explaining WHY someone might feel this way
+        3. The correct emotion label
+        4. 4 multiple choice options
+        5. A helpful hint
+        6. DETAILED EXPLANATION: Describe what facial features indicate this emotion:
+           - What do the eyes look like?
+           - What is the mouth doing?
+           - What is the body language?
+           - Why does this emotion look this way?
+        
+        Output JSON with: question, emoji, options[], correctAnswer, hint, explanation (with text, facialFeatures, bodyLanguage, whyItLooksThisWay)
+        `;
+
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-preview',
-            contents: `Emotion quiz question. Level ${level}.`,
+            contents: prompt,
             config: {
+                ...getThinkingConfig('medium'),
                 responseMimeType: "application/json",
-                responseSchema: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, emoji: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.STRING }, hint: { type: Type.STRING }, explanation: { type: Type.STRING }, visualType: { type: Type.STRING }, difficultyLevel: { type: Type.NUMBER } } }
+                responseSchema: { 
+                    type: Type.OBJECT, 
+                    properties: { 
+                        question: { type: Type.STRING }, 
+                        emoji: { type: Type.STRING }, 
+                        options: { type: Type.ARRAY, items: { type: Type.STRING } }, 
+                        correctAnswer: { type: Type.STRING }, 
+                        hint: { type: Type.STRING }, 
+                        explanation: { type: Type.OBJECT, properties: { text: { type: Type.STRING }, facialFeatures: { type: Type.STRING }, bodyLanguage: { type: Type.STRING }, whyItLooksThisWay: { type: Type.STRING } } }, 
+                        visualType: { type: Type.STRING }, 
+                        difficultyLevel: { type: Type.NUMBER } 
+                    } 
+                }
             }
         });
-        return JSON.parse(response.text || '{}');
+        const result = JSON.parse(response.text || '{}');
+        // Ensure visualType is passed through if not returned by model
+        return { ...result, visualType };
     } catch (e) { return getMockQuiz(); }
 };
 
@@ -352,6 +418,7 @@ export const generateSocialScenario = async (age: number, language: string): Pro
             model: 'gemini-3-pro-preview',
             contents: `Social scenario.`,
             config: {
+                ...getThinkingConfig('medium'),
                 responseMimeType: "application/json",
                 responseSchema: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, description: { type: Type.STRING }, emoji: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { text: { type: Type.STRING }, isAppropriate: { type: Type.BOOLEAN }, feedback: { type: Type.STRING } } } } } }
             }
@@ -366,8 +433,9 @@ export const analyzeChildSpeech = async (audioBlob: Blob, profile: ChildProfile)
         const base64 = await blobToBase64(audioBlob);
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-preview',
-            contents: { parts: [{ inlineData: { mimeType: 'audio/webm', data: base64 } }, { text: "Analyze speech." }] },
+            contents: { parts: [{ inlineData: { mimeType: 'audio/webm', data: base64 } }, { text: "Analyze speech intent and emotion." }] },
             config: {
+                ...getThinkingConfig('medium'),
                 responseMimeType: "application/json",
                 responseSchema: { type: Type.OBJECT, properties: { rawTranscription: { type: Type.STRING }, interpretedMeaning: { type: Type.STRING }, confidence: { type: Type.NUMBER }, aacSymbols: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { label: { type: Type.STRING }, emoji: { type: Type.STRING } } } }, suggestedResponses: { type: Type.ARRAY, items: { type: Type.STRING } }, emotionalTone: { type: Type.STRING } } }
             }
@@ -395,6 +463,7 @@ export const analyzeRoutineFrame = async (base64: string, instruction: string, p
             model: 'gemini-3-pro-preview',
             contents: { parts: [{ inlineData: { mimeType: 'image/jpeg', data: base64 } }, { text: `Analyze frame vs task: ${instruction}` }] },
             config: {
+                ...getThinkingConfig('complex'),
                 responseMimeType: "application/json",
                 responseSchema: { type: Type.OBJECT, properties: { isOnTask: { type: Type.BOOLEAN }, taskProgress: { type: Type.NUMBER }, isStuck: { type: Type.BOOLEAN }, feedback: { type: Type.STRING }, completed: { type: Type.BOOLEAN } } }
             }
@@ -434,6 +503,7 @@ export const generateMagicStory = async (topic: string, concern: string, profile
             model: 'gemini-3-pro-preview',
             contents: `Social story about ${topic}. Concern: ${concern}.`,
             config: {
+                ...getThinkingConfig('medium'),
                 responseMimeType: "application/json",
                 responseSchema: {
                     type: Type.OBJECT,
@@ -489,6 +559,7 @@ export const scanEnvironment = async (
                 ]
             },
             config: {
+                ...getThinkingConfig('maximum'),
                 responseMimeType: "application/json",
                 responseSchema: {
                     type: Type.OBJECT,
@@ -537,7 +608,10 @@ export const getMockOptimization = (schedule: Schedule): ScheduleOptimization =>
     predictedImprovement: { completionRate: "+0%", avgTime: "0min", stressLevel: "Same" }
 });
 
-export const getMockQuiz = (): QuizQuestion => ({ question: "Q", emoji: "❓", options: ["A"], correctAnswer: "A", hint: "H", explanation: "E", visualType: 'face', difficultyLevel: 1 });
+export const getMockQuiz = (): QuizQuestion => ({ 
+    question: "Q", emoji: "❓", options: ["A"], correctAnswer: "A", hint: "H", visualType: 'face', difficultyLevel: 1, 
+    explanation: { text: "Explanation", facialFeatures: "N/A", bodyLanguage: "N/A", whyItLooksThisWay: "N/A" } 
+});
 export const getMockScenario = (): SocialScenario => ({ title: "T", description: "D", emoji: "E", options: [] });
 export const getMockAnalysis = (): BehaviorAnalysis => ({ patterns: [], triggers: [], suggestions: [], insight: "N/A" });
 export const getMockRewards = (): RewardItem[] => [];

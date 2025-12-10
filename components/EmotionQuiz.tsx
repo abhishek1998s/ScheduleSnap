@@ -22,6 +22,7 @@ export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, language, stats, 
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
+  const [visualType, setVisualType] = useState<'emoji' | 'cartoon' | 'photo'>('emoji');
   
   // Track previous question's answer to avoid repetition
   const [lastTopic, setLastTopic] = useState<string | undefined>(undefined);
@@ -34,7 +35,7 @@ export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, language, stats, 
     setShowLevelUp(false);
     
     try {
-        const q = await generateEmotionQuiz(age, stats.level, language, lastTopic);
+        const q = await generateEmotionQuiz(age, stats.level, language || 'English', lastTopic, visualType);
         setQuestion(q);
         setLastTopic(q.correctAnswer);
     } catch (e) {
@@ -48,7 +49,7 @@ export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, language, stats, 
       // Reset avoidance when level changes to allow fresh start
       setLastTopic(undefined);
       loadQuestion(); 
-  }, [age, stats.level]);
+  }, [age, stats.level, visualType]); // Reload when visual type changes
 
   const handleAnswer = (option: string) => {
     if(!question) return;
@@ -83,8 +84,6 @@ export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, language, stats, 
         }
     } else {
         setIsCorrect(false);
-        // Show explanation on wrong answer too after a delay? Or just hint.
-        // Let's just use the hint for now.
     }
   };
 
@@ -131,12 +130,20 @@ export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, language, stats, 
         <div className="flex-1 overflow-y-auto w-full p-4 pb-24">
             <div className="flex flex-col items-center gap-6">
                 
+                {/* Visual Type Selector */}
+                <div className="flex gap-2 mb-2">
+                  <button onClick={() => setVisualType('emoji')} className={`px-3 py-1 rounded-full text-xs font-bold border ${visualType === 'emoji' ? 'bg-yellow-400 text-white border-yellow-400' : 'bg-white text-gray-500 border-gray-200'}`}>😊 Emoji</button>
+                  <button onClick={() => setVisualType('cartoon')} className={`px-3 py-1 rounded-full text-xs font-bold border ${visualType === 'cartoon' ? 'bg-yellow-400 text-white border-yellow-400' : 'bg-white text-gray-500 border-gray-200'}`}>🎨 Cartoon</button>
+                  <button onClick={() => setVisualType('photo')} className={`px-3 py-1 rounded-full text-xs font-bold border ${visualType === 'photo' ? 'bg-yellow-400 text-white border-yellow-400' : 'bg-white text-gray-500 border-gray-200'}`}>📷 Photo</button>
+                </div>
+
                 {/* Visual */}
                 <div className="text-center animate-bounce shrink-0 relative">
-                     {question.visualType === 'scenario' ? (
-                         <div className="bg-white p-6 rounded-3xl shadow-md border-2 border-yellow-100">
+                     {question.visualType === 'scenario' || question.visualType === 'photo' || question.visualType === 'cartoon' ? (
+                         <div className="bg-white p-6 rounded-3xl shadow-md border-2 border-yellow-100 max-w-sm">
+                             {/* Since we don't have actual generated images, we use large emoji or text description as placeholder for 'photo'/'cartoon' modes */}
                              <div className="text-6xl mb-2">{question.emoji}</div>
-                             <p className="text-sm text-gray-400 font-bold uppercase">{t(language, 'scenario')}</p>
+                             <p className="text-sm text-gray-400 font-bold uppercase">{question.visualType}</p>
                          </div>
                      ) : (
                          <div className="text-[8rem] filter drop-shadow-md">
@@ -193,9 +200,18 @@ export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, language, stats, 
                         <h3 className="text-2xl font-bold text-green-700">{t(language, 'youGotIt')}</h3>
                     </div>
                     
-                    <p className="text-gray-600 text-lg leading-relaxed mb-6">
-                        {question.explanation}
-                    </p>
+                    {/* Detailed Explanation */}
+                    <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 mb-4 text-sm text-blue-900 space-y-2">
+                        {typeof question.explanation === 'object' ? (
+                            <>
+                                <p><strong>👀 Face:</strong> {question.explanation.facialFeatures || "Look at the eyes and mouth."}</p>
+                                <p><strong>💪 Body:</strong> {question.explanation.bodyLanguage || "Notice the posture."}</p>
+                                <p><strong>💡 Why:</strong> {question.explanation.whyItLooksThisWay || question.explanation.text}</p>
+                            </>
+                        ) : (
+                            <p>{question.explanation}</p>
+                        )}
+                    </div>
 
                     <button 
                         onClick={loadQuestion}

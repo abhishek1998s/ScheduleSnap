@@ -12,7 +12,7 @@ interface CalmModeProps {
 
 type BreathingPattern = 'Balanced' | 'Relax' | 'Box' | 'Quick';
 type VisualTheme = 'Circle' | 'Waves' | 'Bubbles' | 'Stars';
-type Soundscape = 'None' | 'WhiteNoise' | 'Rain' | 'Drone' | 'Heartbeat';
+type Soundscape = 'None' | 'WhiteNoise' | 'Rain' | 'Drone' | 'Heartbeat' | 'Ocean' | 'Forest';
 
 const PATTERNS: Record<BreathingPattern, { in: number; hold: number; out: number; holdEmpty: number }> = {
   Balanced: { in: 4, hold: 4, out: 4, holdEmpty: 0 },
@@ -80,12 +80,16 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language, audioEnabl
       
       masterGain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + fadeTime);
 
-      if (sound === 'WhiteNoise' || sound === 'Rain') {
+      if (sound === 'WhiteNoise' || sound === 'Rain' || sound === 'Ocean') {
           const bufferSize = ctx.sampleRate * 2;
           const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
           const data = buffer.getChannelData(0);
           for (let i = 0; i < bufferSize; i++) {
-              data[i] = Math.random() * 2 - 1;
+              // Pinkish noise approximation for ocean/rain
+              const white = Math.random() * 2 - 1;
+              data[i] = (lastOut + (0.02 * white)) / 1.02;
+              lastOut = data[i];
+              data[i] *= 3.5; 
           }
 
           const noise = ctx.createBufferSource();
@@ -98,6 +102,23 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language, audioEnabl
              filter.frequency.value = 400;
              noise.connect(filter);
              filter.connect(masterGain);
+          } else if (sound === 'Ocean') {
+             const filter = ctx.createBiquadFilter();
+             filter.type = 'lowpass';
+             filter.frequency.value = 300;
+             // LFO for wave effect
+             const lfo = ctx.createOscillator();
+             lfo.type = 'sine';
+             lfo.frequency.value = 0.1; // Slow waves
+             const lfoGain = ctx.createGain();
+             lfoGain.gain.value = 200;
+             lfo.connect(lfoGain);
+             lfoGain.connect(filter.frequency);
+             lfo.start();
+             
+             noise.connect(filter);
+             filter.connect(masterGain);
+             oscillatorsRef.current.push(lfo);
           } else {
              noise.connect(masterGain);
           }
@@ -105,20 +126,31 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language, audioEnabl
           noise.start();
           oscillatorsRef.current.push(noise);
       } 
-      else if (sound === 'Drone') {
+      else if (sound === 'Drone' || sound === 'Forest') {
           const osc1 = ctx.createOscillator();
           const osc2 = ctx.createOscillator();
           osc1.type = 'sine';
           osc2.type = 'triangle';
-          osc1.frequency.value = 110; 
-          osc2.frequency.value = 111.5;
           
-          const oscGain = ctx.createGain();
-          oscGain.gain.value = 0.5;
-
-          osc1.connect(masterGain);
-          osc2.connect(oscGain);
-          oscGain.connect(masterGain);
+          if (sound === 'Forest') {
+              // Simulating wind
+              osc1.frequency.value = 100;
+              osc2.frequency.value = 150;
+              const windFilter = ctx.createBiquadFilter();
+              windFilter.type = 'bandpass';
+              windFilter.frequency.value = 400;
+              osc1.connect(windFilter);
+              osc2.connect(windFilter);
+              windFilter.connect(masterGain);
+          } else {
+              osc1.frequency.value = 110; 
+              osc2.frequency.value = 111.5;
+              const oscGain = ctx.createGain();
+              oscGain.gain.value = 0.5;
+              osc1.connect(masterGain);
+              osc2.connect(oscGain);
+              oscGain.connect(masterGain);
+          }
 
           osc1.start();
           osc2.start();
@@ -144,6 +176,8 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language, audioEnabl
       }
 
   }, [sound, audioEnabled, profile]);
+
+  let lastOut = 0; // For pink noise generation
 
   // Visual Particle Generator
   useEffect(() => {
@@ -398,7 +432,7 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language, audioEnabl
                  <div>
                      <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">{t(language, 'soundscape')}</label>
                      <div className="flex gap-2 overflow-x-auto pb-2">
-                        {(['None', 'WhiteNoise', 'Rain', 'Drone', 'Heartbeat'] as const).map(s => (
+                        {(['None', 'WhiteNoise', 'Rain', 'Drone', 'Heartbeat', 'Ocean', 'Forest'] as const).map(s => (
                             <button 
                                 key={s} 
                                 onClick={() => setSound(s)}

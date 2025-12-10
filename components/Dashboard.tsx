@@ -13,7 +13,7 @@ interface DashboardProps {
   voiceMessages: VoiceMessage[];
   isHighContrast: boolean;
   caregiverPin: string;
-  audioEnabled: boolean; // NEW
+  audioEnabled: boolean;
   onExit: () => void;
   onSelectSchedule: (id: string) => void;
   onDeleteSchedule: (id: string) => void;
@@ -23,13 +23,13 @@ interface DashboardProps {
   onLogBehavior: (log: Omit<BehaviorLog, 'id' | 'timestamp'>) => void;
   onUpdateProfile: (profile: ChildProfile) => void;
   onToggleHighContrast: () => void;
-  onToggleAudio: () => void; // NEW
+  onToggleAudio: () => void;
   onUpdatePin: (newPin: string) => void;
   onMarkMessagesRead: () => void;
   parentMessages?: ParentMessage[];
   onScheduleMessage?: (msg: Omit<ParentMessage, 'id' | 'timestamp' | 'isDelivered' | 'isRead'>) => void;
   onOpenTherapy?: () => void;
-  onOpenOptimizer: (scheduleId: string) => void; // NEW
+  onOpenOptimizer: (scheduleId: string) => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
@@ -74,16 +74,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [msgMedia, setMsgMedia] = useState<{ base64: string, type: 'video' | 'audio', mimeType: string } | null>(null);
   const msgFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Goals
+  // Goals (Computed)
   const [goals, setGoals] = useState([
-      { id: 1, text: "Complete Morning Routine 5x", target: 5, current: 0, icon: "fa-sun", badge: "Morning Star" },
-      { id: 2, text: "Log Mood daily", target: 7, current: 0, icon: "fa-face-smile", badge: "Emotion Explorer" }
+      { id: 1, text: "Complete Routines", target: 5, current: 0, icon: "fa-sun", badge: "Morning Star" },
+      { id: 2, text: "Log Mood", target: 7, current: 0, icon: "fa-face-smile", badge: "Emotion Explorer" }
   ]);
 
   useEffect(() => {
     // Update Goals based on logs
     const weekStart = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const recentCompletions = completionLogs.filter(l => l.timestamp > weekStart && l.scheduleTitle.includes("Morning")).length;
+    const recentCompletions = completionLogs.filter(l => l.timestamp > weekStart).length;
     const recentMoods = moodLogs.filter(l => l.timestamp > weekStart).length;
     
     setGoals(prev => prev.map(g => {
@@ -349,9 +349,57 @@ export const Dashboard: React.FC<DashboardProps> = ({
             
             {activeTab === 'overview' && (
                 <>
+                    {/* Weekly Report Section */}
+                     <div className="bg-yellow-50 p-4 rounded-2xl border border-yellow-200">
+                         <div className="flex justify-between items-center mb-3">
+                             <h3 className="font-bold text-yellow-800">🤖 AI Weekly Insights</h3>
+                             <button 
+                                onClick={handleGenerateReport}
+                                disabled={generatingReport}
+                                className="bg-white text-yellow-700 px-4 py-2 rounded-xl text-sm font-bold shadow-sm"
+                             >
+                                 {generatingReport ? 'Analyzing...' : 'Generate Report'}
+                             </button>
+                         </div>
+                         {weeklyReport ? (
+                             <div className="bg-white p-4 rounded-xl text-sm space-y-3">
+                                 <p className="font-medium text-gray-800 text-base">{weeklyReport.summary}</p>
+                                 
+                                 {weeklyReport.wins?.length > 0 && (
+                                     <div>
+                                         <div className="font-bold text-green-600 mb-1">🎉 Wins</div>
+                                         <ul className="list-disc pl-4 text-gray-600 space-y-1">
+                                             {weeklyReport.wins.map((w, i) => <li key={i}>{w}</li>)}
+                                         </ul>
+                                     </div>
+                                 )}
+                                 
+                                 {weeklyReport.concerns?.length > 0 && (
+                                     <div>
+                                         <div className="font-bold text-orange-600 mb-1">📈 Focus Areas</div>
+                                         <ul className="list-disc pl-4 text-gray-600 space-y-1">
+                                             {weeklyReport.concerns.map((c, i) => <li key={i}>{c}</li>)}
+                                         </ul>
+                                     </div>
+                                 )}
+
+                                 {weeklyReport.suggestions?.length > 0 && (
+                                     <div>
+                                         <div className="font-bold text-blue-600 mb-1">💡 AI Suggestions</div>
+                                         <ul className="list-disc pl-4 text-gray-600 space-y-1">
+                                             {weeklyReport.suggestions.map((s, i) => <li key={i}>{s}</li>)}
+                                         </ul>
+                                     </div>
+                                 )}
+                             </div>
+                         ) : (
+                             <p className="text-sm text-yellow-700 opacity-70">Tap 'Generate Report' to get AI-powered insights on your child's week.</p>
+                         )}
+                     </div>
+
                     {/* Therapy Access Card */}
                     {onOpenTherapy && (
-                        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg mb-6 flex items-center justify-between">
+                        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg flex items-center justify-between">
                             <div>
                                 <h3 className="text-xl font-bold mb-1">{t(lang, 'therapyTitle')}</h3>
                                 <p className="text-white/80 text-sm">Analyze videos, track progress & get clinical insights.</p>
@@ -364,27 +412,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             </button>
                         </div>
                     )}
-                    
-                    {/* Weekly Report Section */}
-                     <div className="bg-blue-50 p-4 rounded-2xl border border-blue-200">
-                         <div className="flex justify-between items-center mb-3">
-                             <h3 className="font-bold text-blue-800">Weekly AI Insights</h3>
-                             <button 
-                                onClick={handleGenerateReport}
-                                disabled={generatingReport}
-                                className="bg-white text-blue-600 px-3 py-1 rounded-lg text-sm font-bold shadow-sm"
-                             >
-                                 {generatingReport ? 'Generating...' : 'Generate Report'}
-                             </button>
-                         </div>
-                         {weeklyReport && (
-                             <div className="bg-white p-4 rounded-xl text-sm space-y-2">
-                                 <p className="font-medium text-gray-800">{weeklyReport.summary}</p>
-                                 <div><span className="font-bold text-green-600">Wins:</span> {weeklyReport.wins.join(', ')}</div>
-                                 <div><span className="font-bold text-orange-600">Focus:</span> {weeklyReport.concerns.join(', ')}</div>
-                             </div>
-                         )}
-                     </div>
 
                     <div className={`${isHighContrast ? 'bg-gray-900 border-2 border-yellow-400' : 'bg-white border-gray-100'} p-6 rounded-2xl shadow-sm border`}>
                         <div className="flex justify-between items-start mb-4">
@@ -469,6 +496,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </>
             )}
 
+            {/* Other tabs remain unchanged mostly, just improved logic above */}
             {activeTab === 'routines' && (
                 <div className="space-y-4">
                     <button 
