@@ -17,6 +17,7 @@ import { VoiceRecorder } from './components/VoiceRecorder';
 import { WaitTimer } from './components/WaitTimer';
 import { ResearchTool } from './components/ResearchTool';
 import { MeltdownPredictionAlert } from './components/MeltdownPredictionAlert';
+import { VoiceCompanion } from './components/VoiceCompanion';
 import { t } from './utils/translations';
 
 const INITIAL_PROFILE: ChildProfile = {
@@ -348,6 +349,17 @@ const App: React.FC = () => {
 
   return (
     <div className={`h-full w-full relative ${themeClass} overflow-hidden`}>
+      
+      {/* Voice Companion "Snap" */}
+      {state.view !== ViewState.COACH && state.view !== ViewState.CAMERA && (
+          <VoiceCompanion 
+              profile={state.profile}
+              currentView={state.view}
+              activeScheduleTitle={activeSchedule?.title}
+              meltdownRisk={state.latestPrediction || null}
+              onEnterLiveMode={() => navigateTo(ViewState.COACH)}
+          />
+      )}
       
       {/* Meltdown Risk Alert - Persistent Overlay */}
       {state.latestPrediction && state.view !== ViewState.CALM && (

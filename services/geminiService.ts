@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { Schedule, ChildProfile, QuizQuestion, SocialScenario, BehaviorLog, BehaviorAnalysis, ResearchResult, RewardItem, AACButton, MoodEntry, CompletionLog, WeeklyReport, VideoAnalysisResult, MeltdownPrediction, SpeechAnalysis, ScheduleOptimization } from "../types";
+import { Schedule, ChildProfile, QuizQuestion, SocialScenario, BehaviorLog, BehaviorAnalysis, ResearchResult, RewardItem, AACButton, MoodEntry, CompletionLog, WeeklyReport, VideoAnalysisResult, MeltdownPrediction, SpeechAnalysis, ScheduleOptimization, ConversationMode } from "../types";
 
 // Initialize Gemini Client
 // Use a dummy key if missing to prevent initialization errors, checking process.env.API_KEY before calls.
@@ -1066,5 +1066,43 @@ export const analyzeChildSpeech = async (
             suggestedResponses: [],
             emotionalTone: "Unknown"
         };
+    }
+};
+
+// NEW: Generate proactive companion comment
+export const generateCompanionComment = async (
+    profile: ChildProfile,
+    mode: ConversationMode,
+    context: any
+): Promise<string> => {
+    if (!process.env.API_KEY) {
+        return "Hi there! You are doing great!";
+    }
+
+    const prompt = `
+        You are "Snap", a friendly, patient robot companion for ${profile.name}, a ${profile.age}-year-old autistic child.
+        Interests: ${profile.interests.join(', ')}.
+        Current Mode: ${mode}.
+        Context: ${JSON.stringify(context)}.
+
+        Generate a SINGLE, short (1-2 sentences) message to speak to the child.
+        - Be encouraging and warm.
+        - Use their interests if relevant (e.g., make a dinosaur metaphor).
+        - If mode is 'play', tell a simple joke or fun fact.
+        - If mode is 'calm_support', be soothing.
+        - Language: ${profile.language || 'English'}.
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: 'text/plain'
+            }
+        });
+        return response.text || "You are awesome!";
+    } catch (e) {
+        return "You are doing great!";
     }
 };

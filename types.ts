@@ -1,4 +1,5 @@
 
+
 export interface ScheduleStep {
   id: string;
   emoji: string;
@@ -210,24 +211,8 @@ export interface ScheduleOptimization {
   };
 }
 
-export interface AppState {
-  view: 'home' | 'camera' | 'schedule-runner' | 'dashboard' | 'calm' | 'preview' | 'mood' | 'quiz' | 'store' | 'coach' | 'social' | 'voice-recorder' | 'timer' | 'research';
-  activeScheduleId: string | null;
-  schedules: Schedule[];
-  profile: ChildProfile;
-  isAACOpen: boolean;
-  isHighContrast: boolean;
-  tokens: number;
-  moodLogs: MoodEntry[];
-  behaviorLogs: BehaviorLog[];
-  completionLogs: CompletionLog[]; 
-  voiceMessages: VoiceMessage[];
-  quizStats: QuizStats;
-  meltdownRisk?: 'Low' | 'Medium' | 'High'; // Simple legacy flag, kept for backward compatibility
-  caregiverPin?: string;
-  customAACButtons: AACButton[]; 
-  latestPrediction?: MeltdownPrediction | null; 
-}
+// NEW: Voice Companion Modes
+export type ConversationMode = 'routine_guide' | 'encouragement' | 'calm_support' | 'learning' | 'play' | 'transition_prep';
 
 export enum ViewState {
   HOME = 'home',
@@ -244,4 +229,23 @@ export enum ViewState {
   VOICE_RECORDER = 'voice-recorder',
   TIMER = 'timer',
   RESEARCH = 'research'
+}
+
+export interface AppState {
+  view: ViewState;
+  activeScheduleId: string | null;
+  schedules: Schedule[];
+  profile: ChildProfile;
+  isAACOpen: boolean;
+  isHighContrast: boolean;
+  tokens: number;
+  moodLogs: MoodEntry[];
+  behaviorLogs: BehaviorLog[];
+  completionLogs: CompletionLog[]; 
+  voiceMessages: VoiceMessage[];
+  quizStats: QuizStats;
+  meltdownRisk?: 'Low' | 'Medium' | 'High'; // Simple legacy flag, kept for backward compatibility
+  caregiverPin?: string;
+  customAACButtons: AACButton[]; 
+  latestPrediction?: MeltdownPrediction | null; 
 }
