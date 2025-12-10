@@ -62,18 +62,18 @@ export const StoryReader: React.FC<StoryReaderProps> = ({ story, onClose, langua
       if (currentPage === -1) {
           // Cover Page
           return (
-              <div className="flex flex-col items-center justify-center h-full text-center bg-indigo-50 p-8 rounded-3xl border-4 border-indigo-200">
-                  <div className="text-9xl mb-8 animate-bounce">{story.coverEmoji}</div>
-                  <h1 className="text-4xl font-bold text-indigo-900 mb-4">{story.title}</h1>
+              <div className="flex flex-col items-center justify-center h-full text-center bg-indigo-50 p-4 md:p-8 rounded-3xl border-4 border-indigo-200 overflow-y-auto">
+                  <div className="text-8xl md:text-9xl mb-4 md:mb-8 animate-bounce">{story.coverEmoji}</div>
+                  <h1 className="text-3xl md:text-4xl font-bold text-indigo-900 mb-4">{story.title}</h1>
                   <p className="text-indigo-400 font-bold uppercase tracking-widest text-sm">{t(language, 'magicBook')}</p>
               </div>
           );
       } else if (currentPage === totalPages) {
           // End Page
           return (
-              <div className="flex flex-col items-center justify-center h-full text-center bg-green-50 p-8 rounded-3xl border-4 border-green-200">
-                  <div className="text-9xl mb-8 animate-pulse">🌟</div>
-                  <h1 className="text-4xl font-bold text-green-900 mb-4">{t(language, 'theEnd')}</h1>
+              <div className="flex flex-col items-center justify-center h-full text-center bg-green-50 p-4 md:p-8 rounded-3xl border-4 border-green-200 overflow-y-auto">
+                  <div className="text-8xl md:text-9xl mb-4 md:mb-8 animate-pulse">🌟</div>
+                  <h1 className="text-3xl md:text-4xl font-bold text-green-900 mb-4">{t(language, 'theEnd')}</h1>
                   <button 
                     onClick={onClose}
                     className="mt-8 bg-green-500 text-white px-8 py-4 rounded-full font-bold text-xl shadow-lg hover:bg-green-600"
@@ -86,14 +86,14 @@ export const StoryReader: React.FC<StoryReaderProps> = ({ story, onClose, langua
           // Story Page
           const page = story.pages[currentPage];
           return (
-              <div className={`flex flex-col items-center justify-center h-full text-center p-6 rounded-3xl border-4 border-white/50 shadow-inner transition-colors duration-500 ${page.color}`}>
-                  <div className="flex-1 flex items-center justify-center">
-                      <div className="text-[10rem] filter drop-shadow-lg transform transition-transform hover:scale-110 duration-300">
+              <div className={`flex flex-col items-center justify-center h-full text-center p-4 md:p-6 rounded-3xl border-4 border-white/50 shadow-inner transition-colors duration-500 ${page.color} overflow-hidden`}>
+                  <div className="flex-1 flex items-center justify-center min-h-0">
+                      <div className="text-[6rem] md:text-[10rem] filter drop-shadow-lg transform transition-transform hover:scale-110 duration-300">
                           {page.emoji}
                       </div>
                   </div>
-                  <div className="bg-white/90 p-6 rounded-2xl shadow-sm w-full mb-8">
-                      <p className="text-2xl md:text-3xl font-bold text-gray-800 leading-relaxed font-sans">
+                  <div className="bg-white/90 p-4 md:p-6 rounded-2xl shadow-sm w-full mb-2 md:mb-8 shrink-0">
+                      <p className="text-xl md:text-3xl font-bold text-gray-800 leading-relaxed font-sans">
                           {page.text}
                       </p>
                   </div>
@@ -105,7 +105,8 @@ export const StoryReader: React.FC<StoryReaderProps> = ({ story, onClose, langua
   return (
     <div className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-4">
         {/* Book Container */}
-        <div className="relative w-full max-w-2xl aspect-[3/4] md:aspect-video bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+        {/* Removed fixed aspect ratio, using max-h-[85vh] for responsiveness */}
+        <div className="relative w-full max-w-2xl h-full max-h-[85vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col">
             
             {/* Header / Progress */}
             <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-10 pointer-events-none">
@@ -120,12 +121,12 @@ export const StoryReader: React.FC<StoryReaderProps> = ({ story, onClose, langua
             </div>
 
             {/* Main Content Area with Animation */}
-            <div className={`flex-1 p-2 md:p-6 transition-opacity duration-300 ${isFlipping ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
+            <div className={`flex-1 p-2 md:p-6 overflow-hidden transition-opacity duration-300 ${isFlipping ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
                 {getPageContent()}
             </div>
 
             {/* Navigation Controls */}
-            <div className="p-4 flex justify-between items-center bg-white border-t z-10">
+            <div className="p-4 flex justify-between items-center bg-white border-t z-10 shrink-0">
                 <button 
                     onClick={handlePrev}
                     disabled={currentPage === -1}
