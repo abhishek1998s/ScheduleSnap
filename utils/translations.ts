@@ -173,6 +173,9 @@ export const translations: Record<string, Record<string, string>> = {
     soundHeartbeat: "Heartbeat",
     soundDrone: "Calm Hum",
     soundRain: "Rain",
+    soundOcean: "Ocean",
+    soundForest: "Forest",
+    soundBirds: "Birds",
     holdEmpty: "Hold Empty...",
     // Quiz New
     level: "Level",

@@ -12,7 +12,7 @@ interface CalmModeProps {
 
 type BreathingPattern = 'Balanced' | 'Relax' | 'Box' | 'Quick';
 type VisualTheme = 'Circle' | 'Waves' | 'Bubbles' | 'Stars';
-type Soundscape = 'None' | 'WhiteNoise' | 'Rain' | 'Drone' | 'Heartbeat' | 'Ocean' | 'Forest';
+type Soundscape = 'None' | 'WhiteNoise' | 'Rain' | 'Drone' | 'Heartbeat' | 'Ocean' | 'Forest' | 'Birds';
 
 const PATTERNS: Record<BreathingPattern, { in: number; hold: number; out: number; holdEmpty: number }> = {
   Balanced: { in: 4, hold: 4, out: 4, holdEmpty: 0 },
@@ -35,6 +35,7 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language, audioEnabl
   const audioCtxRef = useRef<AudioContext | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
   const oscillatorsRef = useRef<(OscillatorNode | AudioBufferSourceNode)[]>([]);
+  const birdIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Background Elements State
   const [particles, setParticles] = useState<{ x: number, y: number, size: number, delay: number, duration: number }[]>([]);
@@ -65,6 +66,11 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language, audioEnabl
           try { src.stop(ctx.currentTime + fadeTime); } catch(e){}
       });
       oscillatorsRef.current = [];
+      
+      if (birdIntervalRef.current) {
+          clearInterval(birdIntervalRef.current);
+          birdIntervalRef.current = null;
+      }
 
       if (ctx.state === 'suspended') ctx.resume();
 
@@ -173,6 +179,52 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language, audioEnabl
           osc.start();
           lfo.start();
           oscillatorsRef.current.push(osc, lfo);
+      }
+      else if (sound === 'Birds') {
+          // Play random chirps
+          const playChirp = () => {
+              if (ctx.state === 'suspended') ctx.resume();
+              const t = ctx.currentTime;
+              const osc = ctx.createOscillator();
+              const g = ctx.createGain();
+              osc.connect(g);
+              g.connect(masterGain);
+              
+              const startFreq = 2000 + Math.random() * 1500;
+              osc.frequency.setValueAtTime(startFreq, t);
+              osc.frequency.exponentialRampToValueAtTime(startFreq * 0.5, t + 0.1);
+              osc.type = 'sine';
+              
+              g.gain.setValueAtTime(0, t);
+              g.gain.linearRampToValueAtTime(0.05, t + 0.01);
+              g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+              
+              osc.start(t);
+              osc.stop(t + 0.15);
+          };
+
+          // Background light wind for Birds
+          const windOsc = ctx.createOscillator();
+          const windGain = ctx.createGain();
+          const windFilter = ctx.createBiquadFilter();
+          
+          // Use a low freq oscillator filtered to sound somewhat like air
+          windOsc.frequency.value = 80;
+          windFilter.type = 'lowpass';
+          windFilter.frequency.value = 200;
+          
+          windOsc.connect(windFilter);
+          windFilter.connect(windGain);
+          windGain.connect(masterGain);
+          
+          windOsc.start();
+          windGain.gain.value = 0.05;
+          oscillatorsRef.current.push(windOsc);
+
+          playChirp(); // Play one immediately
+          birdIntervalRef.current = setInterval(() => {
+              if(Math.random() > 0.4) playChirp();
+          }, 1500);
       }
 
   }, [sound, audioEnabled, profile]);
@@ -432,7 +484,7 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language, audioEnabl
                  <div>
                      <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">{t(language, 'soundscape')}</label>
                      <div className="flex gap-2 overflow-x-auto pb-2">
-                        {(['None', 'WhiteNoise', 'Rain', 'Drone', 'Heartbeat', 'Ocean', 'Forest'] as const).map(s => (
+                        {(['None', 'WhiteNoise', 'Rain', 'Drone', 'Heartbeat', 'Ocean', 'Forest', 'Birds'] as const).map(s => (
                             <button 
                                 key={s} 
                                 onClick={() => setSound(s)}
