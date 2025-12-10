@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Schedule, ChildProfile } from '../types';
 import { generateMicroSteps } from '../services/geminiService';
+import { t } from '../utils/translations';
 
 interface PreviewScheduleProps {
   schedule: Omit<Schedule, 'id' | 'createdAt'>;
@@ -13,6 +14,7 @@ interface PreviewScheduleProps {
 export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, profile, onSave, onCancel }) => {
   const [localSchedule, setLocalSchedule] = useState(schedule);
   const [loadingStepId, setLoadingStepId] = useState<string | null>(null);
+  const lang = profile.language;
 
   const handleMagicWand = async (stepIndex: number) => {
     const step = localSchedule.steps[stepIndex];
@@ -43,8 +45,8 @@ export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, prof
   return (
     <div className="flex flex-col h-full bg-background">
       <div className="bg-white p-4 shadow-sm border-b flex justify-between items-center">
-        <button onClick={onCancel} className="text-gray-500">Cancel</button>
-        <h2 className="font-bold text-lg text-gray-700">Preview Routine</h2>
+        <button onClick={onCancel} className="text-gray-500">{t(lang, 'cancel')}</button>
+        <h2 className="font-bold text-lg text-gray-700">{t(lang, 'previewRoutine')}</h2>
         <div className="w-10"></div>
       </div>
 
@@ -77,7 +79,7 @@ export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, prof
             {localSchedule.missingItems && localSchedule.missingItems.length > 0 && (
                 <div className="mb-4 bg-orange-50 border border-orange-200 p-3 rounded-xl text-left">
                     <h3 className="text-orange-800 font-bold text-xs uppercase flex items-center gap-2 mb-1">
-                        <i className="fa-solid fa-triangle-exclamation"></i> Missing Items
+                        <i className="fa-solid fa-triangle-exclamation"></i> {t(lang, 'missingItems')}
                     </h3>
                     <div className="flex flex-wrap gap-2">
                         {localSchedule.missingItems.map((item, i) => (
@@ -93,7 +95,7 @@ export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, prof
             {localSchedule.socialStory && (
                 <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-100 text-left">
                     <h3 className="text-yellow-800 font-bold text-sm uppercase mb-1 flex items-center gap-2">
-                        <i className="fa-solid fa-book-open"></i> Social Story
+                        <i className="fa-solid fa-book-open"></i> {t(lang, 'socialStory')}
                     </h3>
                     <p className="text-yellow-900 font-medium leading-relaxed">
                         {localSchedule.socialStory}
@@ -155,7 +157,7 @@ export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, prof
         {/* Celebration Message */}
         <div className="mt-4 bg-green-50 p-4 rounded-xl border border-green-100">
             <h3 className="text-green-800 font-bold text-sm uppercase mb-1 flex items-center gap-2">
-                <i className="fa-solid fa-trophy"></i> Celebration Message
+                <i className="fa-solid fa-trophy"></i> {t(lang, 'celebrationMessage')}
             </h3>
             <input 
                 value={localSchedule.completionCelebration || ''}
@@ -172,7 +174,7 @@ export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, prof
             onClick={() => onSave(localSchedule)}
             className="w-full py-4 bg-primary text-white rounded-xl font-bold shadow-lg flex items-center justify-center gap-2"
         >
-            <i className="fa-solid fa-check"></i> Save & Start Routine
+            <i className="fa-solid fa-check"></i> {t(lang, 'saveStart')}
         </button>
       </div>
     </div>

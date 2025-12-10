@@ -87,7 +87,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const runAnalysis = async () => {
     if (behaviorLogs.length < 2) {
-        alert("Need at least 2 logs to analyze patterns.");
+        alert(t(lang, 'needLogs'));
         return;
     }
     setIsAnalyzing(true);
@@ -181,8 +181,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-2">
                 <i className="fa-solid fa-lock text-primary text-xl"></i>
             </div>
-            <h2 className="text-xl font-bold text-gray-800 mb-1">Parent Access</h2>
-            <p className="text-gray-500 text-sm mb-6">Enter PIN to access settings</p>
+            <h2 className="text-xl font-bold text-gray-800 mb-1">{t(lang, 'parentAccess')}</h2>
+            <p className="text-gray-500 text-sm mb-6">{t(lang, 'enterPin')}</p>
             
             {/* Visual PIN Dots */}
             <div className="flex gap-4 mb-8 justify-center h-8">
@@ -222,8 +222,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </button>
             </div>
 
-            <button onClick={handleUnlock} className="w-full bg-primary text-white py-3 rounded-xl font-bold shadow-md mb-2">Unlock</button>
-            <button onClick={onExit} className="text-gray-400 text-sm py-2">Cancel</button>
+            <button onClick={handleUnlock} className="w-full bg-primary text-white py-3 rounded-xl font-bold shadow-md mb-2">{t(lang, 'unlock')}</button>
+            <button onClick={onExit} className="text-gray-400 text-sm py-2">{t(lang, 'cancel')}</button>
         </div>
       </div>
     );
@@ -304,7 +304,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                     />
                                     <label htmlFor="thinking" className="text-sm font-bold">
                                         {t(lang, 'thinkingMode')}
-                                        <span className="block text-xs opacity-60 font-normal">Slower, but smarter reasoning for complex schedules.</span>
+                                        <span className="block text-xs opacity-60 font-normal">{t(lang, 'agentThinking')}</span>
                                     </label>
                                 </div>
                                 <button onClick={saveProfile} className={`w-full ${isHighContrast ? 'bg-yellow-400 text-black' : 'bg-primary text-white'} py-2 rounded-lg font-bold`}>{t(lang, 'save')}</button>
@@ -364,14 +364,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         {/* Share */}
                         <div className="pt-4 border-t border-gray-100">
                              <div className="flex justify-between items-center mb-2">
-                                <span className="font-bold text-sm">Share Profile</span>
+                                <span className="font-bold text-sm">{t(lang, 'shareProfile')}</span>
                                 {shareCode && <span className="font-mono bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs select-all">{shareCode}</span>}
                              </div>
                              <button 
                                 onClick={generateShareCode}
                                 className={`w-full py-2 rounded-lg font-bold text-sm ${isHighContrast ? 'bg-gray-800 text-yellow-300' : 'bg-blue-50 text-blue-600'}`}
                              >
-                                {shareCode ? 'Regenerate Code' : 'Generate Share Code'}
+                                {shareCode ? t(lang, 'regenerateCode') : t(lang, 'generateCode')}
                              </button>
                         </div>
 
@@ -444,18 +444,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 >
                                     {optimizingId === schedule.id ? (
                                         <>
-                                            <i className="fa-solid fa-circle-notch fa-spin"></i> Agent Optimizing...
+                                            <i className="fa-solid fa-circle-notch fa-spin"></i> {t(lang, 'agentOptimizing')}
                                         </>
                                     ) : (
                                         <>
-                                            <i className="fa-solid fa-wand-magic-sparkles"></i> Auto-Improve with AI Agent
+                                            <i className="fa-solid fa-wand-magic-sparkles"></i> {t(lang, 'autoImprove')}
                                         </>
                                     )}
                                 </button>
                             </div>
                             {optimizingId === schedule.id && (
                                 <p className="text-[10px] text-purple-500 text-center animate-pulse">
-                                    Deep thinking agent is analyzing behavioral logs to reduce friction...
+                                    {t(lang, 'agentThinking')}
                                 </p>
                             )}
                         </div>
@@ -466,14 +466,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {activeTab === 'messages' && (
                 <div className="space-y-4">
                      <h3 className="font-bold">{t(lang, 'messages')}</h3>
-                     {voiceMessages.length === 0 ? <p className="opacity-50">No messages yet.</p> : 
+                     {voiceMessages.length === 0 ? <p className="opacity-50">{t(lang, 'noMessages')}</p> : 
                         voiceMessages.map(msg => (
                             <div key={msg.id} className="bg-white text-black p-4 rounded-2xl shadow-sm">
                                 <p className="text-xs text-gray-400 mb-2">{new Date(msg.timestamp).toLocaleString()}</p>
                                 <audio controls src={URL.createObjectURL(msg.audioBlob)} className="w-full mb-3" />
                                 {msg.transcription && (
                                     <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
-                                        <p className="text-xs text-gray-500 font-bold mb-1 uppercase tracking-wider">Transcription</p>
+                                        <p className="text-xs text-gray-500 font-bold mb-1 uppercase tracking-wider">{t(lang, 'transcription')}</p>
                                         <p className="text-sm text-gray-700 italic">"{msg.transcription}"</p>
                                     </div>
                                 )}
@@ -514,7 +514,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             
                             <input 
                                 type="text"
-                                placeholder="Trigger (optional)"
+                                placeholder={t(lang, 'triggerOptional')}
                                 value={newLogTrigger}
                                 onChange={(e) => setNewLogTrigger(e.target.value)}
                                 className="w-full p-4 bg-gray-50 rounded-xl border border-gray-200"
@@ -538,7 +538,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                     onClick={() => videoInputRef.current?.click()}
                                     className="px-3 py-2 bg-purple-200 text-purple-800 text-xs font-bold rounded-lg"
                                 >
-                                    <i className="fa-solid fa-video mr-1"></i> Video
+                                    <i className="fa-solid fa-video mr-1"></i> {t(lang, 'video')}
                                 </button>
                                 <button 
                                     onClick={runAnalysis}
@@ -554,17 +554,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         {analysis ? (
                              <div className="space-y-3 text-sm text-black">
                                 <div className="bg-white p-3 rounded-xl">
-                                    <p className="font-bold text-gray-700">Insight:</p>
+                                    <p className="font-bold text-gray-700">{t(lang, 'insight')}:</p>
                                     <p className="text-gray-600">{analysis.insight}</p>
                                 </div>
                                 <div className="bg-white p-3 rounded-xl">
-                                    <p className="font-bold text-gray-700">Likely Triggers:</p>
+                                    <p className="font-bold text-gray-700">{t(lang, 'likelyTriggers')}:</p>
                                     <div className="flex flex-wrap gap-1 mt-1">
                                         {analysis.triggers.map(t => <span key={t} className="px-2 py-0.5 bg-red-100 text-red-600 rounded-md text-xs font-bold">{t}</span>)}
                                     </div>
                                 </div>
                                 <div className="bg-white p-3 rounded-xl">
-                                    <p className="font-bold text-gray-700">Suggestions:</p>
+                                    <p className="font-bold text-gray-700">{t(lang, 'suggestions')}:</p>
                                     <ul className="list-disc list-inside text-gray-600">
                                         {analysis.suggestions.map((s,i) => <li key={i}>{s}</li>)}
                                     </ul>
@@ -572,15 +572,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
                              </div>
                         ) : (
                             <p className="opacity-70 text-sm italic text-center">
-                                Log 2+ incidents or upload a video for AI analysis.
+                                {t(lang, 'needLogs')}
                             </p>
                         )}
                      </div>
 
                      <div className={`${isHighContrast ? 'bg-gray-900' : 'bg-white'} p-6 rounded-2xl shadow-sm border border-gray-100`}>
-                        <h3 className="font-bold mb-4">Recent Logs</h3>
+                        <h3 className="font-bold mb-4">{t(lang, 'logs')}</h3>
                         <div className="space-y-3">
-                            {behaviorLogs.length === 0 ? <p className="opacity-50 text-sm">No incidents logged.</p> : 
+                            {behaviorLogs.length === 0 ? <p className="opacity-50 text-sm">{t(lang, 'noIncidents')}</p> : 
                                 behaviorLogs.slice().reverse().slice(0,5).map(log => (
                                     <div key={log.id} className="text-sm p-4 bg-red-50 text-red-900 rounded-xl flex flex-col gap-1 border border-red-100">
                                         <div className="flex justify-between items-center">

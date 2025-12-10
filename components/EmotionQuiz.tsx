@@ -2,14 +2,16 @@
 import React, { useState, useEffect } from 'react';
 import { QuizQuestion } from '../types';
 import { generateEmotionQuiz } from '../services/geminiService';
+import { t } from '../utils/translations';
 
 interface EmotionQuizProps {
   age: number;
+  language?: string;
   onCorrect: () => void;
   onExit: () => void;
 }
 
-export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, onCorrect, onExit }) => {
+export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, language, onCorrect, onExit }) => {
   const [question, setQuestion] = useState<QuizQuestion | null>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
@@ -20,7 +22,7 @@ export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, onCorrect, onExit
     setSelected(null);
     setIsCorrect(null);
     try {
-        const q = await generateEmotionQuiz(age);
+        const q = await generateEmotionQuiz(age, language);
         setQuestion(q);
     } catch (e) {
         console.error(e);
@@ -46,7 +48,7 @@ export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, onCorrect, onExit
      return (
         <div className="h-full flex flex-col items-center justify-center bg-yellow-50">
             <i className="fa-solid fa-star text-4xl text-yellow-400 fa-spin mb-4"></i>
-            <p className="font-bold text-gray-500">Making a fun quiz...</p>
+            <p className="font-bold text-gray-500">{t(language, 'makingQuiz')}</p>
         </div>
      );
   }
@@ -60,7 +62,7 @@ export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, onCorrect, onExit
                 <i className="fa-solid fa-times"></i>
             </button>
             <div className="bg-yellow-200 px-4 py-1 rounded-full text-yellow-800 font-bold text-sm">
-                Emotion Quiz
+                {t(language, 'emotionQuiz')}
             </div>
             <div className="w-8"></div>
         </div>
@@ -74,7 +76,7 @@ export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, onCorrect, onExit
                 <div className="bg-white p-6 rounded-3xl shadow-sm text-center w-full max-w-lg">
                     <p className="text-xl font-bold text-gray-800 mb-2">{question.question}</p>
                     {isCorrect === false && (
-                        <p className="text-orange-500 font-bold text-sm animate-pulse">Hint: {question.hint}</p>
+                        <p className="text-orange-500 font-bold text-sm animate-pulse">{t(language, 'hint')}: {question.hint}</p>
                     )}
                 </div>
 
@@ -102,13 +104,13 @@ export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, onCorrect, onExit
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10 p-6">
                 <div className="bg-white rounded-3xl p-8 text-center animate-slideUp">
                     <i className="fa-solid fa-trophy text-6xl text-yellow-400 mb-4"></i>
-                    <h2 className="text-3xl font-bold text-gray-800 mb-2">You got it!</h2>
-                    <p className="text-gray-500 mb-6">+1 Token Earned</p>
+                    <h2 className="text-3xl font-bold text-gray-800 mb-2">{t(language, 'youGotIt')}</h2>
+                    <p className="text-gray-500 mb-6">{t(language, 'tokenEarned')}</p>
                     <button 
                         onClick={loadQuestion}
                         className="bg-primary text-white px-8 py-3 rounded-xl font-bold text-xl w-full"
                     >
-                        Next Question
+                        {t(language, 'nextQuestion')}
                     </button>
                 </div>
             </div>

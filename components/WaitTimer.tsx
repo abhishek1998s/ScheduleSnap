@@ -1,11 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
+import { t } from '../utils/translations';
 
 interface WaitTimerProps {
   onExit: () => void;
+  language?: string;
 }
 
-export const WaitTimer: React.FC<WaitTimerProps> = ({ onExit }) => {
+export const WaitTimer: React.FC<WaitTimerProps> = ({ onExit, language }) => {
   const [duration, setDuration] = useState<number | null>(null); // in seconds
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -43,7 +45,7 @@ export const WaitTimer: React.FC<WaitTimerProps> = ({ onExit }) => {
     <div className="flex flex-col h-full bg-white">
       <div className="p-4 flex items-center justify-between shrink-0">
          <button onClick={onExit}><i className="fa-solid fa-arrow-left text-2xl text-gray-400"></i></button>
-         <h2 className="text-xl font-bold text-gray-700">Wait Timer</h2>
+         <h2 className="text-xl font-bold text-gray-700">{t(language, 'waitTimer')}</h2>
          <div className="w-8"></div>
       </div>
 
@@ -73,12 +75,12 @@ export const WaitTimer: React.FC<WaitTimerProps> = ({ onExit }) => {
                             <div className="text-6xl font-bold text-gray-800 drop-shadow-sm">
                                 {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
                             </div>
-                            <div className="text-gray-600 font-bold">{timeLeft === 0 ? "DONE!" : "Waiting..."}</div>
+                            <div className="text-gray-600 font-bold">{timeLeft === 0 ? t(language, 'done') : t(language, 'waiting')}</div>
                         </>
                     ) : (
                         <div className="flex flex-col items-center text-gray-400">
                             <i className="fa-solid fa-hourglass-start text-5xl mb-2"></i>
-                            <span className="font-bold text-lg">Set Time</span>
+                            <span className="font-bold text-lg">{t(language, 'setTime')}</span>
                         </div>
                     )}
                 </div>
@@ -102,7 +104,7 @@ export const WaitTimer: React.FC<WaitTimerProps> = ({ onExit }) => {
                     onClick={() => setIsRunning(false)}
                     className="w-full max-w-md bg-red-100 text-red-500 font-bold py-4 rounded-xl"
                 >
-                    Pause
+                    {t(language, 'pause')}
                 </button>
             )}
             {!isRunning && timeLeft !== null && timeLeft > 0 && (
@@ -110,7 +112,7 @@ export const WaitTimer: React.FC<WaitTimerProps> = ({ onExit }) => {
                     onClick={() => setIsRunning(true)}
                     className="w-full max-w-md bg-green-100 text-green-600 font-bold py-4 rounded-xl"
                 >
-                    Resume
+                    {t(language, 'resume')}
                 </button>
             )}
          </div>

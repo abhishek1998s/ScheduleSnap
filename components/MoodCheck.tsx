@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { ChildProfile, MoodEntry } from '../types';
 import { generateCopingStrategy } from '../services/geminiService';
+import { t } from '../utils/translations';
 
 interface MoodCheckProps {
   profile: ChildProfile;
@@ -22,6 +23,7 @@ export const MoodCheck: React.FC<MoodCheckProps> = ({ profile, onSave, onExit })
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [strategies, setStrategies] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const lang = profile.language;
 
   const handleSelect = async (mood: string) => {
     setSelectedMood(mood);
@@ -50,7 +52,7 @@ export const MoodCheck: React.FC<MoodCheckProps> = ({ profile, onSave, onExit })
     <div className="flex flex-col h-full bg-blue-50">
        <div className="p-6 flex justify-between items-center">
          <button onClick={onExit}><i className="fa-solid fa-arrow-left text-2xl text-gray-600"></i></button>
-         <h1 className="text-2xl font-bold text-gray-800">How are you feeling?</h1>
+         <h1 className="text-2xl font-bold text-gray-800">{t(lang, 'howFeeling')}</h1>
          <div className="w-8"></div>
        </div>
 
@@ -73,18 +75,18 @@ export const MoodCheck: React.FC<MoodCheckProps> = ({ profile, onSave, onExit })
                 <div className="text-8xl bounce">
                     {MOODS.find(m => m.label === selectedMood)?.emoji}
                 </div>
-                <h2 className="text-2xl font-bold text-gray-800">You are feeling {selectedMood}</h2>
+                <h2 className="text-2xl font-bold text-gray-800">{t(lang, 'youAreFeeling')} {selectedMood}</h2>
                 
                 {loading && (
                     <div className="flex items-center gap-2 text-primary">
                         <i className="fa-solid fa-circle-notch fa-spin"></i>
-                        Thinking of ideas...
+                        {t(lang, 'thinkingIdeas')}
                     </div>
                 )}
 
                 {strategies.length > 0 && (
                     <div className="w-full bg-white rounded-3xl p-6 shadow-md">
-                        <h3 className="text-lg font-bold text-primary mb-4">Let's try this:</h3>
+                        <h3 className="text-lg font-bold text-primary mb-4">{t(lang, 'letsTry')}:</h3>
                         <div className="space-y-3">
                             {strategies.map((s, i) => (
                                 <div key={i} className="bg-primary/10 p-4 rounded-xl flex items-center gap-3">
@@ -100,7 +102,7 @@ export const MoodCheck: React.FC<MoodCheckProps> = ({ profile, onSave, onExit })
                   onClick={onExit}
                   className="mt-8 bg-primary text-white px-8 py-3 rounded-full font-bold shadow-lg"
                 >
-                    I feel better now
+                    {t(lang, 'feelBetter')}
                 </button>
              </div>
           )}

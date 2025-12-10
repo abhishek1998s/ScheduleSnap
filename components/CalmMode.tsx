@@ -1,12 +1,15 @@
+
 import React, { useEffect, useState } from 'react';
+import { t } from '../utils/translations';
 
 interface CalmModeProps {
   onExit: () => void;
+  language?: string;
 }
 
-export const CalmMode: React.FC<CalmModeProps> = ({ onExit }) => {
+export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language }) => {
   const [phase, setPhase] = useState<'In' | 'Hold' | 'Out'>('In');
-  const [text, setText] = useState('Breathe In...');
+  const [text, setText] = useState(t(language, 'breatheIn'));
 
   useEffect(() => {
     let timeout: ReturnType<typeof setTimeout>;
@@ -14,17 +17,17 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit }) => {
     const cycle = () => {
       // In: 4s
       setPhase('In');
-      setText('Breathe In... 🌬️');
+      setText(t(language, 'breatheIn') + ' 🌬️');
       
       timeout = setTimeout(() => {
         // Hold: 4s
         setPhase('Hold');
-        setText('Hold... ⏸️');
+        setText(t(language, 'hold') + ' ⏸️');
         
         timeout = setTimeout(() => {
           // Out: 4s
           setPhase('Out');
-          setText('Breathe Out... 💨');
+          setText(t(language, 'breatheOut') + ' 💨');
           
           timeout = setTimeout(() => {
             cycle();
@@ -36,7 +39,7 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit }) => {
     cycle();
 
     return () => clearTimeout(timeout);
-  }, []);
+  }, [language]); // Depend on language to update text if props change
 
   return (
     <div className="fixed inset-0 z-50 bg-[#C8E6C9] flex flex-col items-center justify-center text-primary">
@@ -47,7 +50,7 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit }) => {
         <i className="fa-solid fa-times text-2xl"></i>
       </button>
 
-      <h1 className="text-4xl font-bold mb-12 animate-pulse-slow">Calm Down Corner</h1>
+      <h1 className="text-4xl font-bold mb-12 animate-pulse-slow">{t(language, 'calmDownCorner')}</h1>
 
       <div className={`relative flex items-center justify-center transition-all duration-[4000ms] ease-in-out
         ${phase === 'In' ? 'scale-150' : phase === 'Out' ? 'scale-75' : 'scale-150'}
@@ -64,7 +67,7 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit }) => {
         {text}
       </div>
       
-      <p className="mt-4 text-primary/60">Follow the breathing circle</p>
+      <p className="mt-4 text-primary/60">{t(language, 'followCircle')}</p>
     </div>
   );
 };

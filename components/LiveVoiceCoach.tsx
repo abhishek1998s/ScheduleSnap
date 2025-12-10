@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
 import { ChildProfile } from '../types';
+import { t } from '../utils/translations';
 
 interface LiveVoiceCoachProps {
   profile: ChildProfile;
@@ -22,6 +23,7 @@ export const LiveVoiceCoach: React.FC<LiveVoiceCoachProps> = ({ profile, onExit 
   
   // Session Cursor
   const nextStartTimeRef = useRef<number>(0);
+  const lang = profile.language;
   
   useEffect(() => {
     let isMounted = true;
@@ -217,7 +219,7 @@ export const LiveVoiceCoach: React.FC<LiveVoiceCoachProps> = ({ profile, onExit 
                 <i className="fa-solid fa-microphone text-4xl text-white"></i>
              </div>
              <p className="text-white font-bold text-lg bg-black/40 px-4 py-2 rounded-xl backdrop-blur-sm text-center">
-                 {status === 'connected' ? "I'm listening..." : status === 'error' ? "Connection Failed. Try checking network." : "Connecting..."}
+                 {status === 'connected' ? t(lang, 'listening') : status === 'error' ? t(lang, 'connectionFailed') : t(lang, 'connecting')}
              </p>
          </div>
 
@@ -226,7 +228,7 @@ export const LiveVoiceCoach: React.FC<LiveVoiceCoachProps> = ({ profile, onExit 
             className="bg-red-500 hover:bg-red-600 text-white w-full max-w-sm py-4 rounded-2xl font-bold text-xl shadow-lg flex items-center justify-center gap-2"
          >
             <i className="fa-solid fa-phone-slash"></i>
-            End Call
+            {t(lang, 'endCall')}
          </button>
       </div>
     </div>

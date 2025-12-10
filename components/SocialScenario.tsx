@@ -2,14 +2,16 @@
 import React, { useState, useEffect } from 'react';
 import { SocialScenario } from '../types';
 import { generateSocialScenario } from '../services/geminiService';
+import { t } from '../utils/translations';
 
 interface SocialScenarioProps {
   age: number;
+  language?: string;
   onComplete: (success: boolean) => void;
   onExit: () => void;
 }
 
-export const SocialScenarioPractice: React.FC<SocialScenarioProps> = ({ age, onComplete, onExit }) => {
+export const SocialScenarioPractice: React.FC<SocialScenarioProps> = ({ age, language, onComplete, onExit }) => {
   const [scenario, setScenario] = useState<SocialScenario | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -20,7 +22,7 @@ export const SocialScenarioPractice: React.FC<SocialScenarioProps> = ({ age, onC
     setSelectedOption(null);
     setShowFeedback(false);
     try {
-        const s = await generateSocialScenario(age);
+        const s = await generateSocialScenario(age, language);
         setScenario(s);
     } catch (e) {
         console.error(e);
@@ -45,7 +47,7 @@ export const SocialScenarioPractice: React.FC<SocialScenarioProps> = ({ age, onC
      return (
         <div className="h-full flex flex-col items-center justify-center bg-purple-50">
             <i className="fa-solid fa-users text-4xl text-purple-400 fa-bounce mb-4"></i>
-            <p className="font-bold text-gray-500">Setting the scene...</p>
+            <p className="font-bold text-gray-500">{t(language, 'settingScene')}</p>
         </div>
      );
   }
@@ -59,7 +61,7 @@ export const SocialScenarioPractice: React.FC<SocialScenarioProps> = ({ age, onC
                 <i className="fa-solid fa-times"></i>
             </button>
             <div className="bg-purple-200 px-4 py-1 rounded-full text-purple-800 font-bold text-sm">
-                Social Skills
+                {t(language, 'socialSkills')}
             </div>
             <div className="w-8"></div>
         </div>
@@ -72,7 +74,7 @@ export const SocialScenarioPractice: React.FC<SocialScenarioProps> = ({ age, onC
             </div>
 
             <div className="space-y-4">
-                <p className="font-bold text-gray-500 ml-2">What should you do?</p>
+                <p className="font-bold text-gray-500 ml-2">{t(language, 'whatDo')}</p>
                 {scenario.options.map((opt, idx) => (
                     <button
                         key={idx}
@@ -106,7 +108,7 @@ export const SocialScenarioPractice: React.FC<SocialScenarioProps> = ({ age, onC
                 onClick={loadScenario}
                 className="w-full bg-primary text-white py-4 rounded-xl font-bold shadow-lg animate-slideUp"
              >
-                Try Another One
+                {t(language, 'tryAnother')}
              </button>
         )}
     </div>
