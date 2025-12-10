@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { Schedule, ChildProfile, QuizQuestion, SocialScenario, BehaviorLog, BehaviorAnalysis, ResearchResult, RewardItem, AACButton, MoodEntry, CompletionLog, WeeklyReport, VideoAnalysisResult, MeltdownPrediction, SpeechAnalysis, ScheduleOptimization, ConversationMode, BuilderFeedback, StoryBook, TherapySessionAnalysis } from "../types";
+import { Schedule, ChildProfile, QuizQuestion, SocialScenario, BehaviorLog, BehaviorAnalysis, ResearchResult, RewardItem, AACButton, MoodEntry, CompletionLog, WeeklyReport, VideoAnalysisResult, MeltdownPrediction, SpeechAnalysis, ScheduleOptimization, ConversationMode, BuilderFeedback, StoryBook, TherapySessionAnalysis, LearningPath, Lesson } from "../types";
 
 // Initialize Gemini Client
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || 'dummy_key_for_init' });
@@ -427,6 +427,116 @@ export const analyzeTherapySession = async (
     } catch (e) {
         console.error("Therapy analysis failed", e);
         throw e;
+    }
+};
+
+export const generateLearningPath = async (
+    profile: ChildProfile,
+    skillArea: string
+): Promise<LearningPath> => {
+    if (!process.env.API_KEY) {
+        // Mock Response
+        return {
+            id: `path-${Date.now()}`,
+            skillArea,
+            currentLevel: 1,
+            progress: 0,
+            colorTheme: "blue",
+            lessons: [
+                { id: 'l1', title: 'Lesson 1', description: 'Intro', type: 'story', estimatedTime: '5m', isCompleted: false, isLocked: false, emoji: '📖' },
+                { id: 'l2', title: 'Lesson 2', description: 'Practice', type: 'quiz', estimatedTime: '3m', isCompleted: false, isLocked: true, emoji: '❓' }
+            ]
+        };
+    }
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: `
+                Create a 5-lesson learning path for a ${profile.age} year old autistic child.
+                Skill Area: ${skillArea}.
+                Interests: ${profile.interests.join(', ')}.
+                Language: ${profile.language || 'English'}.
+                Return JSON with lessons.
+            `,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        lessons: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    title: { type: Type.STRING },
+                                    description: { type: Type.STRING },
+                                    type: { type: Type.STRING, enum: ['video', 'quiz', 'practice', 'story'] },
+                                    estimatedTime: { type: Type.STRING },
+                                    emoji: { type: Type.STRING }
+                                },
+                                required: ['title', 'description', 'type', 'estimatedTime', 'emoji']
+                            }
+                        }
+                    },
+                    required: ['lessons']
+                }
+            }
+        });
+
+        const data = JSON.parse(response.text || '{}');
+        const lessons: Lesson[] = data.lessons.map((l: any, i: number) => ({
+            ...l,
+            id: `lesson-${Date.now()}-${i}`,
+            isCompleted: false,
+            isLocked: i > 0 // Lock subsequent lessons
+        }));
+
+        return {
+            id: `path-${skillArea}-${Date.now()}`,
+            skillArea,
+            currentLevel: 1,
+            progress: 0,
+            colorTheme: skillArea === 'Emotional Regulation' ? 'blue' : skillArea === 'Social Skills' ? 'purple' : 'green',
+            lessons
+        };
+    } catch (e) {
+        console.error("Learning path gen failed", e);
+        throw e;
+    }
+};
+
+export const generateLessonContent = async (
+    lesson: Lesson,
+    profile: ChildProfile
+): Promise<any> => {
+    if (!process.env.API_KEY) {
+        if (lesson.type === 'quiz') return { question: "Mock Question?", options: ["A","B"], answer: "A" };
+        if (lesson.type === 'story') return { title: lesson.title, text: "Once upon a time..." };
+        return { text: "Practice instruction placeholder." };
+    }
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: `
+                Generate content for a learning lesson.
+                Type: ${lesson.type}.
+                Title: ${lesson.title}.
+                For: ${profile.age} year old.
+                Interests: ${profile.interests.join(', ')}.
+                Language: ${profile.language || 'English'}.
+                If type is 'quiz', return { question, options: string[], correctAnswer: string, explanation: string }.
+                If type is 'story', return { title, pages: [{text, emoji}] }.
+                If type is 'practice', return { steps: string[], parentTips: string[] }.
+            `,
+            config: {
+                responseMimeType: "application/json"
+            }
+        });
+        return JSON.parse(response.text || '{}');
+    } catch (e) {
+        return {};
     }
 };
 

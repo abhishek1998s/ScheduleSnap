@@ -289,6 +289,30 @@ export interface TherapySession {
   notes?: string;
 }
 
+// NEW: Learning Path Types
+export type LessonType = 'video' | 'quiz' | 'practice' | 'story';
+
+export interface Lesson {
+  id: string;
+  title: string;
+  description: string;
+  type: LessonType;
+  estimatedTime: string; // "5 mins"
+  isCompleted: boolean;
+  isLocked: boolean;
+  emoji: string;
+  content?: any; // To store generated content like quiz questions or story text
+}
+
+export interface LearningPath {
+  id: string;
+  skillArea: string; // "Social Skills", "Emotional Regulation", etc.
+  currentLevel: number; // 1-10
+  lessons: Lesson[];
+  progress: number; // 0-100%
+  colorTheme: string; // Tailwind class prefix, e.g., "blue"
+}
+
 // NEW: Voice Companion Modes
 export type ConversationMode = 'routine_guide' | 'encouragement' | 'calm_support' | 'learning' | 'play' | 'transition_prep';
 
@@ -310,7 +334,8 @@ export enum ViewState {
   KIDS_BUILDER = 'kids-builder',
   MAGIC_BOOKS = 'magic-books',
   PARENT_INBOX = 'parent-inbox',
-  THERAPY = 'therapy' // New View
+  THERAPY = 'therapy',
+  LEARNING = 'learning' // New View
 }
 
 export interface AppState {
@@ -332,5 +357,6 @@ export interface AppState {
   latestPrediction?: MeltdownPrediction | null;
   stories: StoryBook[];
   parentMessages: ParentMessage[];
-  therapySessions: TherapySession[]; // New State
+  therapySessions: TherapySession[];
+  learningPaths: LearningPath[]; // New State
 }

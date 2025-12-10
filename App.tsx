@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { AppState, ViewState, Schedule, ChildProfile, MoodEntry, BehaviorLog, VoiceMessage, MeltdownPrediction, StoryBook, ParentMessage, TherapySession } from './types';
+import { AppState, ViewState, Schedule, ChildProfile, MoodEntry, BehaviorLog, VoiceMessage, MeltdownPrediction, StoryBook, ParentMessage, TherapySession, LearningPath } from './types';
 import { generateScheduleFromImage, predictMeltdownRisk } from './services/geminiService';
 import { CalmMode } from './components/CalmMode';
 import { AACBoard } from './components/AACBoard';
@@ -22,6 +22,7 @@ import { KidsRoutineBuilder } from './components/KidsRoutineBuilder';
 import { MagicBookLibrary } from './components/MagicBookLibrary';
 import { ParentMessageInbox } from './components/ParentMessageInbox';
 import { TherapyManager } from './components/TherapyManager';
+import { LearningPathDashboard } from './components/LearningPathDashboard';
 import { t } from './utils/translations';
 
 const INITIAL_PROFILE: ChildProfile = {
@@ -73,7 +74,8 @@ const App: React.FC = () => {
     latestPrediction: null,
     stories: [],
     parentMessages: [],
-    therapySessions: []
+    therapySessions: [],
+    learningPaths: []
   });
 
   const [generatedSchedule, setGeneratedSchedule] = useState<Omit<Schedule, 'id' | 'createdAt'> | null>(null);
@@ -115,7 +117,8 @@ const App: React.FC = () => {
             latestPrediction: parsed.latestPrediction || null,
             stories: parsed.stories || [],
             parentMessages: parsed.parentMessages || [],
-            therapySessions: parsed.therapySessions || []
+            therapySessions: parsed.therapySessions || [],
+            learningPaths: parsed.learningPaths || []
         }));
       } catch (e) {
         console.error("Failed to load save data");
@@ -404,6 +407,20 @@ const App: React.FC = () => {
       setState(prev => ({ ...prev, therapySessions: [...prev.therapySessions, session] }));
   };
 
+  // --- Learning Path Handlers ---
+  const handleUpdateLearningPath = (path: LearningPath) => {
+      setState(prev => {
+          const existingIndex = prev.learningPaths.findIndex(p => p.id === path.id);
+          const newPaths = [...prev.learningPaths];
+          if (existingIndex >= 0) {
+              newPaths[existingIndex] = path;
+          } else {
+              newPaths.push(path);
+          }
+          return { ...prev, learningPaths: newPaths };
+      });
+  };
+
   const handleSendMissYou = () => {
       const msg: VoiceMessage = {
           id: `missyou-${Date.now()}`,
@@ -443,7 +460,7 @@ const App: React.FC = () => {
     <div className={`h-full w-full relative ${themeClass} overflow-hidden`}>
       
       {/* Voice Companion */}
-      {state.view !== ViewState.COACH && state.view !== ViewState.CAMERA && state.view !== ViewState.KIDS_BUILDER && state.view !== ViewState.MAGIC_BOOKS && state.view !== ViewState.PARENT_INBOX && state.view !== ViewState.THERAPY && (
+      {state.view !== ViewState.COACH && state.view !== ViewState.CAMERA && state.view !== ViewState.KIDS_BUILDER && state.view !== ViewState.MAGIC_BOOKS && state.view !== ViewState.PARENT_INBOX && state.view !== ViewState.THERAPY && state.view !== ViewState.LEARNING && (
           <VoiceCompanion 
               profile={state.profile}
               currentView={state.view}
@@ -508,6 +525,15 @@ const App: React.FC = () => {
             >
                 <i className="fa-solid fa-hammer text-3xl"></i>
                 <span className="text-xl font-bold">{t(lang, 'buildMyDay')}</span>
+            </button>
+
+            {/* Learning Path Button - NEW */}
+            <button 
+                onClick={() => navigateTo(ViewState.LEARNING)}
+                className={`w-full p-6 rounded-3xl flex items-center justify-center gap-4 active:scale-95 transition-transform mb-6 ${state.isHighContrast ? 'bg-green-900 border-4 border-yellow-400 text-yellow-300' : 'bg-gradient-to-r from-emerald-400 to-teal-400 text-white shadow-lg'}`}
+            >
+                <i className="fa-solid fa-graduation-cap text-3xl"></i>
+                <span className="text-xl font-bold">{t(lang, 'myLearning')}</span>
             </button>
 
             {/* Magic Books Button */}
@@ -618,8 +644,9 @@ const App: React.FC = () => {
       {state.view === ViewState.MAGIC_BOOKS && <MagicBookLibrary stories={state.stories} profile={state.profile} onSaveStory={handleSaveStory} onDeleteStory={handleDeleteStory} onExit={() => navigateTo(ViewState.HOME)} />}
       {state.view === ViewState.PARENT_INBOX && <ParentMessageInbox messages={state.parentMessages} profile={state.profile} onRespond={handleChildRespond} onExit={() => navigateTo(ViewState.HOME)} onRecordReply={() => navigateTo(ViewState.VOICE_RECORDER)} />}
       {state.view === ViewState.THERAPY && <TherapyManager sessions={state.therapySessions} profile={state.profile} onSaveSession={handleSaveTherapySession} onExit={() => navigateTo(ViewState.DASHBOARD)} />}
+      {state.view === ViewState.LEARNING && <LearningPathDashboard profile={state.profile} paths={state.learningPaths} onUpdatePath={handleUpdateLearningPath} onExit={() => navigateTo(ViewState.HOME)} />}
 
-      {state.view !== ViewState.CAMERA && state.view !== ViewState.CALM && state.view !== ViewState.KIDS_BUILDER && state.view !== ViewState.MAGIC_BOOKS && state.view !== ViewState.PARENT_INBOX && state.view !== ViewState.THERAPY && !state.isAACOpen && (
+      {state.view !== ViewState.CAMERA && state.view !== ViewState.CALM && state.view !== ViewState.KIDS_BUILDER && state.view !== ViewState.MAGIC_BOOKS && state.view !== ViewState.PARENT_INBOX && state.view !== ViewState.THERAPY && state.view !== ViewState.LEARNING && !state.isAACOpen && (
         <button 
             onClick={() => setState(s => ({...s, isAACOpen: true}))}
             className={`fixed bottom-6 right-6 w-16 h-16 rounded-full flex items-center justify-center active:scale-90 transition-transform z-50 ${state.isHighContrast ? 'bg-yellow-400 text-black border-4 border-white' : 'bg-blue-600 shadow-2xl text-white border-2 border-white'}`}

@@ -304,6 +304,21 @@ export const translations: Record<string, Record<string, string>> = {
     minutes: "mins",
     clinicalSummary: "Clinical Summary",
     uploadPrompt: "Upload video or audio file (max 500MB)",
+    // Learning Paths
+    myLearning: "My Learning",
+    continuePath: "Continue Path",
+    startLesson: "Start Lesson",
+    completed: "Completed",
+    locked: "Locked",
+    nextUp: "Next Up",
+    greatJob: "Great Job!",
+    lessonComplete: "Lesson Complete!",
+    buildingPath: "Building personalized path...",
+    areaEmotional: "Emotional Regulation",
+    areaSocial: "Social Skills",
+    areaCommunication: "Communication",
+    areaDaily: "Daily Living",
+    areaSafety: "Safety",
   },
   Hindi: {
     // ... existing translations ...
@@ -322,6 +337,7 @@ export const translations: Record<string, Record<string, string>> = {
     missYou: "आपकी याद आ रही है",
     proudOfYou: "मुझे तुम पर गर्व है!",
     therapyTitle: "थेरेपी रिकॉर्डर",
+    myLearning: "मेरा सीखना",
     // ...
   },
   Spanish: {
@@ -341,6 +357,7 @@ export const translations: Record<string, Record<string, string>> = {
     missYou: "Te extraño",
     proudOfYou: "¡Estoy orgulloso de ti!",
     therapyTitle: "Grabadora de Terapia",
+    myLearning: "Mi Aprendizaje",
     // ...
   }
 };
