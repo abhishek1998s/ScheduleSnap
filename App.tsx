@@ -229,7 +229,7 @@ const App: React.FC = () => {
       )}
       
       {state.view === ViewState.HOME && (
-        <div className="flex flex-col h-full p-6">
+        <div className="flex flex-col h-full p-6 relative">
           <div className="flex justify-between items-center mb-6 shrink-0">
             <h1 className="text-3xl font-bold text-primary">{t(lang, 'appTitle')}</h1>
             <div className="flex gap-2">
@@ -256,7 +256,7 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto pb-20 w-full">
+          <div className="flex-1 overflow-y-auto pb-24 w-full">
             <button 
                 onClick={() => navigateTo(ViewState.CAMERA)}
                 className={`w-full p-8 rounded-3xl flex flex-col items-center gap-4 active:scale-95 transition-transform mb-6 ${state.isHighContrast ? 'bg-yellow-400 text-black font-bold border-4 border-white' : 'bg-primary text-white shadow-xl'}`}
@@ -324,7 +324,8 @@ const App: React.FC = () => {
           
           <button 
             onClick={() => setState(s => ({...s, isAACOpen: true}))}
-            className={`absolute bottom-6 right-6 w-16 h-16 rounded-full flex items-center justify-center active:scale-90 transition-transform z-10 ${state.isHighContrast ? 'bg-yellow-400 text-black border-4 border-white' : 'bg-white shadow-2xl text-gray-700'}`}
+            className={`fixed bottom-6 right-6 w-16 h-16 rounded-full flex items-center justify-center active:scale-90 transition-transform z-50 ${state.isHighContrast ? 'bg-yellow-400 text-black border-4 border-white' : 'bg-white shadow-2xl text-gray-700'}`}
+            style={{ boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)' }}
           >
              <i className="fa-regular fa-comment-dots text-3xl"></i>
           </button>

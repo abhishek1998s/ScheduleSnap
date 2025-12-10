@@ -55,7 +55,7 @@ export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, c
                   { id: 'hungry', label: t(language, 'aacHungry'), emoji: '🍎', voice: 'I am hungry', color: 'bg-red-400', category: 'Needs' },
                   { id: 'thirsty', label: t(language, 'aacThirsty'), emoji: '💧', voice: 'I am thirsty', color: 'bg-blue-400', category: 'Needs' },
                   { id: 'hurt', label: t(language, 'aacHurt'), emoji: '🤕', voice: 'I am hurt', color: 'bg-red-600', category: 'Needs' },
-                  { id: 'tired', label: t(language, 'aacBreak'), emoji: '💤', voice: 'I am tired', color: 'bg-indigo-400', category: 'Needs' },
+                  { id: 'tired', label: t(language, 'aacTired'), emoji: '💤', voice: 'I am tired', color: 'bg-indigo-400', category: 'Needs' },
                   { id: 'loud', label: t(language, 'aacTooLoud'), emoji: '🙉', voice: 'It is too loud', color: 'bg-orange-600', category: 'Needs' },
                   { id: 'bright', label: t(language, 'aacTooBright'), emoji: '😎', voice: 'It is too bright', color: 'bg-yellow-500', category: 'Needs' },
               ];
@@ -72,8 +72,8 @@ export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, c
                   { id: 'stop', label: t(language, 'aacStop'), emoji: '🛑', voice: 'Stop', color: 'bg-red-600', category: 'Actions' },
                   { id: 'go', label: t(language, 'aacGo'), emoji: '🟢', voice: 'Go', color: 'bg-green-600', category: 'Actions' },
                   { id: 'wait', label: t(language, 'aacWait'), emoji: '✋', voice: 'Wait', color: 'bg-yellow-500', category: 'Actions' },
-                  { id: 'look', label: 'Look', emoji: '👀', voice: 'Look at this', color: 'bg-blue-500', category: 'Actions' },
-                  { id: 'play', label: 'Play', emoji: '🧸', voice: 'I want to play', color: 'bg-pink-500', category: 'Actions' },
+                  { id: 'look', label: t(language, 'aacLook'), emoji: '👀', voice: 'Look at this', color: 'bg-blue-500', category: 'Actions' },
+                  { id: 'play', label: t(language, 'aacPlay'), emoji: '🧸', voice: 'I want to play', color: 'bg-pink-500', category: 'Actions' },
               ];
           case 'Social':
               return [
@@ -93,10 +93,10 @@ export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, c
           name: t(language, 'scenePark'),
           emoji: '🌳',
           vocabulary: [
-              { id: 'slide', label: 'Slide', emoji: '🎢', voice: 'I want the slide', color: 'bg-blue-400', category: 'Scenes' },
-              { id: 'swing', label: 'Swing', emoji: '🎪', voice: 'Push me on swing', color: 'bg-green-400', category: 'Scenes' },
-              { id: 'run', label: 'Run', emoji: '🏃', voice: 'I want to run', color: 'bg-orange-400', category: 'Scenes' },
-              { id: 'home', label: 'Go Home', emoji: '🏠', voice: 'I want to go home', color: 'bg-red-400', category: 'Scenes' },
+              { id: 'slide', label: t(language, 'aacSlide'), emoji: '🎢', voice: 'I want the slide', color: 'bg-blue-400', category: 'Scenes' },
+              { id: 'swing', label: t(language, 'aacSwing'), emoji: '🎪', voice: 'Push me on swing', color: 'bg-green-400', category: 'Scenes' },
+              { id: 'run', label: t(language, 'aacRun'), emoji: '🏃', voice: 'I want to run', color: 'bg-orange-400', category: 'Scenes' },
+              { id: 'home', label: t(language, 'aacGoHome'), emoji: '🏠', voice: 'I want to go home', color: 'bg-red-400', category: 'Scenes' },
           ]
       },
       {
@@ -104,10 +104,10 @@ export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, c
           name: t(language, 'sceneSchool'),
           emoji: '🏫',
           vocabulary: [
-              { id: 'teacher', label: 'Teacher', emoji: '👩‍🏫', voice: 'Teacher', color: 'bg-purple-400', category: 'Scenes' },
-              { id: 'friend', label: 'Friend', emoji: '👫', voice: 'Friend', color: 'bg-green-400', category: 'Scenes' },
-              { id: 'pencil', label: 'Pencil', emoji: '✏️', voice: 'I need a pencil', color: 'bg-yellow-400', category: 'Scenes' },
-              { id: 'help', label: 'Help', emoji: '🙋', voice: 'I have a question', color: 'bg-blue-400', category: 'Scenes' },
+              { id: 'teacher', label: t(language, 'aacTeacher'), emoji: '👩‍🏫', voice: 'Teacher', color: 'bg-purple-400', category: 'Scenes' },
+              { id: 'friend', label: t(language, 'aacFriend'), emoji: '👫', voice: 'Friend', color: 'bg-green-400', category: 'Scenes' },
+              { id: 'pencil', label: t(language, 'aacPencil'), emoji: '✏️', voice: 'I need a pencil', color: 'bg-yellow-400', category: 'Scenes' },
+              { id: 'help', label: t(language, 'aacHelp'), emoji: '🙋', voice: 'I have a question', color: 'bg-blue-400', category: 'Scenes' },
           ]
       }
   ];

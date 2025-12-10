@@ -184,6 +184,7 @@ export const translations: Record<string, Record<string, string>> = {
     aacHungry: "Hungry",
     aacThirsty: "Thirsty",
     aacHurt: "Hurt",
+    aacTired: "Tired",
     aacHappy: "Happy",
     aacSad: "Sad",
     aacMad: "Mad",
@@ -194,10 +195,19 @@ export const translations: Record<string, Record<string, string>> = {
     aacStop: "Stop",
     aacGo: "Go",
     aacWait: "Wait",
+    aacLook: "Look",
+    aacPlay: "Play",
     aacHello: "Hello",
     aacBye: "Bye",
     aacThankYou: "Thank You",
-    aacPlease: "Please"
+    aacPlease: "Please",
+    aacSlide: "Slide",
+    aacSwing: "Swing",
+    aacRun: "Run",
+    aacGoHome: "Go Home",
+    aacTeacher: "Teacher",
+    aacFriend: "Friend",
+    aacPencil: "Pencil"
   },
   Hindi: {
     appTitle: "ScheduleSnap",
@@ -372,6 +382,7 @@ export const translations: Record<string, Record<string, string>> = {
     aacHungry: "भूख",
     aacThirsty: "प्यास",
     aacHurt: "चोट",
+    aacTired: "थका हुआ",
     aacHappy: "खुश",
     aacSad: "दुखी",
     aacMad: "गुस्सा",
@@ -382,10 +393,19 @@ export const translations: Record<string, Record<string, string>> = {
     aacStop: "रुको",
     aacGo: "जाओ",
     aacWait: "इंतज़ार",
+    aacLook: "देखो",
+    aacPlay: "खेलो",
     aacHello: "नमस्ते",
     aacBye: "अलविदा",
     aacThankYou: "धन्यवाद",
-    aacPlease: "कृपया"
+    aacPlease: "कृपया",
+    aacSlide: "स्लाइड",
+    aacSwing: "झूला",
+    aacRun: "भागो",
+    aacGoHome: "घर जाना",
+    aacTeacher: "शिक्षक",
+    aacFriend: "दोस्त",
+    aacPencil: "पेंसिल"
   },
   Spanish: {
     appTitle: "ScheduleSnap",
@@ -559,6 +579,7 @@ export const translations: Record<string, Record<string, string>> = {
     aacHungry: "Hambre",
     aacThirsty: "Sed",
     aacHurt: "Duele",
+    aacTired: "Cansado",
     aacHappy: "Feliz",
     aacSad: "Triste",
     aacMad: "Enojado",
@@ -569,10 +590,19 @@ export const translations: Record<string, Record<string, string>> = {
     aacStop: "Alto",
     aacGo: "Ir",
     aacWait: "Espera",
+    aacLook: "Mira",
+    aacPlay: "Jugar",
     aacHello: "Hola",
     aacBye: "Adiós",
     aacThankYou: "Gracias",
-    aacPlease: "Por favor"
+    aacPlease: "Por favor",
+    aacSlide: "Tobogán",
+    aacSwing: "Columpio",
+    aacRun: "Correr",
+    aacGoHome: "Ir a Casa",
+    aacTeacher: "Maestro",
+    aacFriend: "Amigo",
+    aacPencil: "Lápiz"
   }
 };
 
