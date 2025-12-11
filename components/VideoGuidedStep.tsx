@@ -43,6 +43,27 @@ export const VideoGuidedStep: React.FC<VideoGuidedStepProps> = ({ step, profile,
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.rate = profileRef.current.audioPreferences?.speechRate || 0.9;
+
+        // Voice Selection Logic
+        if (profileRef.current?.audioPreferences?.voiceId) {
+            const voices = window.speechSynthesis.getVoices();
+            const voiceId = profileRef.current.audioPreferences.voiceId;
+            const isMale = ['Kore', 'Fenrir', 'Charon'].includes(voiceId);
+            const isFemale = ['Puck', 'Aoede'].includes(voiceId);
+            const langCode = profileRef.current.language === 'Spanish' ? 'es' : profileRef.current.language === 'Hindi' ? 'hi' : 'en';
+            
+            const langVoices = voices.filter(v => v.lang.startsWith(langCode));
+            let selectedVoice = langVoices[0];
+
+            if (isMale) {
+                selectedVoice = langVoices.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('google us english')) || langVoices[0];
+            } else if (isFemale) {
+                selectedVoice = langVoices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('samantha')) || langVoices[0];
+            }
+            
+            if (selectedVoice) utterance.voice = selectedVoice;
+        }
+
         window.speechSynthesis.speak(utterance);
     };
 

@@ -47,9 +47,30 @@ export const LessonActivity: React.FC<LessonActivityProps> = ({ lesson, profile,
       if (profile.sensoryProfile.soundSensitivity === 'high') return;
 
       window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      u.rate = profile.audioPreferences?.speechRate || 0.9;
-      window.speechSynthesis.speak(u);
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = profile.audioPreferences?.speechRate || 0.9;
+
+      // Voice Selection Logic
+      if (profile?.audioPreferences?.voiceId) {
+          const voices = window.speechSynthesis.getVoices();
+          const voiceId = profile.audioPreferences.voiceId;
+          const isMale = ['Kore', 'Fenrir', 'Charon'].includes(voiceId);
+          const isFemale = ['Puck', 'Aoede'].includes(voiceId);
+          const langCode = profile.language === 'Spanish' ? 'es' : profile.language === 'Hindi' ? 'hi' : 'en';
+          
+          const langVoices = voices.filter(v => v.lang.startsWith(langCode));
+          let selectedVoice = langVoices[0];
+
+          if (isMale) {
+              selectedVoice = langVoices.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('google us english')) || langVoices[0];
+          } else if (isFemale) {
+              selectedVoice = langVoices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('samantha')) || langVoices[0];
+          }
+          
+          if (selectedVoice) utterance.voice = selectedVoice;
+      }
+
+      window.speechSynthesis.speak(utterance);
   };
 
   if (loading) {
