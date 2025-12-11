@@ -179,7 +179,7 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language, audioEnabl
               contents: [{ parts: [{ text: prompt }] }],
               config: {
                   responseModalities: [Modality.AUDIO],
-                  speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } },
+                  speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: profile?.audioPreferences?.voiceId || 'Kore' } } },
               },
           });
 

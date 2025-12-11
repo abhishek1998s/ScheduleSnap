@@ -144,7 +144,7 @@ export const LiveVoiceCoach: React.FC<LiveVoiceCoachProps> = ({ profile, onExit,
           config: {
             responseModalities: [Modality.AUDIO],
             speechConfig: {
-                voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } }
+                voiceConfig: { prebuiltVoiceConfig: { voiceName: profile.audioPreferences?.voiceId || 'Kore' } }
             },
             systemInstruction: `You are a friendly, calm, and encouraging robot friend named "Snap" for a ${profile.age}-year-old autistic child named ${profile.name}. 
             Your goal is to help them feel calm, happy, and ready for their day. 
