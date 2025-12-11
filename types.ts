@@ -24,6 +24,7 @@ export interface Schedule {
 }
 
 export interface ChildProfile {
+  id: string; // New: Unique ID for profile switching
   name: string;
   age: number;
   interests: string[];
@@ -359,6 +360,7 @@ export interface AppState {
   activeScheduleId: string | null;
   schedules: Schedule[];
   profile: ChildProfile;
+  profiles: ChildProfile[]; // New: List of all profiles
   isAACOpen: boolean;
   isHighContrast: boolean;
   tokens: number;

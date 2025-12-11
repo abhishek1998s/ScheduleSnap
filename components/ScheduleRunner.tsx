@@ -22,8 +22,8 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
   // Initialize Camera Mode
   const [isCameraMode, setIsCameraMode] = useState(profile?.defaultCameraOn || false);
   
-  // Timer State
-  const DEFAULT_STEP_DURATION = 120; // 2 minutes default
+  // Timer State - Default is 2 mins (120s), but can be longer for real scenarios
+  const DEFAULT_STEP_DURATION = 120; // 2 minutes
   const [stepDuration, setStepDuration] = useState(DEFAULT_STEP_DURATION);
   const [timeLeft, setTimeLeft] = useState(DEFAULT_STEP_DURATION);
   const [isTimerRunning, setIsTimerRunning] = useState(true);
@@ -76,6 +76,7 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
 
   useEffect(() => {
     // Reset timer on step change
+    // For demo purposes, we keep it short (2 mins), but logic below supports longer
     setTimeLeft(DEFAULT_STEP_DURATION);
     setIsTimerRunning(true);
     
@@ -106,6 +107,9 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
             setTimeLeft(prev => {
                 const next = prev - 1;
                 if (!isCameraMode && audioEnabled) {
+                    // Extended Warnings
+                    if (next === 300) playAudio("Five minutes remaining.");
+                    if (next === 120) playAudio("Two minutes remaining.");
                     if (next === 60) playAudio("One minute left!");
                     if (next === 10) playAudio("Ten seconds remaining!");
                 }
@@ -222,6 +226,16 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
       {/* Transition Warning Banners */}
       {!isCameraMode && isTimerRunning && (
           <>
+            {timeLeft <= 300 && timeLeft > 120 && (
+                <div className="bg-blue-100 text-blue-800 p-2 text-center font-bold text-sm animate-pulse shrink-0">
+                    <i className="fa-solid fa-clock mr-2"></i> 5 minutes remaining.
+                </div>
+            )}
+            {timeLeft <= 120 && timeLeft > 60 && (
+                <div className="bg-orange-100 text-orange-800 p-2 text-center font-bold text-sm animate-pulse shrink-0">
+                    <i className="fa-solid fa-clock mr-2"></i> 2 minutes remaining.
+                </div>
+            )}
             {timeLeft <= 60 && timeLeft > 10 && (
                 <div className="bg-yellow-100 text-yellow-800 p-2 text-center font-bold text-sm animate-pulse shrink-0">
                     <i className="fa-solid fa-clock mr-2"></i> Almost done! 1 minute left.

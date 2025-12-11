@@ -29,6 +29,7 @@ import { AudioConsentModal } from './components/AudioConsentModal';
 import { t } from './utils/translations';
 
 const INITIAL_PROFILE: ChildProfile = {
+  id: 'child-1',
   name: "Leo",
   age: 6,
   interests: ["Trains", "Space", "Dinosaurs"],
@@ -65,6 +66,7 @@ const App: React.FC = () => {
     activeScheduleId: null,
     schedules: INITIAL_SCHEDULES,
     profile: INITIAL_PROFILE,
+    profiles: [INITIAL_PROFILE], // Initial list
     isAACOpen: false,
     isHighContrast: false,
     tokens: 12,
@@ -107,19 +109,21 @@ const App: React.FC = () => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
+        // Ensure profile has ID if legacy data loaded
+        const loadedProfile = { 
+            ...INITIAL_PROFILE, 
+            ...parsed.profile,
+            id: parsed.profile?.id || 'child-1'
+        };
+        
         setState(prev => ({ 
             ...prev, 
             ...parsed, 
             view: ViewState.HOME, 
             isAACOpen: false,
             voiceMessages: (parsed.voiceMessages || []).map((m: any) => ({ ...m, read: m.read ?? true })),
-            profile: { 
-                ...prev.profile, 
-                ...parsed.profile, 
-                language: parsed.profile?.language || 'English',
-                audioPreferences: parsed.profile?.audioPreferences || { speechRate: 1, pitch: 1 },
-                defaultCameraOn: parsed.profile?.defaultCameraOn || false
-            },
+            profile: loadedProfile,
+            profiles: parsed.profiles || [loadedProfile], // Load profiles list
             isHighContrast: parsed.isHighContrast || false,
             caregiverPin: parsed.caregiverPin || '1234',
             quizStats: parsed.quizStats || { level: 1, xp: 0, totalAnswered: 0 },
@@ -278,7 +282,30 @@ const App: React.FC = () => {
   };
 
   const handleUpdateProfile = (newProfile: ChildProfile) => {
-    setState(prev => ({ ...prev, profile: newProfile }));
+    setState(prev => {
+        // Update both the active profile and the one in the list
+        const updatedProfiles = prev.profiles.map(p => p.id === newProfile.id ? newProfile : p);
+        return { 
+            ...prev, 
+            profile: newProfile,
+            profiles: updatedProfiles
+        };
+    });
+  };
+
+  const handleSwitchProfile = (profileId: string) => {
+      const targetProfile = state.profiles.find(p => p.id === profileId);
+      if (targetProfile) {
+          setState(prev => ({ ...prev, profile: targetProfile }));
+      }
+  };
+
+  const handleAddProfile = (newProfile: ChildProfile) => {
+      setState(prev => ({
+          ...prev,
+          profiles: [...prev.profiles, newProfile],
+          profile: newProfile // Auto-switch to new profile
+      }));
   };
 
   const handleCompleteSchedule = () => {
@@ -697,6 +724,7 @@ const App: React.FC = () => {
         <Dashboard 
           schedules={state.schedules}
           profile={state.profile}
+          profiles={state.profiles} // Pass all profiles
           moodLogs={state.moodLogs}
           behaviorLogs={state.behaviorLogs}
           completionLogs={state.completionLogs}
@@ -724,6 +752,8 @@ const App: React.FC = () => {
           }}
           onLogBehavior={(log) => setState(prev => ({ ...prev, behaviorLogs: [...prev.behaviorLogs, { ...log, id: Date.now().toString(), timestamp: Date.now() }] }))}
           onUpdateProfile={handleUpdateProfile}
+          onSwitchProfile={handleSwitchProfile}
+          onAddProfile={handleAddProfile}
           onToggleHighContrast={() => setState(prev => ({ ...prev, isHighContrast: !prev.isHighContrast }))}
           onToggleAudio={() => setAudioEnabled(prev => !prev)}
           onUpdatePin={(pin) => setState(prev => ({ ...prev, caregiverPin: pin }))}

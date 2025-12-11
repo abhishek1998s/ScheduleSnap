@@ -7,6 +7,7 @@ import { t } from '../utils/translations';
 interface DashboardProps {
   schedules: Schedule[];
   profile: ChildProfile;
+  profiles?: ChildProfile[]; // New optional prop
   moodLogs: MoodEntry[];
   behaviorLogs: BehaviorLog[];
   completionLogs: CompletionLog[];
@@ -22,6 +23,8 @@ interface DashboardProps {
   onCreateCustom: () => void;
   onLogBehavior: (log: Omit<BehaviorLog, 'id' | 'timestamp'>) => void;
   onUpdateProfile: (profile: ChildProfile) => void;
+  onSwitchProfile?: (profileId: string) => void; // New optional prop
+  onAddProfile?: (profile: ChildProfile) => void; // New optional prop
   onToggleHighContrast: () => void;
   onToggleAudio: () => void;
   onUpdatePin: (newPin: string) => void;
@@ -29,12 +32,12 @@ interface DashboardProps {
   parentMessages?: ParentMessage[];
   onScheduleMessage?: (msg: Omit<ParentMessage, 'id' | 'timestamp' | 'isDelivered' | 'isRead'>) => void;
   onOpenTherapy?: () => void;
-  onOpenScanner?: () => void; // New Prop
+  onOpenScanner?: () => void;
   onOpenOptimizer: (scheduleId: string) => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
-  schedules, profile, moodLogs, behaviorLogs, completionLogs, voiceMessages, isHighContrast, caregiverPin, audioEnabled, onExit, onSelectSchedule, onDeleteSchedule, onUpdateSchedule, onEditSchedule, onCreateCustom, onLogBehavior, onUpdateProfile, onToggleHighContrast, onToggleAudio, onUpdatePin, onMarkMessagesRead,
+  schedules, profile, profiles = [], moodLogs, behaviorLogs, completionLogs, voiceMessages, isHighContrast, caregiverPin, audioEnabled, onExit, onSelectSchedule, onDeleteSchedule, onUpdateSchedule, onEditSchedule, onCreateCustom, onLogBehavior, onUpdateProfile, onSwitchProfile, onAddProfile, onToggleHighContrast, onToggleAudio, onUpdatePin, onMarkMessagesRead,
   parentMessages = [], onScheduleMessage, onOpenTherapy, onOpenScanner, onOpenOptimizer
 }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -69,6 +72,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [editThinkingMode, setEditThinkingMode] = useState(profile.useThinkingMode || false);
   const [editDefaultCamera, setEditDefaultCamera] = useState(profile.defaultCameraOn || false);
 
+  // Add Profile State
+  const [isAddingProfile, setIsAddingProfile] = useState(false);
+  const [newProfileName, setNewProfileName] = useState('');
+
   // Parent Message Scheduling State
   const [msgContent, setMsgContent] = useState('');
   const [msgTime, setMsgTime] = useState('');
@@ -79,6 +86,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
       { id: 1, text: "Complete Routines", target: 5, current: 0, icon: "fa-sun", badge: "Morning Star" },
       { id: 2, text: "Log Mood", target: 7, current: 0, icon: "fa-face-smile", badge: "Emotion Explorer" }
   ]);
+
+  useEffect(() => {
+    // Reset edit fields when profile changes
+    setEditName(profile.name);
+    setEditAge(profile.age);
+    setEditInterests(profile.interests.join(', '));
+    setEditLanguage(profile.language);
+    setEditSpeechRate(profile.audioPreferences?.speechRate || 1);
+    setEditVoiceId(profile.audioPreferences?.voiceId || 'Kore');
+    setEditThinkingMode(profile.useThinkingMode || false);
+    setEditDefaultCamera(profile.defaultCameraOn || false);
+  }, [profile]);
 
   useEffect(() => {
     const weekStart = Date.now() - 7 * 24 * 60 * 60 * 1000;
@@ -218,6 +237,25 @@ export const Dashboard: React.FC<DashboardProps> = ({
         }
     });
     setIsEditingProfile(false);
+  };
+
+  const handleCreateProfile = () => {
+      if (!newProfileName.trim() || !onAddProfile) return;
+      
+      const newProfile: ChildProfile = {
+          id: `child-${Date.now()}`,
+          name: newProfileName,
+          age: 5,
+          interests: [],
+          language: 'English',
+          sensoryProfile: { soundSensitivity: 'medium' },
+          audioPreferences: { speechRate: 1, pitch: 1 },
+          defaultCameraOn: false
+      };
+      
+      onAddProfile(newProfile);
+      setNewProfileName('');
+      setIsAddingProfile(false);
   };
 
   const handlePrintSchedule = (schedule: Schedule) => {
@@ -379,6 +417,46 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {activeTab === 'overview' && (
                 <div className="space-y-6 animate-fadeIn">
                     
+                    {/* Profile Switcher Header */}
+                    {profiles.length > 0 && onSwitchProfile && (
+                        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2">
+                            {profiles.map(p => (
+                                <button
+                                    key={p.id}
+                                    onClick={() => onSwitchProfile(p.id)}
+                                    className={`px-4 py-2 rounded-full font-bold text-sm whitespace-nowrap transition-colors border-2 ${p.id === profile.id ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'bg-white text-gray-500 border-gray-100 hover:border-indigo-100'}`}
+                                >
+                                    {p.name}
+                                </button>
+                            ))}
+                            {onAddProfile && (
+                                <button
+                                    onClick={() => setIsAddingProfile(true)}
+                                    className="px-4 py-2 rounded-full font-bold text-sm bg-gray-100 text-gray-500 hover:bg-gray-200 whitespace-nowrap"
+                                >
+                                    <i className="fa-solid fa-plus mr-1"></i> Add Child
+                                </button>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Add Profile Modal Inline */}
+                    {isAddingProfile && (
+                        <div className="bg-white p-4 rounded-2xl shadow-sm border border-indigo-100 animate-slideUp">
+                            <h3 className="font-bold text-gray-700 mb-2">Add New Profile</h3>
+                            <div className="flex gap-2">
+                                <input 
+                                    value={newProfileName}
+                                    onChange={(e) => setNewProfileName(e.target.value)}
+                                    placeholder="Child's Name"
+                                    className="flex-1 p-2 border rounded-lg outline-none focus:border-indigo-500"
+                                />
+                                <button onClick={handleCreateProfile} className="bg-indigo-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-indigo-600">Save</button>
+                                <button onClick={() => setIsAddingProfile(false)} className="text-gray-400 px-2 font-bold">Cancel</button>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Profile Card */}
                     <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
                         <div className="flex justify-between items-start mb-4">
