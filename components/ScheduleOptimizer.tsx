@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Schedule, ChildProfile, CompletionLog, BehaviorLog, MoodEntry, ScheduleOptimization } from '../types';
+import { Schedule, ChildProfile, CompletionLog, BehaviorLog, ScheduleOptimization } from '../types';
 import { generateScheduleOptimization } from '../services/geminiService';
 import { t } from '../utils/translations';
 
@@ -44,44 +44,59 @@ export const ScheduleOptimizer: React.FC<ScheduleOptimizerProps> = ({
       );
   }
 
-  if (!optimization) return <div className="p-8 text-center">Optimization failed.</div>;
+  if (!optimization) return (
+    <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-slate-50">
+        <i className="fa-solid fa-triangle-exclamation text-4xl text-gray-300 mb-4"></i>
+        <p className="text-gray-500">Optimization currently unavailable.</p>
+        <button onClick={onBack} className="mt-4 text-indigo-600 font-bold">Go Back</button>
+    </div>
+  );
 
   return (
     <div className="h-full flex flex-col bg-slate-50">
-       <div className="bg-white p-4 shadow-sm border-b flex items-center gap-4">
-          <button onClick={onBack} aria-label="Back"><i className="fa-solid fa-arrow-left text-gray-500"></i></button>
-          <h1 className="font-bold text-slate-800">{t(language, 'optTitle')}</h1>
+       {/* Header */}
+       <div className="bg-white p-4 shadow-sm border-b flex items-center gap-4 shrink-0">
+          <button onClick={onBack} aria-label="Back" className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center">
+              <i className="fa-solid fa-arrow-left text-gray-500"></i>
+          </button>
+          <h1 className="font-bold text-slate-800 text-lg">{t(language, 'optTitle')}</h1>
        </div>
 
+       {/* Content */}
        <div className="p-4 flex-1 overflow-y-auto space-y-6">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-indigo-100">
-             <h3 className="font-bold text-indigo-800 text-sm uppercase mb-3">{t(language, 'optImpact')}</h3>
-             <div className="flex gap-6 text-sm">
-                 <div>
-                     <span className="block text-gray-400 text-xs font-bold uppercase">{t(language, 'optCompletion')}</span>
+          
+          {/* Impact Stats */}
+          <div className="bg-white p-6 rounded-3xl shadow-sm border border-indigo-100">
+             <h3 className="font-bold text-indigo-800 text-xs uppercase mb-4 tracking-wider">{t(language, 'optImpact')}</h3>
+             <div className="grid grid-cols-3 gap-4 text-center">
+                 <div className="p-2 bg-green-50 rounded-xl">
+                     <span className="block text-green-700/60 text-[10px] font-bold uppercase mb-1">{t(language, 'optCompletion')}</span>
                      <span className="text-lg font-bold text-green-600">{optimization.predictedImprovement.completionRate}</span>
                  </div>
-                 <div>
-                     <span className="block text-gray-400 text-xs font-bold uppercase">{t(language, 'optTime')}</span>
+                 <div className="p-2 bg-blue-50 rounded-xl">
+                     <span className="block text-blue-700/60 text-[10px] font-bold uppercase mb-1">{t(language, 'optTime')}</span>
                      <span className="text-lg font-bold text-blue-600">{optimization.predictedImprovement.avgTime}</span>
                  </div>
-                 <div>
-                     <span className="block text-gray-400 text-xs font-bold uppercase">{t(language, 'optStress')}</span>
+                 <div className="p-2 bg-purple-50 rounded-xl">
+                     <span className="block text-purple-700/60 text-[10px] font-bold uppercase mb-1">{t(language, 'optStress')}</span>
                      <span className="text-lg font-bold text-purple-600">{optimization.predictedImprovement.stressLevel}</span>
                  </div>
              </div>
           </div>
 
+          {/* Recommendations List */}
           <div className="space-y-4">
-              <h3 className="font-bold text-gray-500 uppercase text-xs tracking-wide">{t(language, 'optChanges')}</h3>
+              <h3 className="font-bold text-gray-400 uppercase text-xs tracking-wide px-2">{t(language, 'optChanges')}</h3>
               {optimization.recommendations.map((rec, i) => (
-                  <div key={i} className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-indigo-500">
+                  <div key={i} className="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-indigo-500 animate-slideUp" style={{ animationDelay: `${i * 100}ms` }}>
                       <div className="flex justify-between items-start mb-2">
-                          <span className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md text-[10px] font-bold uppercase">{rec.type}</span>
-                          <span className="text-xs font-bold text-green-600">{rec.confidence}% {t(language, 'confidence')}</span>
+                          <span className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide">{rec.type.replace('_', ' ')}</span>
+                          <span className="text-xs font-bold text-green-600 flex items-center gap-1">
+                              <i className="fa-solid fa-robot"></i> {rec.confidence}%
+                          </span>
                       </div>
-                      <p className="font-bold text-gray-800 mb-1">{rec.description}</p>
-                      <p className="text-sm text-gray-600 italic mb-2">"{rec.reason}"</p>
+                      <p className="font-bold text-gray-800 mb-2 text-lg">{rec.description}</p>
+                      <p className="text-sm text-gray-600 italic mb-3">"{rec.reason}"</p>
                       <div className="flex items-center gap-2 text-xs text-gray-400 bg-gray-50 p-2 rounded-lg">
                           <i className="fa-solid fa-chart-line"></i> {rec.evidence}
                       </div>
@@ -90,15 +105,19 @@ export const ScheduleOptimizer: React.FC<ScheduleOptimizerProps> = ({
           </div>
        </div>
 
-       <div className="p-4 bg-white border-t flex gap-4">
-           <button onClick={onBack} className="flex-1 py-4 bg-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-200">
+       {/* Actions */}
+       <div className="p-4 bg-white border-t flex gap-4 shrink-0 safe-area-bottom">
+           <button 
+               onClick={onBack} 
+               className="flex-1 py-4 bg-gray-100 text-gray-600 font-bold rounded-2xl hover:bg-gray-200 transition-colors"
+           >
                {t(language, 'optDiscard')}
            </button>
            <button 
                onClick={() => onApply(optimization.optimizedSchedule)}
-               className="flex-1 py-4 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 shadow-lg"
+               className="flex-1 py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-colors flex items-center justify-center gap-2"
            >
-               {t(language, 'optApply')}
+               <i className="fa-solid fa-check"></i> {t(language, 'optApply')}
            </button>
        </div>
     </div>
