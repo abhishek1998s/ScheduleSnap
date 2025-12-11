@@ -40,9 +40,21 @@ export const VoiceCompanion: React.FC<VoiceCompanionProps> = ({
     utterance.rate = profile.audioPreferences?.speechRate || 0.9;
     utterance.pitch = 1.1; // Slightly higher pitch for "friendly robot"
     
-    // Set voice if available (try to find a 'Google' voice or generally friendly one)
+    // Voice Selection Logic matching ScheduleRunner
     const voices = window.speechSynthesis.getVoices();
-    const friendlyVoice = voices.find(v => v.name.includes('Google') && v.lang.startsWith('en')) || voices[0];
+    const voiceId = profile?.audioPreferences?.voiceId || 'Kore';
+    const isMalePersona = ['Kore', 'Fenrir', 'Charon'].includes(voiceId);
+    const isFemalePersona = ['Puck', 'Aoede'].includes(voiceId);
+    const langCode = profile?.language === 'Spanish' ? 'es' : profile?.language === 'Hindi' ? 'hi' : 'en';
+    const langVoices = voices.filter(v => v.lang.startsWith(langCode));
+
+    let friendlyVoice = langVoices[0];
+    if (isMalePersona) {
+        friendlyVoice = langVoices.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('google us english')) || langVoices[0];
+    } else if (isFemalePersona) {
+        friendlyVoice = langVoices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('samantha')) || langVoices[0];
+    }
+    
     if (friendlyVoice) utterance.voice = friendlyVoice;
 
     utterance.onstart = () => setIsSpeaking(true);

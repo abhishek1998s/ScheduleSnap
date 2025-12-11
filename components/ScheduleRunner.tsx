@@ -33,6 +33,32 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
   const currentStep = schedule.steps[currentStepIndex];
   const nextStep = schedule.steps[currentStepIndex + 1];
 
+  // --- Voice Selection Logic ---
+  const getPreferredVoice = () => {
+      const voices = window.speechSynthesis.getVoices();
+      const voiceId = profile?.audioPreferences?.voiceId || 'Kore';
+      
+      // Map Gemini Persona to generic browser voice characteristics
+      const isMalePersona = ['Kore', 'Fenrir', 'Charon'].includes(voiceId);
+      const isFemalePersona = ['Puck', 'Aoede'].includes(voiceId);
+
+      // 1. Try to match language first
+      const langCode = profile?.language === 'Spanish' ? 'es' : profile?.language === 'Hindi' ? 'hi' : 'en';
+      const langVoices = voices.filter(v => v.lang.startsWith(langCode));
+
+      if (langVoices.length === 0) return null;
+
+      // 2. Try to match gender keywords in voice name (heuristic)
+      if (isMalePersona) {
+          return langVoices.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('google us english')) || langVoices[0];
+      }
+      if (isFemalePersona) {
+          return langVoices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('samantha')) || langVoices[0];
+      }
+
+      return langVoices[0];
+  };
+
   // Speech function
   const playAudio = (text: string) => {
     if (!audioEnabled) return; 
@@ -40,6 +66,10 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
 
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
+    
+    const voice = getPreferredVoice();
+    if (voice) utterance.voice = voice;
+
     utterance.rate = profile?.audioPreferences?.speechRate || 0.9;
     window.speechSynthesis.speak(utterance);
   };
