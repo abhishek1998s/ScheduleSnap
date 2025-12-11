@@ -508,6 +508,51 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         </button>
                     </div>
 
+                    {/* AI Weekly Insights - Added to Overview Tab */}
+                    <div className="bg-yellow-50 p-6 rounded-3xl border border-yellow-100">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-bold text-yellow-800 flex items-center gap-2">
+                                <i className="fa-solid fa-lightbulb"></i> {t(lang, 'aiInsights')}
+                            </h3>
+                            <button 
+                                onClick={handleGenerateReport}
+                                disabled={generatingReport}
+                                className="bg-yellow-100 text-yellow-700 px-4 py-2 rounded-xl text-xs font-bold hover:bg-yellow-200 transition-colors"
+                            >
+                                {generatingReport ? t(lang, 'analyzing') : t(lang, 'analyze')}
+                            </button>
+                        </div>
+
+                        {weeklyReport && (
+                            <div className="space-y-4 animate-slideUp bg-white p-4 rounded-2xl shadow-sm">
+                                <p className="text-gray-700 italic font-medium">"{weeklyReport.summary}"</p>
+                                
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <h4 className="text-xs font-bold text-green-600 uppercase mb-2">{t(lang, 'wins')}</h4>
+                                        <ul className="space-y-1">
+                                            {weeklyReport.wins.map((w, i) => (
+                                                <li key={i} className="text-sm text-gray-600 flex items-start gap-2">
+                                                    <i className="fa-solid fa-check text-green-500 mt-1"></i> {w}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <h4 className="text-xs font-bold text-orange-500 uppercase mb-2">{t(lang, 'concerns')}</h4>
+                                        <ul className="space-y-1">
+                                            {weeklyReport.concerns.map((c, i) => (
+                                                <li key={i} className="text-sm text-gray-600 flex items-start gap-2">
+                                                    <i className="fa-solid fa-triangle-exclamation text-orange-400 mt-1"></i> {c}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
                     {/* NEW Caregiver Tools Section */}
                     <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
                         <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
