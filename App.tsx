@@ -726,6 +726,7 @@ const App: React.FC = () => {
           parentMessages={state.parentMessages}
           onScheduleMessage={(msg) => setState(prev => ({ ...prev, parentMessages: [...prev.parentMessages, { ...msg, id: Date.now().toString(), timestamp: Date.now(), isDelivered: false, isRead: false }] }))}
           onOpenTherapy={() => setState(prev => ({ ...prev, view: ViewState.THERAPY }))}
+          onOpenScanner={() => setState(prev => ({ ...prev, view: ViewState.SCANNER }))}
           onOpenOptimizer={handleOpenOptimizer}
         />
       )}

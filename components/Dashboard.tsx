@@ -29,12 +29,13 @@ interface DashboardProps {
   parentMessages?: ParentMessage[];
   onScheduleMessage?: (msg: Omit<ParentMessage, 'id' | 'timestamp' | 'isDelivered' | 'isRead'>) => void;
   onOpenTherapy?: () => void;
+  onOpenScanner?: () => void; // New Prop
   onOpenOptimizer: (scheduleId: string) => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
   schedules, profile, moodLogs, behaviorLogs, completionLogs, voiceMessages, isHighContrast, caregiverPin, audioEnabled, onExit, onSelectSchedule, onDeleteSchedule, onUpdateSchedule, onEditSchedule, onCreateCustom, onLogBehavior, onUpdateProfile, onToggleHighContrast, onToggleAudio, onUpdatePin, onMarkMessagesRead,
-  parentMessages = [], onScheduleMessage, onOpenTherapy, onOpenOptimizer
+  parentMessages = [], onScheduleMessage, onOpenTherapy, onOpenScanner, onOpenOptimizer
 }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pin, setPin] = useState('');
@@ -505,6 +506,33 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             <i className={`fa-solid ${audioEnabled ? 'fa-volume-high' : 'fa-volume-xmark'} text-xl`}></i>
                             {audioEnabled ? 'Audio On' : 'Audio Off'}
                         </button>
+                    </div>
+
+                    {/* NEW Caregiver Tools Section */}
+                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <i className="fa-solid fa-briefcase-medical text-indigo-500"></i> Caregiver Tools
+                        </h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <button 
+                                onClick={onOpenScanner}
+                                className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-center gap-2 hover:bg-slate-100 transition-colors"
+                            >
+                                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm">
+                                    <i className="fa-solid fa-up-down-left-right text-slate-700 text-xl"></i>
+                                </div>
+                                <span className="font-bold text-slate-700 text-sm text-center">{t(lang, 'envScanner')}</span>
+                            </button>
+                            <button 
+                                onClick={onOpenTherapy}
+                                className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100 flex flex-col items-center gap-2 hover:bg-indigo-100 transition-colors"
+                            >
+                                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm">
+                                    <i className="fa-solid fa-notes-medical text-indigo-600 text-xl"></i>
+                                </div>
+                                <span className="font-bold text-indigo-800 text-sm text-center">{t(lang, 'therapyTitle')}</span>
+                            </button>
+                        </div>
                     </div>
 
                     {/* Goals */}
