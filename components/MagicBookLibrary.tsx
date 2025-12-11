@@ -57,7 +57,7 @@ export const MagicBookLibrary: React.FC<MagicBookLibraryProps> = ({ stories, pro
                 <i className="fa-solid fa-arrow-left text-gray-600"></i>
             </button>
             <h1 className="font-bold text-xl text-indigo-800 flex items-center gap-2">
-                <i className="fa-solid fa-book-sparkles text-indigo-500"></i> {t(profile.language, 'magicBooks')}
+                <i className="fa-solid fa-book-open text-indigo-500"></i> {t(profile.language, 'magicBooks')}
             </h1>
             <div className="w-10"></div>
         </div>

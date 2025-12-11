@@ -456,7 +456,7 @@ const App: React.FC = () => {
                  <span className="text-xs font-bold text-gray-600 text-center">{t(state.profile.language, 'buildMyDay')}</span>
              </button>
              <button onClick={() => setState(prev => ({ ...prev, view: ViewState.MAGIC_BOOKS }))} className="bg-white p-3 rounded-2xl shadow-sm flex flex-col items-center gap-1 active:scale-95">
-                 <i className="fa-solid fa-book-sparkles text-indigo-400 text-xl"></i>
+                 <i className="fa-solid fa-book-open text-indigo-400 text-xl"></i>
                  <span className="text-xs font-bold text-gray-600 text-center">{t(state.profile.language, 'magicBooks')}</span>
              </button>
              <button onClick={() => setState(prev => ({ ...prev, view: ViewState.PARENT_INBOX }))} className="bg-white p-3 rounded-2xl shadow-sm flex flex-col items-center gap-1 active:scale-95 relative">
