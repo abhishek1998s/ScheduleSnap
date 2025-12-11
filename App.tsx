@@ -322,6 +322,14 @@ const App: React.FC = () => {
 
   return (
     <div className={`h-full w-full relative ${state.isHighContrast ? 'contrast-high' : ''}`}>
+      {/* Accessibility Skip Link */}
+      <a 
+        href="#main-content" 
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 bg-primary text-white p-3 rounded font-bold shadow-lg"
+      >
+        Skip to main content
+      </a>
+
       {/* Accessibility Live Region */}
       <div className="sr-only" role="status" aria-live="polite">{statusMessage}</div>
 
@@ -356,18 +364,18 @@ const App: React.FC = () => {
 
       {/* View Router */}
       {state.view === ViewState.HOME && (
-        <div className="flex flex-col h-full bg-background p-6 overflow-y-auto">
+        <div id="main-content" className="flex flex-col h-full bg-background p-6 overflow-y-auto">
           {/* Header */}
           <div className="flex justify-between items-center mb-8 shrink-0">
-            <h1 className="text-3xl font-bold text-primary font-sans">
+            <h1 className="text-2xl sm:text-3xl font-bold text-primary font-sans truncate">
                 {t(state.profile.language, 'appTitle')}
             </h1>
             <button 
                 onClick={() => setState(prev => ({ ...prev, view: ViewState.DASHBOARD }))}
-                className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-400 hover:text-primary transition-colors"
+                className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-400 hover:text-primary transition-colors"
                 aria-label="Parent Dashboard"
             >
-                <i className="fa-solid fa-gear text-xl"></i>
+                <i className="fa-solid fa-gear text-2xl"></i>
             </button>
           </div>
 

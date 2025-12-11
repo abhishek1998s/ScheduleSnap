@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Schedule, ChildProfile, ScheduleStep } from '../types';
 import { generateMicroSteps } from '../services/geminiService';
 import { t } from '../utils/translations';
@@ -15,6 +15,8 @@ interface PreviewScheduleProps {
 export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, profile, onSave, onCancel, isEditing }) => {
   const [localSchedule, setLocalSchedule] = useState(schedule);
   const [loadingStepId, setLoadingStepId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [activeStepIndex, setActiveStepIndex] = useState<number | null>(null);
   const lang = profile.language;
 
   const handleMagicWand = async (stepIndex: number) => {
@@ -51,13 +53,36 @@ export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, prof
       // @ts-ignore
       step[field] = value;
 
-      // CRITICAL FIX: If updating encouragement, sync it to options so Runner uses the new text
+      // Sync encouragement to options
       if (field === 'encouragement') {
           step.encouragementOptions = [value]; 
       }
 
       newSteps[index] = step;
       setLocalSchedule({ ...localSchedule, steps: newSteps });
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file && activeStepIndex !== null) {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+              const base64 = reader.result as string;
+              const newSteps = [...localSchedule.steps];
+              newSteps[activeStepIndex] = {
+                  ...newSteps[activeStepIndex],
+                  imageUrl: base64
+              };
+              setLocalSchedule({ ...localSchedule, steps: newSteps });
+              setActiveStepIndex(null);
+          };
+          reader.readAsDataURL(file);
+      }
+  };
+
+  const triggerImageUpload = (index: number) => {
+      setActiveStepIndex(index);
+      fileInputRef.current?.click();
   };
 
   const moveStep = (index: number, direction: 'up' | 'down') => {
@@ -83,7 +108,7 @@ export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, prof
           emoji: '✨',
           instruction: 'New Step',
           encouragement: 'You can do it!',
-          encouragementOptions: ['You can do it!'], // Initialize options correctly
+          encouragementOptions: ['You can do it!'], 
           completed: false
       };
       setLocalSchedule({ ...localSchedule, steps: [...localSchedule.steps, newStep] });
@@ -91,6 +116,8 @@ export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, prof
 
   return (
     <div className="flex flex-col h-full bg-background">
+      <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
+      
       <div className="bg-white p-4 shadow-sm border-b flex justify-between items-center shrink-0">
         <button onClick={onCancel} className="text-gray-500">{t(lang, 'cancel')}</button>
         <h2 className="font-bold text-lg text-gray-700">
@@ -160,16 +187,31 @@ export const PreviewSchedule: React.FC<PreviewScheduleProps> = ({ schedule, prof
                 <div key={index} className="bg-white p-4 rounded-2xl shadow-sm relative overflow-hidden group border border-transparent hover:border-gray-200">
                     
                     <div className="flex items-start gap-3">
-                        {/* Emoji Input */}
-                        <div className="relative">
-                            <input 
-                                value={step.emoji}
-                                onChange={(e) => handleStepChange(index, 'emoji', e.target.value)}
-                                className="text-3xl bg-gray-50 w-12 h-12 rounded-xl flex items-center justify-center text-center outline-none focus:ring-2 focus:ring-primary/20 text-black"
-                            />
+                        {/* Image/Emoji Input */}
+                        <div className="flex flex-col gap-2 items-center">
+                            <div className="relative w-16 h-16 bg-gray-50 rounded-xl overflow-hidden flex items-center justify-center border hover:border-primary cursor-pointer" onClick={() => triggerImageUpload(index)}>
+                                {step.imageUrl ? (
+                                    <img src={step.imageUrl} alt="Step" className="w-full h-full object-cover" />
+                                ) : (
+                                    <input 
+                                        value={step.emoji}
+                                        onChange={(e) => handleStepChange(index, 'emoji', e.target.value)}
+                                        className="text-3xl bg-transparent w-full h-full text-center outline-none"
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                )}
+                                <div className="absolute bottom-0 right-0 bg-primary text-white p-1 rounded-tl-lg text-[10px]">
+                                    <i className="fa-solid fa-camera"></i>
+                                </div>
+                            </div>
+                            {step.imageUrl && (
+                                <button onClick={() => handleStepChange(index, 'imageUrl', '')} className="text-xs text-red-400 font-bold hover:text-red-500">
+                                    Remove Photo
+                                </button>
+                            )}
                         </div>
 
-                        {/* Text Inputs - Fixed Visibility */}
+                        {/* Text Inputs */}
                         <div className="flex-1 space-y-1">
                             <input 
                                 value={step.instruction}

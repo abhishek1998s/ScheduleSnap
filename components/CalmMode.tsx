@@ -139,14 +139,14 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language, audioEnabl
       sourceNodesRef.current.push(source, filter, fadeGain);
   };
 
-  const playOscillatorDrone = (freq1: number, freq2: number) => {
+  const playOscillatorDrone = (freq1: number, freq2: number, type: 'sine' | 'triangle' = 'sine') => {
       if (!audioCtxRef.current || !masterGainRef.current) return;
       const ctx = audioCtxRef.current;
 
       const createOsc = (f: number) => {
           const osc = ctx.createOscillator();
           osc.frequency.value = f;
-          osc.type = 'sine';
+          osc.type = type;
           
           const g = ctx.createGain();
           g.gain.setValueAtTime(0, ctx.currentTime);
@@ -232,6 +232,7 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language, audioEnabl
               case 'Rain': playNoise('pink'); break; // Using brown/pink algo
               case 'Ocean': playNoise('brown'); break; 
               case 'Forest': playOscillatorDrone(300, 305); break; 
+              case 'Birds': playOscillatorDrone(800, 1200, 'triangle'); break; // Simple chirp simulation using triangle waves
               case 'Guided': generateGuidedMeditation(); break;
           }
       }, 50);
@@ -435,7 +436,7 @@ export const CalmMode: React.FC<CalmModeProps> = ({ onExit, language, audioEnabl
                      <section>
                          <h3 className="text-xs font-bold text-gray-400 uppercase mb-3">{t(language, 'soundscape')}</h3>
                          <div className="grid grid-cols-2 gap-3">
-                             {(['None', 'Guided', 'WhiteNoise', 'Rain', 'Ocean', 'Forest'] as const).map(s => (
+                             {(['None', 'Guided', 'WhiteNoise', 'Rain', 'Ocean', 'Forest', 'Birds'] as const).map(s => (
                                  <button key={s} 
                                      onClick={() => { 
                                          setSound(s); 

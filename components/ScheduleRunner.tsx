@@ -9,8 +9,8 @@ interface ScheduleRunnerProps {
   schedule: Schedule;
   onExit: () => void;
   onComplete: () => void;
-  profile?: ChildProfile; // Added profile prop to access settings
-  audioEnabled?: boolean; // NEW: Respect audio settings
+  profile?: ChildProfile; 
+  audioEnabled?: boolean; 
 }
 
 export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit, onComplete, profile, audioEnabled = false }) => {
@@ -19,29 +19,27 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
   const [isCompleted, setIsCompleted] = useState(false);
   const [activeEncouragement, setActiveEncouragement] = useState('');
   
-  // Initialize Camera Mode based on profile preference
+  // Initialize Camera Mode
   const [isCameraMode, setIsCameraMode] = useState(profile?.defaultCameraOn || false);
   
-  // Timer State for F38 & Visuals
-  const DEFAULT_STEP_DURATION = 120; // 2 minutes default if not specified
+  // Timer State
+  const DEFAULT_STEP_DURATION = 120; // 2 minutes default
   const [stepDuration, setStepDuration] = useState(DEFAULT_STEP_DURATION);
   const [timeLeft, setTimeLeft] = useState(DEFAULT_STEP_DURATION);
   const [isTimerRunning, setIsTimerRunning] = useState(true);
   const lang = profile?.language;
-  const showTimer = profile?.showVisualTimer !== false; // Default to true if undefined
+  const showTimer = profile?.showVisualTimer !== false; 
 
   const currentStep = schedule.steps[currentStepIndex];
   const nextStep = schedule.steps[currentStepIndex + 1];
 
-  // Speech function respecting F29 Settings & High Priority #7 (Sensory Enforcement)
+  // Speech function
   const playAudio = (text: string) => {
-    // CRITICAL: Block audio if disabled OR if child has high sound sensitivity
     if (!audioEnabled) return; 
     if (profile?.sensoryProfile?.soundSensitivity === 'high') return;
 
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    // Use profile settings or default to 1
     utterance.rate = profile?.audioPreferences?.speechRate || 0.9;
     window.speechSynthesis.speak(utterance);
   };
@@ -63,22 +61,20 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
 
   }, [currentStepIndex]);
 
-  // Play audio when step/encouragement changes, but wait for activeEncouragement to be set
-  // SKIP if camera mode is active (Camera component handles speech)
+  // Play audio when step/encouragement changes
   useEffect(() => {
      if (currentStep && !isCompleted && activeEncouragement && !isCameraMode) {
         playAudio(`${currentStep.instruction}. ${activeEncouragement}`);
      }
   }, [currentStepIndex, isCompleted, activeEncouragement, isCameraMode, audioEnabled]);
 
-  // Timer Tick & Transition Warnings (F38)
+  // Timer Tick & Transition Warnings
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
     if (isTimerRunning && timeLeft > 0 && !isCompleted) {
         interval = setInterval(() => {
             setTimeLeft(prev => {
                 const next = prev - 1;
-                // Transition Warnings (skip audio if camera mode to avoid overlap)
                 if (!isCameraMode && audioEnabled) {
                     if (next === 60) playAudio("One minute left!");
                     if (next === 10) playAudio("Ten seconds remaining!");
@@ -147,10 +143,9 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
         </div>
         
         <div className="flex items-center gap-2">
-            {/* Camera Toggle */}
             <button 
                 onClick={() => setIsCameraMode(!isCameraMode)}
-                className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border transition-colors ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold border transition-colors ${
                     isCameraMode ? 'bg-purple-100 text-purple-600 border-purple-200' : 'bg-gray-50 text-gray-500 border-gray-200'
                 }`}
                 aria-label={isCameraMode ? "Disable Vision Guide" : "Enable Vision Guide"}
@@ -159,7 +154,6 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
                 {isCameraMode ? t(lang, 'cameraGuideOn') : t(lang, 'cameraGuideOff')}
             </button>
             
-            {/* Child Lock Exit */}
             <LongPressButton 
               onComplete={onExit} 
               duration={3000}
@@ -170,21 +164,45 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
         </div>
       </div>
 
-      {/* First / Then Board (Hide in Camera Mode to save space) */}
+      {/* First / Then Board */}
       {!isCameraMode && (
           <div className="bg-primary/10 p-2 flex justify-center gap-4 border-b border-primary/20 shrink-0">
              <div className="flex items-center gap-2 opacity-100">
                 <span className="text-xs font-bold text-primary uppercase tracking-wide">{t(lang, 'now')}</span>
-                <span className="text-xl">{currentStep.emoji}</span>
+                {currentStep.imageUrl ? (
+                    <img src={currentStep.imageUrl} alt="Current Step" className="w-8 h-8 rounded object-cover" />
+                ) : (
+                    <span className="text-xl">{currentStep.emoji}</span>
+                )}
              </div>
              {nextStep && (
                  <div className="flex items-center gap-2 opacity-60">
                     <i className="fa-solid fa-arrow-right text-primary/50 text-xs"></i>
                     <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">{t(lang, 'then')}</span>
-                    <span className="text-xl">{nextStep.emoji}</span>
+                    {nextStep.imageUrl ? (
+                        <img src={nextStep.imageUrl} alt="Next Step" className="w-8 h-8 rounded object-cover" />
+                    ) : (
+                        <span className="text-xl">{nextStep.emoji}</span>
+                    )}
                  </div>
              )}
           </div>
+      )}
+
+      {/* Transition Warning Banners */}
+      {!isCameraMode && isTimerRunning && (
+          <>
+            {timeLeft <= 60 && timeLeft > 10 && (
+                <div className="bg-yellow-100 text-yellow-800 p-2 text-center font-bold text-sm animate-pulse shrink-0">
+                    <i className="fa-solid fa-clock mr-2"></i> Almost done! 1 minute left.
+                </div>
+            )}
+            {timeLeft <= 10 && timeLeft > 0 && (
+                <div className="bg-red-100 text-red-800 p-2 text-center font-bold text-sm animate-pulse shrink-0">
+                    <i className="fa-solid fa-hourglass-end mr-2"></i> Finishing up! {timeLeft}s...
+                </div>
+            )}
+          </>
       )}
 
       {/* Main Content */}
@@ -194,13 +212,13 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
                 step={currentStep} 
                 profile={profile} 
                 onComplete={handleNext}
-                audioEnabled={audioEnabled} // Passed here
+                audioEnabled={audioEnabled} 
             />
         ) : (
             <div className="h-full overflow-y-auto w-full">
                 <div className="min-h-full flex flex-col items-center justify-center p-6 gap-6">
                     
-                    {/* Pie Timer - Only show if enabled */}
+                    {/* Pie Timer */}
                     {showTimer && (
                       <div className="flex flex-col items-center justify-center gap-1">
                           <div className="relative w-16 h-16">
@@ -236,9 +254,19 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
                         </div>
                     )}
 
-                    <div className="text-6xl sm:text-8xl md:text-[8rem] leading-none mb-6 filter drop-shadow-sm">
-                        {currentStep.emoji}
-                    </div>
+                    {/* Display Custom Image OR Emoji */}
+                    {currentStep.imageUrl ? (
+                        <img 
+                            src={currentStep.imageUrl} 
+                            alt={currentStep.instruction} 
+                            className="w-64 h-64 object-cover rounded-2xl mb-6 shadow-md border-2 border-gray-100"
+                        />
+                    ) : (
+                        <div className="text-6xl sm:text-8xl md:text-[8rem] leading-none mb-6 filter drop-shadow-sm">
+                            {currentStep.emoji}
+                        </div>
+                    )}
+
                     <h2 className="text-3xl sm:text-4xl font-bold text-center text-gray-800 mb-2 font-sans">
                         {currentStep.instruction}
                     </h2>
@@ -270,7 +298,7 @@ export const ScheduleRunner: React.FC<ScheduleRunnerProps> = ({ schedule, onExit
         )}
       </div>
 
-      {/* Manual Next Button (Always visible) */}
+      {/* Manual Next Button */}
       <div className="p-4 sm:p-6 bg-white border-t pb-8 sm:pb-6 shrink-0 z-20">
         <button
           onClick={handleNext}

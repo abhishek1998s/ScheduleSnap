@@ -4,10 +4,11 @@ export interface ScheduleStep {
   emoji: string;
   instruction: string;
   encouragement: string;
-  encouragementOptions?: string[]; // New: Variations
-  sensoryTip?: string; // New: Sensory warning/tip
+  encouragementOptions?: string[]; 
+  sensoryTip?: string; 
   completed: boolean;
   subSteps?: { id: string; text: string; completed: boolean }[];
+  imageUrl?: string; // New: Custom photo for the step (Base64)
 }
 
 export interface Schedule {
@@ -16,9 +17,9 @@ export interface Schedule {
   type: 'Morning' | 'Bedtime' | 'Meal' | 'Play' | 'General';
   steps: ScheduleStep[];
   socialStory: string;
-  completionCelebration?: string; // New: Interest-themed completion message
-  missingItems?: string[]; // New: Objects needed but not found in image
-  scheduledTime?: string; // New: "08:00", "19:30"
+  completionCelebration?: string; 
+  missingItems?: string[]; 
+  scheduledTime?: string; 
   createdAt: number;
 }
 
@@ -31,12 +32,13 @@ export interface ChildProfile {
     soundSensitivity: 'low' | 'medium' | 'high';
   };
   audioPreferences?: {
-    speechRate: number; // 0.5 to 1.5
-    pitch: number;      // 0.5 to 1.5
+    speechRate: number; 
+    pitch: number;      
+    voiceId?: string; // New: 'Kore', 'Puck', 'Fenrir', etc.
   };
-  useThinkingMode?: boolean; // New: Enable deep reasoning
-  defaultCameraOn?: boolean; // New: Default to AI Vision mode
-  showVisualTimer?: boolean; // New: Toggle for visual timer
+  useThinkingMode?: boolean; 
+  defaultCameraOn?: boolean; 
+  showVisualTimer?: boolean; 
 }
 
 export interface MoodEntry {
@@ -54,7 +56,6 @@ export interface BehaviorLog {
   trigger?: string;
 }
 
-// New: Track routine completions for analytics
 export interface CompletionLog {
   id: string;
   scheduleId: string;
@@ -104,47 +105,46 @@ export interface BehaviorAnalysis {
 
 export interface WeeklyReport {
   summary: string;
-  improvements: string[]; // maps to 'wins' in some contexts
-  concerns: string[];     // maps to 'challenges'
+  improvements: string[]; 
+  concerns: string[];     
   wins: string[];
   suggestions: string[];
 }
 
-// NEW: Speech Interpretation Types
 export interface AACSymbol {
   label: string;
   emoji: string;
 }
 
 export interface SpeechAnalysis {
-  rawTranscription: string;      // What was literally said/heard
-  interpretedMeaning: string;    // What child likely means
-  confidence: number;            // How sure AI is
-  aacSymbols: AACSymbol[];       // Visual symbols for the message
-  suggestedResponses: string[];  // How parent might respond
-  emotionalTone: string;         // Happy, frustrated, urgent, etc.
+  rawTranscription: string;      
+  interpretedMeaning: string;    
+  confidence: number;            
+  aacSymbols: AACSymbol[];       
+  suggestedResponses: string[];  
+  emotionalTone: string;         
 }
 
 export interface VoiceMessage {
   id: string;
   timestamp: number;
   audioBlob: Blob; 
-  transcription?: string; // Keeping for backward compatibility
-  analysis?: SpeechAnalysis; // Full analysis
-  read: boolean; // Track if parent has viewed the message
+  transcription?: string; 
+  analysis?: SpeechAnalysis; 
+  read: boolean; 
 }
 
 export interface ParentMessage {
     id: string;
-    content: string; // text
+    content: string; 
     type: 'text' | 'audio' | 'video';
-    mediaBase64?: string; // For audio/video content
-    mimeType?: string; // New: Store specific mime type
-    scheduledTime?: string; // "14:00", if null sends immediately
+    mediaBase64?: string; 
+    mimeType?: string; 
+    scheduledTime?: string; 
     timestamp: number;
     isDelivered: boolean;
     isRead: boolean;
-    childResponse?: string; // Emoji response like '❤️'
+    childResponse?: string; 
 }
 
 export interface ResearchResult {
@@ -159,7 +159,6 @@ export interface RewardItem {
   cost: number;
 }
 
-// New AAC Types
 export type AACCategoryType = 'Core' | 'Needs' | 'Feelings' | 'Actions' | 'Social' | 'Scenes' | 'Custom';
 
 export interface AACButton {
@@ -180,34 +179,32 @@ export interface VisualScene {
 
 export interface VideoAnalysisResult {
   isOnTask: boolean;
-  taskProgress: number; // 0-100
+  taskProgress: number; 
   isStuck: boolean;
   feedback: string;
   completed: boolean;
 }
 
-// NEW: Meltdown Prediction Types
 export interface MeltdownPrediction {
   riskLevel: 'low' | 'medium' | 'high' | 'imminent';
-  confidence: number;         // 0-100%
-  timeEstimate: string;       // "within 30 minutes"
+  confidence: number;         
+  timeEstimate: string;       
   
   riskFactors: {
-    factor: string;           // "Time of day pattern"
-    contribution: number;     // How much this affects risk (0-10)
-    evidence: string;         // "3 of 5 meltdowns at this time"
+    factor: string;           
+    contribution: number;     
+    evidence: string;         
   }[];
 
   preventionStrategies: {
-    strategy: string;         // "Offer a snack"
-    effectiveness: string;    // "Worked 4 of 5 times"
+    strategy: string;         
+    effectiveness: string;    
     urgency: 'now' | 'soon' | 'consider';
   }[];
 
   recommendedAction: 'monitor' | 'intervene' | 'calm_mode' | 'break';
 }
 
-// NEW: Agentic Optimization Types
 export type OptimizationType = 'reorder' | 'add_break' | 'split_step' | 'combine_steps' | 'adjust_time' | 'add_warning' | 'remove_step';
 
 export interface ScheduleOptimization {
@@ -217,17 +214,17 @@ export interface ScheduleOptimization {
   
   recommendations: {
     type: OptimizationType;
-    description: string;       // "Move 'Get Dressed' before 'Brush Teeth'"
-    reason: string;            // "Alex completes faster when dressed first"
-    evidence: string;         // "3 of 5 faster completions had this order"
-    confidence: number;        // 85%
-    impact: 'high' | 'medium' | 'low'; // NEW
+    description: string;       
+    reason: string;            
+    evidence: string;         
+    confidence: number;        
+    impact: 'high' | 'medium' | 'low'; 
   }[];
 
   predictedImprovement: {
-    completionRate: string;    // "+15% likely"
-    avgTime: string;           // "-5 minutes estimated"
-    stressLevel: string;       // "Lower stress predicted"
+    completionRate: string;    
+    avgTime: string;           
+    stressLevel: string;       
   };
 }
 
@@ -238,11 +235,10 @@ export interface BuilderFeedback {
     suggestedOrder?: string[];
 }
 
-// NEW: Magic Books Types
 export interface StoryPage {
   text: string;
   emoji: string;
-  color: string; // Tailwind bg class
+  color: string; 
 }
 
 export interface StoryBook {
@@ -254,20 +250,19 @@ export interface StoryBook {
   createdAt: number;
 }
 
-// NEW: Therapy Session Types
 export interface TherapySessionAnalysis {
-  duration: number; // in minutes
+  duration: number; 
   summary: string;
 
   techniquesObserved: {
-    technique: string;      // "Discrete Trial Training"
-    effectiveness: string;  // "Child responded well"
-    timestamp: string;      // When it happened
+    technique: string;      
+    effectiveness: string;  
+    timestamp: string;      
   }[];
 
   breakthroughMoments: {
-    description: string;    // "First time child made eye contact for 5 seconds"
-    significance: string;   // Why this matters
+    description: string;    
+    significance: string;   
     timestamp: string;
   }[];
 
@@ -278,8 +273,8 @@ export interface TherapySessionAnalysis {
   }[];
 
   homePractice: {
-    activity: string;       // "Practice turn-taking with preferred toy"
-    duration: string;       // "5 minutes daily"
+    activity: string;       
+    duration: string;       
     tips: string[];
   }[];
 
@@ -295,7 +290,6 @@ export interface TherapySession {
   notes?: string;
 }
 
-// NEW: Learning Path Types
 export type LessonType = 'video' | 'quiz' | 'practice' | 'story';
 
 export interface Lesson {
@@ -303,23 +297,22 @@ export interface Lesson {
   title: string;
   description: string;
   type: LessonType;
-  estimatedTime: string; // "5 mins"
+  estimatedTime: string; 
   isCompleted: boolean;
   isLocked: boolean;
   emoji: string;
-  content?: any; // To store generated content like quiz questions or story text
+  content?: any; 
 }
 
 export interface LearningPath {
   id: string;
-  skillArea: string; // "Social Skills", "Emotional Regulation", etc.
-  currentLevel: number; // 1-10
+  skillArea: string; 
+  currentLevel: number; 
   lessons: Lesson[];
-  progress: number; // 0-100%
-  colorTheme: string; // Tailwind class prefix, e.g., "blue"
+  progress: number; 
+  colorTheme: string; 
 }
 
-// NEW: Environment Scanner Types
 export interface EnvironmentScan {
   lightLevel: 'too bright' | 'good' | 'too dim';
   lightSuggestion?: string;
@@ -327,7 +320,7 @@ export interface EnvironmentScan {
   visualClutter: 'high' | 'medium' | 'low';
   clutterSuggestion?: string;
 
-  noiseLevel: number; // approximate relative dB level 0-100
+  noiseLevel: number; 
   noiseSuggestion?: string;
 
   colorAnalysis: string;
@@ -358,7 +351,7 @@ export enum ViewState {
   THERAPY = 'therapy',
   LEARNING = 'learning',
   SCANNER = 'scanner',
-  OPTIMIZER = 'optimizer' // New
+  OPTIMIZER = 'optimizer'
 }
 
 export interface AppState {
@@ -374,7 +367,7 @@ export interface AppState {
   completionLogs: CompletionLog[]; 
   voiceMessages: VoiceMessage[];
   quizStats: QuizStats;
-  meltdownRisk?: 'Low' | 'Medium' | 'High'; // Simple legacy flag
+  meltdownRisk?: 'Low' | 'Medium' | 'High'; 
   caregiverPin?: string;
   customAACButtons: AACButton[]; 
   latestPrediction?: MeltdownPrediction | null;

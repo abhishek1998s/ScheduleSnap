@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Schedule, ChildProfile, BehaviorLog, MoodEntry, BehaviorAnalysis, VoiceMessage, CompletionLog, WeeklyReport, ScheduleOptimization, ParentMessage } from '../types';
 import { analyzeBehaviorLogs, analyzeBehaviorVideo, generateScheduleOptimization, generateWeeklyReport } from '../services/geminiService';
@@ -41,6 +40,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [activeTab, setActiveTab] = useState<'overview' | 'routines' | 'behavior' | 'analytics' | 'messages'>('overview');
   const lang = profile.language;
   
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const msgFileInputRef = useRef<HTMLInputElement>(null);
+  
   // Behavior Form State
   const [newLogBehavior, setNewLogBehavior] = useState('Meltdown');
   const [newLogIntensity, setNewLogIntensity] = useState<'Mild' | 'Moderate' | 'Severe'>('Moderate');
@@ -49,8 +51,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Analysis State
   const [analysis, setAnalysis] = useState<BehaviorAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const videoInputRef = useRef<HTMLInputElement>(null);
-
+  
   // Weekly Report State
   const [weeklyReport, setWeeklyReport] = useState<WeeklyReport | null>(null);
   const [generatingReport, setGeneratingReport] = useState(false);
@@ -62,18 +63,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [editInterests, setEditInterests] = useState(profile.interests.join(', '));
   const [editLanguage, setEditLanguage] = useState(profile.language || 'English');
   const [editSpeechRate, setEditSpeechRate] = useState(profile.audioPreferences?.speechRate || 1);
+  const [editVoiceId, setEditVoiceId] = useState(profile.audioPreferences?.voiceId || 'Kore'); 
   const [editThinkingMode, setEditThinkingMode] = useState(profile.useThinkingMode || false);
   const [editDefaultCamera, setEditDefaultCamera] = useState(profile.defaultCameraOn || false);
-
-  // Pin Change State
-  const [newPinInput, setNewPinInput] = useState('');
 
   // Parent Message Scheduling State
   const [msgContent, setMsgContent] = useState('');
   const [msgTime, setMsgTime] = useState('');
   const [msgMedia, setMsgMedia] = useState<{ base64: string, type: 'video' | 'audio', mimeType: string } | null>(null);
-  const msgFileInputRef = useRef<HTMLInputElement>(null);
-
+  
   // Goals (Computed)
   const [goals, setGoals] = useState([
       { id: 1, text: "Complete Routines", target: 5, current: 0, icon: "fa-sun", badge: "Morning Star" },
@@ -81,7 +79,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   ]);
 
   useEffect(() => {
-    // Update Goals based on logs
     const weekStart = Date.now() - 7 * 24 * 60 * 60 * 1000;
     const recentCompletions = completionLogs.filter(l => l.timestamp > weekStart).length;
     const recentMoods = moodLogs.filter(l => l.timestamp > weekStart).length;
@@ -214,29 +211,70 @@ export const Dashboard: React.FC<DashboardProps> = ({
         defaultCameraOn: editDefaultCamera,
         audioPreferences: {
             speechRate: editSpeechRate,
-            pitch: 1
+            pitch: 1,
+            voiceId: editVoiceId
         }
     });
     setIsEditingProfile(false);
   };
 
-  const unreadCount = voiceMessages.filter(m => !m.read).length;
-
-  const getBehaviorStats = () => {
-      const counts: Record<string, number> = {};
-      behaviorLogs.forEach(l => {
-          counts[l.behavior] = (counts[l.behavior] || 0) + 1;
-      });
-      const max = Math.max(...Object.values(counts), 1);
-      return Object.entries(counts).map(([name, count]) => ({
-          name, count, percent: (count / max) * 100
-      })).sort((a,b) => b.count - a.count);
+  const handlePrintSchedule = (schedule: Schedule) => {
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+          printWindow.document.write(`
+            <html>
+              <head>
+                <title>${schedule.title}</title>
+                <style>
+                  body { font-family: sans-serif; padding: 20px; }
+                  h1 { text-align: center; color: #333; }
+                  .story { text-align: center; margin-bottom: 30px; font-style: italic; color: #666; font-size: 1.2em; }
+                  .step { 
+                      border: 2px solid #5B8C5A; 
+                      padding: 20px; 
+                      margin-bottom: 15px; 
+                      border-radius: 12px; 
+                      display: flex; 
+                      align-items: center; 
+                      page-break-inside: avoid;
+                  }
+                  .emoji { font-size: 50px; margin-right: 25px; width: 60px; text-align: center; }
+                  .content { flex: 1; }
+                  .instruction { font-size: 24px; font-weight: bold; margin-bottom: 5px; }
+                  .encouragement { font-size: 18px; color: #5B8C5A; }
+                  .checkbox { width: 30px; height: 30px; border: 2px solid #333; border-radius: 6px; }
+                  .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #999; }
+                </style>
+              </head>
+              <body>
+                <h1>${schedule.title}</h1>
+                <div class="story">${schedule.socialStory}</div>
+                ${schedule.steps.map((s, i) => `
+                  <div class="step">
+                    <div class="emoji">${s.emoji}</div>
+                    <div class="content">
+                      <div class="instruction">${i + 1}. ${s.instruction}</div>
+                      <div class="encouragement">"${s.encouragement}"</div>
+                    </div>
+                    <div class="checkbox"></div>
+                  </div>
+                `).join('')}
+                <div class="footer">Created with ScheduleSnap</div>
+                <script>window.print();</script>
+              </body>
+            </html>
+          `);
+          printWindow.document.close();
+      }
   };
+
+  const unreadCount = voiceMessages.filter(m => !m.read).length;
 
   if (!isAuthenticated) {
     return (
       <div className="flex flex-col h-full bg-background items-center justify-center p-6 overflow-y-auto">
         <div className="bg-white p-6 rounded-3xl shadow-lg w-full max-w-sm text-center relative flex flex-col items-center">
+            <button onClick={onExit} className="absolute top-4 right-4 text-gray-400 p-2"><i className="fa-solid fa-times text-xl"></i></button>
             <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-2">
                 <i className="fa-solid fa-lock text-primary text-xl"></i>
             </div>
@@ -255,496 +293,439 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             <div className="grid grid-cols-3 gap-3 w-full max-w-[240px] mb-6">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-                    <button 
-                        key={num} 
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                    <button
+                        key={num}
                         onClick={() => handleNumpadPress(num)}
-                        className="aspect-square bg-gray-50 rounded-full text-xl font-bold text-gray-700 active:bg-primary active:text-white transition-colors shadow-sm"
+                        className="w-16 h-16 rounded-full bg-gray-50 hover:bg-gray-100 text-xl font-bold text-gray-700 transition-colors focus:ring-2 focus:ring-primary focus:outline-none"
                     >
                         {num}
                     </button>
                 ))}
-                <div className="aspect-square"></div>
-                <button 
+                <div className="w-16"></div>
+                <button
                     onClick={() => handleNumpadPress(0)}
-                    className="aspect-square bg-gray-50 rounded-full text-xl font-bold text-gray-700 active:bg-primary active:text-white transition-colors shadow-sm"
+                    className="w-16 h-16 rounded-full bg-gray-50 hover:bg-gray-100 text-xl font-bold text-gray-700 transition-colors focus:ring-2 focus:ring-primary focus:outline-none"
                 >
                     0
                 </button>
-                <button 
+                <button
                     onClick={handleBackspace}
-                    className="aspect-square flex items-center justify-center text-gray-400 active:text-gray-600 rounded-full hover:bg-gray-50"
-                    aria-label="Backspace"
+                    className="w-16 h-16 rounded-full bg-gray-50 hover:bg-red-50 text-gray-500 hover:text-red-500 transition-colors flex items-center justify-center focus:ring-2 focus:ring-red-300 focus:outline-none"
                 >
                     <i className="fa-solid fa-delete-left text-xl"></i>
                 </button>
             </div>
 
-            <button onClick={handleUnlock} className="w-full bg-primary text-white py-3 rounded-xl font-bold shadow-md mb-2">{t(lang, 'unlock')}</button>
-            <button onClick={onExit} className="text-gray-400 text-sm py-2">{t(lang, 'cancel')}</button>
+            <button 
+                onClick={handleUnlock}
+                className="w-full bg-primary text-white py-3 rounded-xl font-bold shadow-lg hover:bg-secondary transition-colors"
+            >
+                {t(lang, 'unlock')}
+            </button>
         </div>
       </div>
     );
   }
 
-  // UPDATED LAYOUT: Single scroll container with Sticky Header to fix clipping/access issues on small screens
   return (
-    <div className={`h-full ${isHighContrast ? 'bg-black text-yellow-300' : 'bg-background'} overflow-y-auto`}>
-        
-        {/* Sticky Header Container */}
-        <div className="sticky top-0 z-30 shadow-sm">
-            {/* Main Header */}
-            <div className={`${isHighContrast ? 'bg-gray-900 border-gray-700' : 'bg-white'} p-4 flex items-center gap-4`}>
-                <button onClick={onExit} className="p-3 hover:bg-gray-100 rounded-full w-12 h-12 flex items-center justify-center" aria-label="Exit Dashboard">
-                    <i className="fa-solid fa-arrow-left"></i>
+    <div className="flex flex-col h-full bg-gray-50">
+        {/* Navigation Bar */}
+        <div className="bg-white shadow-sm sticky top-0 z-20 overflow-x-auto no-scrollbar">
+            <div className="flex p-2 gap-2 min-w-max">
+                <button onClick={() => setActiveTab('overview')} className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'overview' ? 'bg-primary text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}>
+                    <i className="fa-solid fa-house mr-2"></i> Overview
                 </button>
-                <h1 className="text-xl font-bold">{t(lang, 'dashboard')}</h1>
-                {/* Audio Toggle */}
-                <button 
-                    onClick={onToggleAudio}
-                    className={`ml-auto px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 ${audioEnabled ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
-                    aria-label={audioEnabled ? "Mute Audio" : "Enable Audio"}
-                >
-                    {audioEnabled ? <><i className="fa-solid fa-volume-high"></i> ON</> : <><i className="fa-solid fa-volume-xmark"></i> OFF</>}
+                <button onClick={() => setActiveTab('routines')} className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'routines' ? 'bg-primary text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}>
+                    <i className="fa-solid fa-list-check mr-2"></i> Routines
                 </button>
-            </div>
-
-            {/* Tabs */}
-            <div className={`flex p-2 ${isHighContrast ? 'bg-black border-gray-700' : 'bg-white border-b'} gap-2 overflow-x-auto`} role="tablist">
-                {['overview', 'analytics', 'routines', 'behavior', 'messages'].map(tab => (
-                    <button 
-                        key={tab}
-                        role="tab"
-                        aria-selected={activeTab === tab}
-                        onClick={() => {
-                            setActiveTab(tab as any);
-                            if (tab === 'messages') onMarkMessagesRead();
-                        }}
-                        className={`px-4 py-2 rounded-full text-sm font-bold capitalize whitespace-nowrap relative ${
-                            activeTab === tab 
-                                ? (isHighContrast ? 'bg-yellow-400 text-black' : 'bg-primary text-white') 
-                                : (isHighContrast ? 'bg-gray-800 text-yellow-200' : 'bg-gray-100 text-gray-500')
-                        }`}
-                    >
-                        {t(lang, tab)}
-                        {tab === 'messages' && unreadCount > 0 && activeTab !== 'messages' && (
-                            <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                            </span>
-                        )}
-                    </button>
-                ))}
+                <button onClick={() => setActiveTab('behavior')} className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'behavior' ? 'bg-primary text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}>
+                    <i className="fa-solid fa-chart-line mr-2"></i> Behavior
+                </button>
+                <button onClick={() => setActiveTab('messages')} className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'messages' ? 'bg-primary text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}>
+                    <i className="fa-solid fa-envelope mr-2"></i> Messages
+                    {unreadCount > 0 && <span className="ml-2 bg-red-500 text-white text-[10px] px-1.5 rounded-full">{unreadCount}</span>}
+                </button>
+                <div className="flex-1"></div>
+                <button onClick={onExit} className="px-4 py-2 rounded-xl text-sm font-bold bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors">
+                    <i className="fa-solid fa-arrow-right-from-bracket"></i>
+                </button>
             </div>
         </div>
 
-        {/* Content Area - Scrollable due to parent overflow-y-auto */}
-        <div className="p-4 space-y-6 pb-32">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-24">
             
+            {/* OVERVIEW TAB */}
             {activeTab === 'overview' && (
-                <>
-                    {/* Weekly Report Section */}
-                     <div className="bg-yellow-50 p-4 rounded-2xl border border-yellow-200">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-bold text-yellow-800 flex items-center gap-2">
-                                <i className="fa-solid fa-wand-magic-sparkles"></i> {t(lang, 'aiInsights')}
-                            </h3>
+                <div className="space-y-6 animate-fadeIn">
+                    
+                    {/* Profile Card */}
+                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                        <div className="flex justify-between items-start mb-4">
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-800">{profile.name}</h2>
+                                <p className="text-gray-500 text-sm">{profile.age} years • {profile.interests.length} interests</p>
+                            </div>
                             <button 
-                                onClick={handleGenerateReport} 
-                                disabled={generatingReport}
-                                className="bg-yellow-600 text-white px-3 py-1 rounded-lg text-sm font-bold shadow-sm"
+                                onClick={() => setIsEditingProfile(!isEditingProfile)} 
+                                className="w-10 h-10 rounded-full bg-gray-50 hover:bg-gray-100 flex items-center justify-center text-gray-600 transition-colors"
+                                aria-label="Edit Profile"
                             >
-                                {generatingReport ? t(lang, 'analyzing') : "Generate Report"}
+                                <i className={`fa-solid ${isEditingProfile ? 'fa-check text-green-500' : 'fa-pen'}`}></i>
                             </button>
                         </div>
-                        
-                        {weeklyReport ? (
-                            <div className="space-y-4 animate-fadeIn">
-                                <div className="bg-white p-3 rounded-xl border border-yellow-100 shadow-sm">
-                                    <p className="text-gray-700 text-sm leading-relaxed">{weeklyReport.summary}</p>
-                                </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="bg-green-100 p-3 rounded-xl">
-                                        <h4 className="text-green-800 font-bold text-xs uppercase mb-1">{t(lang, 'wins')}</h4>
-                                        <ul className="text-xs space-y-1 text-green-900">
-                                            {weeklyReport.wins.map((w,i) => <li key={i}>• {w}</li>)}
-                                        </ul>
-                                    </div>
-                                    <div className="bg-orange-100 p-3 rounded-xl">
-                                        <h4 className="text-orange-800 font-bold text-xs uppercase mb-1">{t(lang, 'suggestions')}</h4>
-                                        <ul className="text-xs space-y-1 text-orange-900">
-                                            {weeklyReport.suggestions.map((s,i) => <li key={i}>• {s}</li>)}
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="text-center text-yellow-700/50 text-sm py-2">
-                                <p>Tap generate to see AI insights for the week.</p>
-                            </div>
-                        )}
-                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        {goals.map(goal => (
-                            <div key={goal.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center">
-                                <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center mb-2">
-                                    <i className={`fa-solid ${goal.icon}`}></i>
-                                </div>
-                                <h3 className="font-bold text-gray-700 text-sm">{goal.text}</h3>
-                                <div className="mt-2 w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                                    <div className="bg-blue-500 h-full transition-all" style={{ width: `${Math.min((goal.current / goal.target) * 100, 100)}%` }}></div>
-                                </div>
-                                <p className="text-xs text-gray-400 mt-1">{goal.current} / {goal.target}</p>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-bold text-gray-700">{t(lang, 'childProfile')}</h3>
-                            <button onClick={() => setIsEditingProfile(!isEditingProfile)} className="text-primary text-sm font-bold">
-                                {isEditingProfile ? t(lang, 'cancel') : t(lang, 'edit')}
-                            </button>
-                        </div>
-                        
                         {isEditingProfile ? (
-                            <div className="space-y-3 animate-fadeIn">
-                                {/* Explicit styling with !important or inline style to force readability against dark mode UA styles */}
-                                <input 
-                                    value={editName} 
-                                    onChange={e => setEditName(e.target.value)} 
-                                    className="w-full p-2 border border-gray-300 rounded placeholder-gray-400" 
-                                    style={{ backgroundColor: '#ffffff', color: '#111827' }} 
-                                    placeholder={t(lang, 'name')} 
-                                />
-                                <input 
-                                    value={editAge} 
-                                    onChange={e => setEditAge(Number(e.target.value))} 
-                                    className="w-full p-2 border border-gray-300 rounded placeholder-gray-400" 
-                                    style={{ backgroundColor: '#ffffff', color: '#111827' }}
-                                    placeholder={t(lang, 'age')} 
-                                    type="number" 
-                                />
-                                <input 
-                                    value={editInterests} 
-                                    onChange={e => setEditInterests(e.target.value)} 
-                                    className="w-full p-2 border border-gray-300 rounded placeholder-gray-400" 
-                                    style={{ backgroundColor: '#ffffff', color: '#111827' }}
-                                    placeholder={t(lang, 'interests')} 
-                                />
-                                <select 
-                                    value={editLanguage} 
-                                    onChange={e => setEditLanguage(e.target.value)} 
-                                    className="w-full p-2 border border-gray-300 rounded"
-                                    style={{ backgroundColor: '#ffffff', color: '#111827' }}
-                                >
-                                    <option value="English">English</option>
-                                    <option value="Spanish">Spanish</option>
-                                    <option value="Hindi">Hindi</option>
-                                </select>
-                                
-                                <div className="flex items-center gap-2">
-                                    <input type="checkbox" checked={editDefaultCamera} onChange={e => setEditDefaultCamera(e.target.checked)} className="accent-primary" />
-                                    <span className="text-sm text-gray-700">{t(lang, 'defaultCamera')}</span>
-                                </div>
-
-                                <button onClick={saveProfile} className="w-full bg-primary text-white py-2 rounded font-bold">{t(lang, 'save')}</button>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-4">
-                                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center text-2xl">
-                                    {profile.name[0]}
+                            <div className="space-y-4 animate-slideUp">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-400 uppercase">Name</label>
+                                        <input value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full p-2 bg-gray-50 rounded-lg border focus:border-primary outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-400 uppercase">Age</label>
+                                        <input type="number" value={editAge} onChange={(e) => setEditAge(e.target.value)} className="w-full p-2 bg-gray-50 rounded-lg border focus:border-primary outline-none" />
+                                    </div>
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-bold">{profile.name}, {profile.age}</h2>
-                                    <p className="text-gray-500 text-sm">{profile.interests.join(' • ')}</p>
+                                    <label className="text-xs font-bold text-gray-400 uppercase">Interests</label>
+                                    <input value={editInterests} onChange={(e) => setEditInterests(e.target.value)} className="w-full p-2 bg-gray-50 rounded-lg border focus:border-primary outline-none" />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-400 uppercase">Language</label>
+                                        <select value={editLanguage} onChange={(e) => setEditLanguage(e.target.value)} className="w-full p-2 bg-gray-50 rounded-lg border outline-none">
+                                            {['English', 'Spanish', 'French', 'German', 'Chinese', 'Hindi', 'Arabic'].map(l => <option key={l} value={l}>{l}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-400 uppercase">Voice Speed</label>
+                                        <input 
+                                            type="range" min="0.5" max="1.5" step="0.1" 
+                                            value={editSpeechRate} 
+                                            onChange={(e) => setEditSpeechRate(parseFloat(e.target.value))} 
+                                            className="w-full mt-2"
+                                        />
+                                        <div className="text-xs text-center text-gray-500">{editSpeechRate}x</div>
+                                    </div>
+                                </div>
+                                
+                                {/* New Voice Settings */}
+                                <div>
+                                    <label className="text-xs font-bold text-gray-400 uppercase">Voice Persona</label>
+                                    <div className="grid grid-cols-3 gap-2 mt-1">
+                                        {['Kore', 'Fenrir', 'Puck', 'Aoede', 'Charon'].map(voice => (
+                                            <button 
+                                                key={voice}
+                                                onClick={() => setEditVoiceId(voice)}
+                                                className={`py-2 px-3 rounded-lg text-xs font-bold border transition-all ${editVoiceId === voice ? 'bg-primary text-white border-primary' : 'bg-white text-gray-600 border-gray-200'}`}
+                                            >
+                                                {voice}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                                    <span className="text-sm font-bold text-gray-700">Thinking Mode</span>
+                                    <button 
+                                        onClick={() => setEditThinkingMode(!editThinkingMode)}
+                                        className={`w-12 h-6 rounded-full transition-colors relative ${editThinkingMode ? 'bg-primary' : 'bg-gray-300'}`}
+                                    >
+                                        <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${editThinkingMode ? 'left-7' : 'left-1'}`}></div>
+                                    </button>
+                                </div>
+                                <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                                    <span className="text-sm font-bold text-gray-700">Auto-Vision Guide</span>
+                                    <button 
+                                        onClick={() => setEditDefaultCamera(!editDefaultCamera)}
+                                        className={`w-12 h-6 rounded-full transition-colors relative ${editDefaultCamera ? 'bg-primary' : 'bg-gray-300'}`}
+                                    >
+                                        <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${editDefaultCamera ? 'left-7' : 'left-1'}`}></div>
+                                    </button>
+                                </div>
+                                
+                                <button onClick={saveProfile} className="w-full py-3 bg-primary text-white rounded-xl font-bold shadow-md hover:bg-secondary transition-colors">
+                                    Save Profile
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
+                                <div className="bg-orange-50 p-3 rounded-xl border border-orange-100 text-center">
+                                    <div className="text-xs text-orange-400 font-bold uppercase mb-1">Weekly</div>
+                                    <div className="text-2xl font-bold text-orange-600">{completionLogs.length}</div>
+                                </div>
+                                <div className="bg-blue-50 p-3 rounded-xl border border-blue-100 text-center">
+                                    <div className="text-xs text-blue-400 font-bold uppercase mb-1">Streak</div>
+                                    <div className="text-2xl font-bold text-blue-600">3</div>
+                                </div>
+                                <div className="bg-purple-50 p-3 rounded-xl border border-purple-100 text-center">
+                                    <div className="text-xs text-purple-400 font-bold uppercase mb-1">Moods</div>
+                                    <div className="text-2xl font-bold text-purple-600">{moodLogs.length}</div>
+                                </div>
+                                <div className="bg-green-50 p-3 rounded-xl border border-green-100 text-center">
+                                    <div className="text-xs text-green-400 font-bold uppercase mb-1">Tokens</div>
+                                    <div className="text-2xl font-bold text-green-600">12</div>
                                 </div>
                             </div>
                         )}
                     </div>
-                </>
+
+                    {/* Quick Settings */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <button 
+                            onClick={onToggleHighContrast}
+                            className={`p-4 rounded-2xl flex items-center gap-3 font-bold transition-all ${isHighContrast ? 'bg-black text-white' : 'bg-white text-gray-700 shadow-sm'}`}
+                        >
+                            <i className="fa-solid fa-circle-half-stroke text-xl"></i>
+                            Contrast
+                        </button>
+                        <button 
+                            onClick={onToggleAudio}
+                            className={`p-4 rounded-2xl flex items-center gap-3 font-bold transition-all ${audioEnabled ? 'bg-white text-green-600 shadow-sm border-2 border-green-100' : 'bg-gray-100 text-gray-400'}`}
+                        >
+                            <i className={`fa-solid ${audioEnabled ? 'fa-volume-high' : 'fa-volume-xmark'} text-xl`}></i>
+                            {audioEnabled ? 'Audio On' : 'Audio Off'}
+                        </button>
+                    </div>
+
+                    {/* Goals */}
+                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <i className="fa-solid fa-bullseye text-red-500"></i> Weekly Goals
+                        </h3>
+                        <div className="space-y-4">
+                            {goals.map(goal => (
+                                <div key={goal.id}>
+                                    <div className="flex justify-between text-sm font-bold mb-1">
+                                        <span className="text-gray-600 flex items-center gap-2">
+                                            <i className={`fa-solid ${goal.icon} text-gray-400`}></i> {goal.text}
+                                        </span>
+                                        <span className={goal.current >= goal.target ? 'text-green-500' : 'text-gray-400'}>
+                                            {goal.current}/{goal.target}
+                                        </span>
+                                    </div>
+                                    <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                                        <div 
+                                            className={`h-full rounded-full transition-all duration-1000 ${goal.current >= goal.target ? 'bg-green-500' : 'bg-primary'}`}
+                                            style={{ width: `${Math.min((goal.current/goal.target)*100, 100)}%` }}
+                                        ></div>
+                                    </div>
+                                    {goal.current >= goal.target && (
+                                        <div className="mt-2 text-xs font-bold text-orange-500 flex items-center gap-1 animate-pulse">
+                                            <i className="fa-solid fa-award"></i> Badge Earned: {goal.badge}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
             )}
 
+            {/* ROUTINES TAB */}
             {activeTab === 'routines' && (
-                <div className="space-y-4">
+                <div className="space-y-4 animate-fadeIn">
                     <button 
                         onClick={onCreateCustom}
-                        className="w-full p-4 border-2 border-dashed border-primary/50 rounded-xl text-primary font-bold flex items-center justify-center gap-2 hover:bg-primary/5"
+                        className="w-full p-4 bg-white border-2 border-dashed border-gray-300 rounded-2xl text-gray-400 font-bold hover:border-primary hover:text-primary hover:bg-green-50 transition-all flex items-center justify-center gap-2"
                     >
-                        <i className="fa-solid fa-plus"></i> {t(lang, 'createCustom')}
+                        <i className="fa-solid fa-plus"></i> Create New Routine
                     </button>
 
                     {schedules.map(schedule => (
-                        <div key={schedule.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 relative group">
-                            <div className="flex items-center gap-4">
-                                <span className="text-3xl">{schedule.steps[0]?.emoji}</span>
-                                <div className="flex-1">
-                                    <h3 className="font-bold text-gray-800">{schedule.title}</h3>
-                                    <p className="text-xs text-gray-400">{schedule.steps.length} {t(lang, 'steps')}</p>
+                        <div key={schedule.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-4">
+                            <div className="flex justify-between items-start">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-3xl">{schedule.steps[0]?.emoji}</span>
+                                    <div>
+                                        <h3 className="font-bold text-gray-800 text-lg">{schedule.title}</h3>
+                                        <p className="text-sm text-gray-400">{schedule.steps.length} steps • {schedule.type}</p>
+                                    </div>
                                 </div>
                                 <div className="flex gap-2">
-                                    <button 
-                                        onClick={() => onOpenOptimizer(schedule.id)}
-                                        className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center hover:bg-purple-200"
-                                        title="Auto-Improve with AI"
-                                    >
-                                        <i className="fa-solid fa-wand-magic-sparkles text-xs"></i>
+                                    <button onClick={() => onEditSchedule(schedule.id)} className="w-8 h-8 rounded-full bg-gray-50 text-gray-600 hover:bg-blue-50 hover:text-blue-500 flex items-center justify-center transition-colors" aria-label="Edit Schedule">
+                                        <i className="fa-solid fa-pen"></i>
                                     </button>
-                                    <button onClick={() => onEditSchedule(schedule.id)} className="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center" aria-label="Edit Schedule"><i className="fa-solid fa-pen text-xs"></i></button>
-                                    <button onClick={() => onDeleteSchedule(schedule.id)} className="w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center" aria-label="Delete Schedule"><i className="fa-solid fa-trash text-xs"></i></button>
+                                    <button onClick={() => onOpenOptimizer(schedule.id)} className="w-8 h-8 rounded-full bg-gray-50 text-gray-600 hover:bg-purple-50 hover:text-purple-500 flex items-center justify-center transition-colors" aria-label="Optimize Schedule">
+                                        <i className="fa-solid fa-wand-magic-sparkles"></i>
+                                    </button>
+                                    <button onClick={() => handlePrintSchedule(schedule)} className="w-8 h-8 rounded-full bg-gray-50 text-gray-600 hover:bg-yellow-50 hover:text-yellow-500 flex items-center justify-center transition-colors" aria-label="Print Schedule">
+                                        <i className="fa-solid fa-print"></i>
+                                    </button>
+                                    <button onClick={() => onDeleteSchedule(schedule.id)} className="w-8 h-8 rounded-full bg-gray-50 text-gray-600 hover:bg-red-50 hover:text-red-500 flex items-center justify-center transition-colors" aria-label="Delete Schedule">
+                                        <i className="fa-solid fa-trash"></i>
+                                    </button>
                                 </div>
                             </div>
+                            <button 
+                                onClick={() => onSelectSchedule(schedule.id)}
+                                className="w-full py-3 bg-primary text-white rounded-xl font-bold hover:bg-secondary transition-colors"
+                            >
+                                Start Routine
+                            </button>
                         </div>
                     ))}
                 </div>
             )}
 
+            {/* BEHAVIOR TAB */}
             {activeTab === 'behavior' && (
-                <div className="space-y-6">
-                    <div className="bg-white p-4 rounded-2xl shadow-sm">
-                        <h3 className="font-bold mb-4">{t(lang, 'quickLog')}</h3>
-                        <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-                            {['Meltdown', 'Aggression', 'Elopement', 'Stimming', 'Refusal'].map(b => (
-                                <button 
-                                    key={b}
-                                    onClick={() => setNewLogBehavior(b)}
-                                    className={`px-3 py-1 rounded-full text-sm border whitespace-nowrap ${newLogBehavior === b ? 'bg-primary text-white border-primary' : 'border-gray-200'}`}
-                                >
-                                    {b}
-                                </button>
-                            ))}
+                <div className="space-y-6 animate-fadeIn">
+                    
+                    {/* Log New Incident */}
+                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-red-100">
+                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <i className="fa-solid fa-file-pen text-red-500"></i> Quick Log Incident
+                        </h3>
+                        <div className="grid grid-cols-2 gap-3 mb-4">
+                            <select value={newLogBehavior} onChange={(e) => setNewLogBehavior(e.target.value)} className="p-3 bg-gray-50 rounded-xl border outline-none font-bold text-gray-700">
+                                {['Meltdown', 'Aggression', 'Elopement', 'Refusal', 'Anxiety', 'Stimming', 'Self-Injury'].map(b => <option key={b} value={b}>{b}</option>)}
+                            </select>
+                            <select value={newLogIntensity} onChange={(e) => setNewLogIntensity(e.target.value as any)} className="p-3 bg-gray-50 rounded-xl border outline-none font-bold text-gray-700">
+                                {['Mild', 'Moderate', 'Severe'].map(i => <option key={i} value={i}>{i}</option>)}
+                            </select>
                         </div>
                         <input 
-                            placeholder={t(lang, 'triggerOptional')}
                             value={newLogTrigger}
-                            onChange={e => setNewLogTrigger(e.target.value)}
-                            className="w-full p-3 bg-gray-50 rounded-xl mb-3 text-sm border border-gray-200"
+                            onChange={(e) => setNewLogTrigger(e.target.value)}
+                            placeholder="Trigger (optional)"
+                            className="w-full p-3 bg-gray-50 rounded-xl border outline-none mb-4"
                         />
-                        <div className="flex gap-2">
-                            {(['Mild', 'Moderate', 'Severe'] as const).map(i => (
-                                <button 
-                                    key={i} 
-                                    onClick={() => setNewLogIntensity(i)}
-                                    className={`flex-1 py-2 rounded-lg text-xs font-bold ${newLogIntensity === i ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500'}`}
-                                >
-                                    {i}
-                                </button>
-                            ))}
-                        </div>
-                        <button onClick={submitBehavior} className="w-full mt-4 bg-primary text-white py-3 rounded-xl font-bold shadow-md">{t(lang, 'logIncident')}</button>
+                        <button onClick={submitBehavior} className="w-full py-3 bg-red-500 text-white rounded-xl font-bold shadow-md hover:bg-red-600 transition-colors">
+                            Log Incident
+                        </button>
                     </div>
 
-                    <div className="bg-purple-50 p-6 rounded-2xl border border-purple-100 text-center">
-                        <i className="fa-solid fa-brain text-4xl text-purple-300 mb-4"></i>
-                        <h3 className="font-bold text-purple-900 mb-2">{t(lang, 'aiInsights')}</h3>
-                        
-                        {!analysis ? (
-                            <div className="space-y-3">
-                                <p className="text-sm text-purple-700 mb-4">{t(lang, 'needLogs')}</p>
-                                <button 
-                                    onClick={runAnalysis}
-                                    disabled={isAnalyzing}
-                                    className="w-full bg-white text-purple-600 py-3 rounded-xl font-bold shadow-sm"
-                                >
-                                    {isAnalyzing ? t(lang, 'analyzing') : t(lang, 'analyze')}
+                    {/* AI Analysis */}
+                    <div className="bg-indigo-50 p-6 rounded-3xl border border-indigo-100">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-bold text-indigo-900 flex items-center gap-2">
+                                <i className="fa-solid fa-robot"></i> Gemini Analysis
+                            </h3>
+                            <div className="flex gap-2">
+                                <input type="file" accept="video/*" ref={videoInputRef} className="hidden" onChange={handleVideoUpload} />
+                                <button onClick={() => videoInputRef.current?.click()} className="bg-white text-indigo-600 px-3 py-1 rounded-lg text-xs font-bold shadow-sm hover:bg-indigo-50">
+                                    <i className="fa-solid fa-video mr-1"></i> Video
                                 </button>
-                                <div className="relative">
-                                    <button 
-                                        onClick={() => videoInputRef.current?.click()}
-                                        className="w-full bg-purple-200 text-purple-800 py-3 rounded-xl font-bold"
-                                    >
-                                        <i className="fa-solid fa-video mr-2"></i> {t(lang, 'video')} Analysis
-                                    </button>
-                                    <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} />
+                                <button onClick={runAnalysis} className="bg-indigo-600 text-white px-3 py-1 rounded-lg text-xs font-bold shadow-sm hover:bg-indigo-700">
+                                    {isAnalyzing ? <i className="fa-solid fa-circle-notch fa-spin"></i> : 'Analyze Logs'}
+                                </button>
+                            </div>
+                        </div>
+
+                        {analysis ? (
+                            <div className="space-y-4 bg-white p-4 rounded-2xl shadow-sm animate-slideUp">
+                                <p className="text-sm font-medium text-gray-600 italic">"{analysis.insight}"</p>
+                                
+                                <div>
+                                    <h4 className="text-xs font-bold text-indigo-400 uppercase mb-2">Patterns</h4>
+                                    <div className="flex flex-wrap gap-2">
+                                        {analysis.patterns.map((p, i) => <span key={i} className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md text-xs font-bold">{p}</span>)}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 className="text-xs font-bold text-orange-400 uppercase mb-2">Triggers</h4>
+                                    <div className="flex flex-wrap gap-2">
+                                        {analysis.triggers.map((t, i) => <span key={i} className="bg-orange-50 text-orange-700 px-2 py-1 rounded-md text-xs font-bold">{t}</span>)}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 className="text-xs font-bold text-green-400 uppercase mb-2">Suggestions</h4>
+                                    <ul className="space-y-1">
+                                        {analysis.suggestions.map((s, i) => <li key={i} className="text-sm text-gray-700 flex items-start gap-2"><i className="fa-solid fa-check text-green-500 mt-1"></i> {s}</li>)}
+                                    </ul>
                                 </div>
                             </div>
                         ) : (
-                            <div className="text-left bg-white p-4 rounded-xl shadow-sm animate-fadeIn">
-                                <h4 className="font-bold text-sm text-purple-800 uppercase mb-2">{t(lang, 'insight')}</h4>
-                                <p className="text-sm text-gray-700 mb-4">{analysis.insight}</p>
-                                
-                                <h4 className="font-bold text-sm text-purple-800 uppercase mb-2">{t(lang, 'likelyTriggers')}</h4>
-                                <div className="flex flex-wrap gap-2 mb-4">
-                                    {analysis.triggers.map(t => <span key={t} className="bg-red-100 text-red-600 px-2 py-1 rounded text-xs font-bold">{t}</span>)}
-                                </div>
-
-                                <h4 className="font-bold text-sm text-purple-800 uppercase mb-2">{t(lang, 'suggestions')}</h4>
-                                <ul className="text-sm space-y-1 text-gray-600">
-                                    {analysis.suggestions.map((s, i) => <li key={i}>• {s}</li>)}
-                                </ul>
-                                <button onClick={() => setAnalysis(null)} className="mt-4 text-xs text-gray-400 underline">Clear</button>
-                            </div>
+                            <p className="text-center text-indigo-300 text-sm py-4">
+                                {isAnalyzing ? "Analyzing behavioral patterns..." : "Log incidents or upload video for AI insights."}
+                            </p>
                         )}
                     </div>
                 </div>
             )}
 
+            {/* MESSAGES TAB */}
             {activeTab === 'messages' && (
-                <div className="space-y-4">
-                    {/* Parent Inbox (Send Message) */}
-                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-                        <h3 className="font-bold text-gray-700 mb-4">{t(lang, 'scheduleMessage')}</h3>
+                <div className="space-y-6 animate-fadeIn">
+                    
+                    {/* Send Message to Child */}
+                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-pink-100">
+                        <h3 className="font-bold text-pink-600 mb-4 flex items-center gap-2">
+                            <i className="fa-solid fa-paper-plane"></i> Send Message to {profile.name}
+                        </h3>
                         
-                        {/* Explicit style for textarea */}
-                        <textarea 
-                            value={msgContent}
-                            onChange={(e) => setMsgContent(e.target.value)}
-                            placeholder={t(lang, 'typeMessage')}
-                            className="w-full p-3 bg-white text-gray-900 border border-gray-300 rounded-xl mb-3 text-sm min-h-[80px] placeholder-gray-400"
-                        />
-                        
-                        {msgMedia && (
-                            <div className="bg-blue-50 p-2 rounded-lg mb-3 flex items-center justify-between text-sm text-blue-700">
-                                <span><i className={`fa-solid ${msgMedia.type === 'video' ? 'fa-video' : 'fa-microphone'}`}></i> Media attached</span>
-                                <button onClick={() => setMsgMedia(null)}><i className="fa-solid fa-times"></i></button>
-                            </div>
-                        )}
+                        <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+                            <button onClick={() => handleSendMessage(t(lang, 'proudOfYou'))} className="shrink-0 px-4 py-2 bg-pink-50 text-pink-600 rounded-full text-xs font-bold whitespace-nowrap hover:bg-pink-100">I'm proud of you!</button>
+                            <button onClick={() => handleSendMessage(t(lang, 'loveYou'))} className="shrink-0 px-4 py-2 bg-pink-50 text-pink-600 rounded-full text-xs font-bold whitespace-nowrap hover:bg-pink-100">Love you!</button>
+                            <button onClick={() => handleSendMessage(t(lang, 'seeYouSoon'))} className="shrink-0 px-4 py-2 bg-pink-50 text-pink-600 rounded-full text-xs font-bold whitespace-nowrap hover:bg-pink-100">See you soon!</button>
+                        </div>
 
-                        <div className="flex items-center gap-2 mb-4">
-                            <i className="fa-regular fa-clock text-gray-400"></i>
+                        <div className="flex gap-2 mb-4">
+                            <input 
+                                value={msgContent}
+                                onChange={(e) => setMsgContent(e.target.value)}
+                                placeholder="Type a message..."
+                                className="flex-1 p-3 bg-gray-50 rounded-xl border focus:border-pink-300 outline-none"
+                            />
+                            <input 
+                                type="file" 
+                                accept="video/*,audio/*" 
+                                className="hidden" 
+                                ref={msgFileInputRef}
+                                onChange={handleMsgMediaUpload}
+                            />
+                            <button onClick={() => msgFileInputRef.current?.click()} className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${msgMedia ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}>
+                                <i className={`fa-solid ${msgMedia ? 'fa-check' : 'fa-paperclip'}`}></i>
+                            </button>
+                        </div>
+
+                        <div className="flex gap-2 items-center mb-4">
+                            <span className="text-xs font-bold text-gray-400 uppercase">Schedule for:</span>
                             <input 
                                 type="time" 
                                 value={msgTime}
                                 onChange={(e) => setMsgTime(e.target.value)}
-                                className="bg-transparent text-sm font-bold text-gray-600 outline-none"
+                                className="bg-gray-50 p-2 rounded-lg text-sm font-bold text-gray-700 outline-none border"
                             />
-                            <span className="text-xs text-gray-400">({t(lang, 'scheduleFor')})</span>
                         </div>
 
-                        <div className="flex gap-2">
-                            <button 
-                                onClick={() => msgFileInputRef.current?.click()}
-                                className="p-3 bg-gray-100 rounded-xl text-gray-600 hover:bg-gray-200"
-                            >
-                                <i className="fa-solid fa-paperclip"></i>
-                            </button>
-                            <input ref={msgFileInputRef} type="file" accept="video/*,audio/*" className="hidden" onChange={handleMsgMediaUpload} />
-                            
-                            <button 
-                                onClick={() => handleSendMessage()}
-                                className="flex-1 bg-blue-500 text-white py-3 rounded-xl font-bold shadow-md"
-                            >
-                                {t(lang, 'send')}
-                            </button>
+                        <button onClick={() => handleSendMessage()} className="w-full py-3 bg-pink-500 text-white rounded-xl font-bold shadow-md hover:bg-pink-600 transition-colors">
+                            {msgTime ? "Schedule Message" : "Send Now"}
+                        </button>
+                    </div>
+
+                    {/* Messages from Child */}
+                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                                <i className="fa-solid fa-inbox text-blue-500"></i> Inbox from {profile.name}
+                            </h3>
+                            {voiceMessages.some(m => !m.read) && (
+                                <button onClick={onMarkMessagesRead} className="text-xs font-bold text-blue-500 hover:underline">Mark all read</button>
+                            )}
                         </div>
-                    </div>
 
-                    {/* Quick Replies */}
-                    <div className="flex gap-2 overflow-x-auto pb-2">
-                        {['I love you ❤️', 'Proud of you 🌟', 'See you soon 🏠'].map(txt => (
-                            <button 
-                                key={txt}
-                                onClick={() => handleSendMessage(txt)}
-                                className="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-bold text-gray-600 whitespace-nowrap hover:bg-gray-50"
-                            >
-                                {txt}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Received Voice Messages */}
-                    <div>
-                        <h3 className="font-bold text-gray-500 uppercase text-xs mb-3 mt-4 tracking-wide">{t(lang, 'messages')}</h3>
-                        {voiceMessages.length === 0 ? (
-                            <p className="text-center text-gray-400 text-sm py-4">{t(lang, 'noMessages')}</p>
-                        ) : (
-                            <div className="space-y-3">
-                                {voiceMessages.map(msg => (
-                                    <div key={msg.id} className={`bg-white p-4 rounded-xl shadow-sm border-l-4 ${msg.read ? 'border-gray-200' : 'border-blue-500'}`}>
-                                        <div className="flex justify-between items-start mb-2">
+                        <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
+                            {voiceMessages.length === 0 ? (
+                                <p className="text-center text-gray-400 text-sm py-4">No messages yet.</p>
+                            ) : (
+                                voiceMessages.slice().reverse().map(msg => (
+                                    <div key={msg.id} className={`p-3 rounded-xl border ${!msg.read ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-100'}`}>
+                                        <div className="flex justify-between items-start mb-1">
                                             <span className="text-xs font-bold text-gray-400">{new Date(msg.timestamp).toLocaleString()}</span>
-                                            {!msg.read && <span className="bg-blue-100 text-blue-600 text-[10px] px-2 py-0.5 rounded-full font-bold">NEW</span>}
+                                            {!msg.read && <span className="w-2 h-2 bg-blue-500 rounded-full"></span>}
                                         </div>
-                                        
-                                        {msg.transcription && (
-                                            <p className="font-bold text-gray-800 mb-2">"{msg.transcription}"</p>
-                                        )}
-
-                                        {/* AI Analysis of Message */}
-                                        {msg.analysis && (
-                                            <div className="bg-blue-50 p-3 rounded-lg text-sm mb-3">
-                                                <div className="flex gap-2 mb-1">
-                                                    <span className="font-bold text-blue-700">{t(lang, 'interpretation')}:</span>
-                                                    <span>{msg.analysis.interpretedMeaning}</span>
-                                                </div>
-                                                <div className="flex gap-2">
-                                                    <span className="font-bold text-blue-700">{t(lang, 'tone')}:</span>
-                                                    <span>{msg.analysis.emotionalTone}</span>
-                                                </div>
-                                                {/* Suggested Replies */}
-                                                <div className="mt-2 flex flex-wrap gap-2">
-                                                    {msg.analysis.suggestedResponses.map((reply, i) => (
-                                                        <button 
-                                                            key={i}
-                                                            onClick={() => handleSendMessage(reply)}
-                                                            className="text-xs bg-white border border-blue-200 px-2 py-1 rounded-full text-blue-600 hover:bg-blue-50"
-                                                        >
-                                                            Reply: "{reply}"
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        <audio controls src={URL.createObjectURL(msg.audioBlob)} className="w-full h-8" />
+                                        <p className="font-bold text-gray-800 text-lg">"{msg.transcription}"</p>
+                                        <div className="mt-2 text-xs text-gray-500 flex gap-2">
+                                            {msg.analysis?.emotionalTone && <span className="bg-gray-100 px-2 py-1 rounded">Tone: {msg.analysis.emotionalTone}</span>}
+                                        </div>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {activeTab === 'analytics' && (
-                <div className="space-y-6">
-                    {/* Goal Progress */}
-                    <div className="grid grid-cols-2 gap-4">
-                        {goals.map(goal => (
-                            <div key={goal.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
-                                <div className="text-3xl text-yellow-400 mb-2"><i className={`fa-solid ${goal.icon}`}></i></div>
-                                <div className="text-2xl font-bold text-gray-800">{goal.current}</div>
-                                <div className="text-xs text-gray-400 uppercase font-bold">{goal.text}</div>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Mood Chart Placeholder */}
-                    <div className="bg-white p-6 rounded-2xl shadow-sm">
-                        <h3 className="font-bold text-gray-700 mb-4">{t(lang, 'feelings')}</h3>
-                        <div className="h-32 flex items-end justify-between px-2 gap-2">
-                            {moodLogs.slice(-7).map((log, i) => (
-                                <div key={i} className="flex flex-col items-center gap-2 flex-1">
-                                    <div 
-                                        className={`w-full rounded-t-lg transition-all ${
-                                            log.mood === 'Happy' ? 'bg-green-400 h-24' : 
-                                            log.mood === 'Sad' ? 'bg-blue-400 h-12' : 
-                                            log.mood === 'Angry' ? 'bg-red-400 h-16' : 'bg-gray-300 h-10'
-                                        }`}
-                                    ></div>
-                                    <span className="text-[10px] font-bold text-gray-400">{new Date(log.timestamp).getDate()}</span>
-                                </div>
-                            ))}
-                            {moodLogs.length === 0 && <p className="w-full text-center text-gray-300 text-sm">No mood data yet</p>}
-                        </div>
-                    </div>
-
-                    {/* Behavior Stats */}
-                    <div className="bg-white p-6 rounded-2xl shadow-sm">
-                        <h3 className="font-bold text-gray-700 mb-4">{t(lang, 'behavior')}</h3>
-                        <div className="space-y-3">
-                            {getBehaviorStats().map((stat, i) => (
-                                <div key={i}>
-                                    <div className="flex justify-between text-sm font-bold text-gray-600 mb-1">
-                                        <span>{stat.name}</span>
-                                        <span>{stat.count}</span>
-                                    </div>
-                                    <div className="w-full bg-gray-100 rounded-full h-2">
-                                        <div className="bg-purple-500 h-full rounded-full" style={{ width: `${stat.percent}%` }}></div>
-                                    </div>
-                                </div>
-                            ))}
-                            {behaviorLogs.length === 0 && <p className="text-center text-gray-300 text-sm">No behavior data yet</p>}
+                                ))
+                            )}
                         </div>
                     </div>
                 </div>

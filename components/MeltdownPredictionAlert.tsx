@@ -51,10 +51,10 @@ export const MeltdownPredictionAlert: React.FC<MeltdownPredictionAlertProps> = (
                 </div>
             </div>
             <div className="flex gap-2">
-                <button onClick={() => setIsMinimized(true)} className="text-gray-400 hover:text-gray-600 p-1">
+                <button onClick={() => setIsMinimized(true)} className="text-gray-400 hover:text-gray-600 p-3" aria-label="Minimize Alert">
                     <i className="fa-solid fa-minus"></i>
                 </button>
-                <button onClick={onDismiss} className="text-gray-400 hover:text-gray-600 p-1">
+                <button onClick={onDismiss} className="text-gray-400 hover:text-gray-600 p-3" aria-label="Dismiss Alert">
                     <i className="fa-solid fa-times"></i>
                 </button>
             </div>
@@ -79,7 +79,7 @@ export const MeltdownPredictionAlert: React.FC<MeltdownPredictionAlertProps> = (
                 <button 
                     key={i}
                     onClick={() => onAction(strat.strategy)}
-                    className={`py-2 px-3 rounded-lg text-sm font-bold truncate text-center transition-colors shadow-sm border ${
+                    className={`py-3 px-4 rounded-lg text-sm font-bold truncate text-center transition-colors shadow-sm border ${
                         isHigh 
                             ? 'bg-white text-red-600 border-red-100 hover:bg-red-50' 
                             : 'bg-white text-yellow-700 border-yellow-100 hover:bg-yellow-50'
@@ -90,7 +90,7 @@ export const MeltdownPredictionAlert: React.FC<MeltdownPredictionAlertProps> = (
             ))}
             <button 
                 onClick={() => onAction('calm_mode')}
-                className={`col-span-2 py-3 rounded-xl font-bold text-white shadow-md flex items-center justify-center gap-2 ${isHigh ? 'bg-red-500 hover:bg-red-600' : 'bg-yellow-500 hover:bg-yellow-600'}`}
+                className={`col-span-2 py-4 rounded-xl font-bold text-white shadow-md flex items-center justify-center gap-2 ${isHigh ? 'bg-red-500 hover:bg-red-600' : 'bg-yellow-500 hover:bg-yellow-600'}`}
             >
                 <i className="fa-solid fa-wind"></i> {t(language, 'startCalmMode')}
             </button>
