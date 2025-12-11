@@ -578,7 +578,7 @@ const App: React.FC = () => {
         <div className="flex flex-col h-full p-6 relative">
           <div className="flex justify-between items-center mb-6 shrink-0">
             <h1 className="text-2xl sm:text-3xl font-bold text-primary">{t(lang, 'appTitle')}</h1>
-            <div className="flex gap-2">
+            <div className="flex gap-3 items-center">
                 {/* Mute Toggle */}
                 <button 
                   onClick={() => {
@@ -587,7 +587,7 @@ const App: React.FC = () => {
                       localStorage.setItem(AUDIO_CONSENT_KEY, String(newVal));
                       setStatusMessage(newVal ? "Audio enabled" : "Audio disabled");
                   }}
-                  className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-colors shadow-sm ${audioEnabled ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'bg-red-100 text-red-500 hover:bg-red-200'}`}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors shadow-sm ${audioEnabled ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'bg-red-100 text-red-500 hover:bg-red-200'}`}
                   aria-label={audioEnabled ? "Mute all sounds" : "Unmute all sounds"}
                   title={audioEnabled ? "Mute" : "Unmute"}
                 >
@@ -596,14 +596,15 @@ const App: React.FC = () => {
 
                 <button 
                     onClick={() => navigateTo(ViewState.STORE)}
-                    className={`${state.isHighContrast ? 'bg-black border border-yellow-400 text-yellow-400' : 'bg-yellow-100 text-yellow-700'} px-3 py-1 rounded-full font-bold flex items-center gap-1`}
+                    className={`h-10 px-4 rounded-full font-bold flex items-center gap-2 transition-transform active:scale-95 ${state.isHighContrast ? 'bg-black border border-yellow-400 text-yellow-400' : 'bg-yellow-100 text-yellow-700'}`}
                     aria-label={`Reward Store, ${state.tokens} tokens`}
                 >
-                    <i className="fa-solid fa-star" aria-hidden="true"></i> {state.tokens}
+                    <i className="fa-solid fa-star" aria-hidden="true"></i> 
+                    <span>{state.tokens}</span>
                 </button>
                 <button 
                     onClick={() => navigateTo(ViewState.DASHBOARD)}
-                    className={`${state.isHighContrast ? 'bg-black border border-yellow-400 text-yellow-400' : 'bg-white text-gray-400'} w-12 h-12 rounded-full shadow-sm flex items-center justify-center relative`}
+                    className={`${state.isHighContrast ? 'bg-black border border-yellow-400 text-yellow-400' : 'bg-white text-gray-400'} w-10 h-10 rounded-full shadow-sm flex items-center justify-center relative transition-transform active:scale-95`}
                     aria-label="Open Dashboard Settings"
                 >
                     <i className="fa-solid fa-gear" aria-hidden="true"></i>
