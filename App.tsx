@@ -25,6 +25,7 @@ import { TherapyManager } from './components/TherapyManager';
 import { LearningPathDashboard } from './components/LearningPathDashboard';
 import { EnvironmentScanner } from './components/EnvironmentScanner';
 import { ScheduleOptimizer } from './components/ScheduleOptimizer';
+import { AudioConsentModal } from './components/AudioConsentModal';
 import { t } from './utils/translations';
 
 const INITIAL_PROFILE: ChildProfile = {
@@ -56,6 +57,7 @@ const INITIAL_SCHEDULES: Schedule[] = [
 ];
 
 const STORAGE_KEY = 'schedulesnap_data_v1';
+const AUDIO_CONSENT_KEY = 'schedulesnap_audio_consent';
 
 const App: React.FC = () => {
   const [state, setState] = useState<AppState>({
@@ -87,8 +89,10 @@ const App: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   
-  // Audio Consent State (Default off for safety)
+  // Audio State & Accessibility
   const [audioEnabled, setAudioEnabled] = useState(false);
+  const [showAudioConsent, setShowAudioConsent] = useState(false);
+  const [statusMessage, setStatusMessage] = useState(''); // For aria-live
 
   // Ref to debounce automatic logging of predictions
   const lastPredictionLogTime = useRef<number>(0);
@@ -131,6 +135,15 @@ const App: React.FC = () => {
         console.error("Failed to load save data");
       }
     }
+
+    // Audio Consent Logic
+    const savedConsent = localStorage.getItem(AUDIO_CONSENT_KEY);
+    if (savedConsent === null) {
+        setShowAudioConsent(true);
+    } else {
+        setAudioEnabled(savedConsent === 'true');
+    }
+
     setIsLoaded(true);
   }, []);
 
@@ -140,6 +153,13 @@ const App: React.FC = () => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
     }
   }, [state, isLoaded]);
+
+  const handleAudioConsent = (enabled: boolean) => {
+      setAudioEnabled(enabled);
+      localStorage.setItem(AUDIO_CONSENT_KEY, String(enabled));
+      setShowAudioConsent(false);
+      setStatusMessage(enabled ? "Audio enabled" : "Audio disabled");
+  };
 
   // --- Parent Message Delivery Logic ---
   useEffect(() => {
@@ -173,6 +193,7 @@ const App: React.FC = () => {
 
           if (hasUpdates) {
               setState(prev => ({ ...prev, parentMessages: updatedMessages }));
+              setStatusMessage("New message received");
           }
 
       }, 10000);
@@ -226,6 +247,7 @@ const App: React.FC = () => {
                          latestPrediction: prediction,
                          behaviorLogs: [...prev.behaviorLogs, autoLog] 
                      }));
+                     setStatusMessage("Alert: High frustration risk predicted");
                      return;
                  }
              }
@@ -239,10 +261,14 @@ const App: React.FC = () => {
      runPrediction();
   }, [state.behaviorLogs, state.moodLogs, state.activeScheduleId, state.profile, isLoaded, audioEnabled]);
 
-  const navigateTo = (view: ViewState) => setState(prev => ({ ...prev, view }));
+  const navigateTo = (view: ViewState) => {
+      setState(prev => ({ ...prev, view }));
+      setStatusMessage(`Navigated to ${view.replace('-', ' ')} view`);
+  };
   
   const startRoutine = (id: string) => {
     setState(prev => ({ ...prev, activeScheduleId: id, view: ViewState.RUNNER }));
+    setStatusMessage("Routine started");
   };
 
   const handleRoutineComplete = () => {
@@ -260,17 +286,21 @@ const App: React.FC = () => {
         }));
     }
     navigateTo(ViewState.HOME);
+    setStatusMessage("Routine completed! 5 tokens earned.");
   };
 
   const handleImageSelected = async (base64: string, mimeType: string) => {
     setIsProcessing(true);
+    setStatusMessage("Analyzing image...");
     setEditingScheduleId(null);
     try {
       const newScheduleData = await generateScheduleFromImage(base64, mimeType, state.profile, state.behaviorLogs);
       setGeneratedSchedule(newScheduleData);
       navigateTo(ViewState.PREVIEW);
+      setStatusMessage("Schedule generated from image.");
     } catch (error) {
       alert("Failed to generate schedule. Please try again.");
+      setStatusMessage("Failed to generate schedule.");
     } finally {
       setIsProcessing(false);
     }
@@ -319,6 +349,7 @@ const App: React.FC = () => {
       }));
       setOptimizerScheduleId(null);
       navigateTo(ViewState.DASHBOARD);
+      setStatusMessage("Schedule optimized.");
   };
 
   const handleSaveSchedule = (scheduleToSave?: Omit<Schedule, 'id' | 'createdAt'>) => {
@@ -345,6 +376,7 @@ const App: React.FC = () => {
       }
       setGeneratedSchedule(null);
       setEditingScheduleId(null);
+      setStatusMessage("Schedule saved.");
     }
   };
 
@@ -361,11 +393,13 @@ const App: React.FC = () => {
             ...prev,
             schedules: prev.schedules.filter(s => s.id !== id)
         }));
+        setStatusMessage("Routine deleted.");
     }
   };
 
   const handleSaveVoiceMessage = (msg: VoiceMessage) => {
       setState(prev => ({ ...prev, voiceMessages: [msg, ...prev.voiceMessages] }));
+      setStatusMessage("Voice message saved.");
   };
 
   const handleMarkMessagesRead = () => {
@@ -392,6 +426,7 @@ const App: React.FC = () => {
           schedules: [schedule, ...prev.schedules],
           view: ViewState.HOME
       }));
+      setStatusMessage("New schedule built.");
   };
 
   const handleSaveStory = (story: StoryBook) => {
@@ -399,6 +434,7 @@ const App: React.FC = () => {
         ...prev,
         stories: [story, ...prev.stories]
     }));
+    setStatusMessage("Story saved.");
   };
 
   const handleDeleteStory = (id: string) => {
@@ -407,6 +443,7 @@ const App: React.FC = () => {
             ...prev,
             stories: prev.stories.filter(s => s.id !== id)
         }));
+        setStatusMessage("Story deleted.");
     }
   };
 
@@ -427,6 +464,7 @@ const App: React.FC = () => {
           ...prev,
           parentMessages: prev.parentMessages.map(m => m.id === messageId ? { ...m, isRead: true, childResponse: response } : m)
       }));
+      setStatusMessage("Response sent.");
   };
 
   const handleMessageOpened = (messageId: string) => {
@@ -439,6 +477,7 @@ const App: React.FC = () => {
   // --- Therapy Handlers ---
   const handleSaveTherapySession = (session: TherapySession) => {
       setState(prev => ({ ...prev, therapySessions: [...prev.therapySessions, session] }));
+      setStatusMessage("Therapy session saved.");
   };
 
   // --- Learning Path Handlers ---
@@ -473,6 +512,7 @@ const App: React.FC = () => {
       };
       handleSaveVoiceMessage(msg);
       alert(t(lang, 'missYouSent'));
+      setStatusMessage("Miss you message sent.");
   };
 
   const activeSchedule = state.schedules.find(s => s.id === state.activeScheduleId);
@@ -493,6 +533,15 @@ const App: React.FC = () => {
 
   return (
     <div className={`h-full w-full relative ${themeClass} overflow-hidden`}>
+      {/* ARIA Live Region for Screen Readers */}
+      <div className="sr-only" role="status" aria-live="polite">
+          {statusMessage}
+      </div>
+
+      {showAudioConsent && (
+           <AudioConsentModal onConsent={handleAudioConsent} />
+      )}
+
       {/* Skip Link for Accessibility */}
       <a 
         href="#main-content"
@@ -530,19 +579,34 @@ const App: React.FC = () => {
           <div className="flex justify-between items-center mb-6 shrink-0">
             <h1 className="text-2xl sm:text-3xl font-bold text-primary">{t(lang, 'appTitle')}</h1>
             <div className="flex gap-2">
+                {/* Mute Toggle */}
+                <button 
+                  onClick={() => {
+                      const newVal = !audioEnabled;
+                      setAudioEnabled(newVal);
+                      localStorage.setItem(AUDIO_CONSENT_KEY, String(newVal));
+                      setStatusMessage(newVal ? "Audio enabled" : "Audio disabled");
+                  }}
+                  className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-colors shadow-sm ${audioEnabled ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'bg-red-100 text-red-500 hover:bg-red-200'}`}
+                  aria-label={audioEnabled ? "Mute all sounds" : "Unmute all sounds"}
+                  title={audioEnabled ? "Mute" : "Unmute"}
+                >
+                    <i className={`fa-solid ${audioEnabled ? 'fa-volume-high' : 'fa-volume-xmark'}`} aria-hidden="true"></i>
+                </button>
+
                 <button 
                     onClick={() => navigateTo(ViewState.STORE)}
                     className={`${state.isHighContrast ? 'bg-black border border-yellow-400 text-yellow-400' : 'bg-yellow-100 text-yellow-700'} px-3 py-1 rounded-full font-bold flex items-center gap-1`}
-                    aria-label="Reward Store"
+                    aria-label={`Reward Store, ${state.tokens} tokens`}
                 >
-                    <i className="fa-solid fa-star"></i> {state.tokens}
+                    <i className="fa-solid fa-star" aria-hidden="true"></i> {state.tokens}
                 </button>
                 <button 
                     onClick={() => navigateTo(ViewState.DASHBOARD)}
                     className={`${state.isHighContrast ? 'bg-black border border-yellow-400 text-yellow-400' : 'bg-white text-gray-400'} w-12 h-12 rounded-full shadow-sm flex items-center justify-center relative`}
                     aria-label="Open Dashboard Settings"
                 >
-                    <i className="fa-solid fa-gear"></i>
+                    <i className="fa-solid fa-gear" aria-hidden="true"></i>
                     {unreadCount > 0 && (
                         <span className="absolute -top-1 -right-1 flex h-4 w-4">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -559,8 +623,9 @@ const App: React.FC = () => {
             <button 
                 onClick={() => navigateTo(ViewState.CAMERA)}
                 className={`w-full p-8 rounded-3xl flex flex-col items-center gap-4 active:scale-95 transition-transform mb-6 ${state.isHighContrast ? 'bg-yellow-400 text-black font-bold border-4 border-white' : 'bg-primary text-white shadow-xl'}`}
+                aria-label="Snap New Routine from Photo"
             >
-                <i className="fa-solid fa-camera text-5xl"></i>
+                <i className="fa-solid fa-camera text-5xl" aria-hidden="true"></i>
                 <span className="text-2xl font-bold">{t(lang, 'snapRoutine')}</span>
             </button>
 
@@ -568,8 +633,9 @@ const App: React.FC = () => {
             <button 
                 onClick={() => navigateTo(ViewState.KIDS_BUILDER)}
                 className={`w-full p-6 rounded-3xl flex items-center justify-center gap-4 active:scale-95 transition-transform mb-6 ${state.isHighContrast ? 'bg-blue-900 border-4 border-yellow-400 text-yellow-300' : 'bg-gradient-to-r from-blue-400 to-cyan-400 text-white shadow-lg'}`}
+                aria-label="Build My Day"
             >
-                <i className="fa-solid fa-hammer text-3xl"></i>
+                <i className="fa-solid fa-hammer text-3xl" aria-hidden="true"></i>
                 <span className="text-xl font-bold">{t(lang, 'buildMyDay')}</span>
             </button>
 
@@ -577,8 +643,9 @@ const App: React.FC = () => {
             <button 
                 onClick={() => navigateTo(ViewState.LEARNING)}
                 className={`w-full p-6 rounded-3xl flex items-center justify-center gap-4 active:scale-95 transition-transform mb-6 ${state.isHighContrast ? 'bg-green-900 border-4 border-yellow-400 text-yellow-300' : 'bg-gradient-to-r from-emerald-400 to-teal-400 text-white shadow-lg'}`}
+                aria-label="My Learning"
             >
-                <i className="fa-solid fa-graduation-cap text-3xl"></i>
+                <i className="fa-solid fa-graduation-cap text-3xl" aria-hidden="true"></i>
                 <span className="text-xl font-bold">{t(lang, 'myLearning')}</span>
             </button>
 
@@ -586,8 +653,9 @@ const App: React.FC = () => {
             <button 
                 onClick={() => navigateTo(ViewState.MAGIC_BOOKS)}
                 className={`w-full p-6 rounded-3xl flex items-center justify-center gap-4 active:scale-95 transition-transform mb-6 ${state.isHighContrast ? 'bg-purple-900 border-4 border-yellow-400 text-yellow-300' : 'bg-gradient-to-r from-indigo-400 to-purple-400 text-white shadow-lg'}`}
+                aria-label="Magic Books"
             >
-                <i className="fa-solid fa-book-sparkles text-3xl"></i>
+                <i className="fa-solid fa-book-sparkles text-3xl" aria-hidden="true"></i>
                 <span className="text-xl font-bold">{t(lang, 'magicBooks')}</span>
             </button>
             
@@ -596,52 +664,53 @@ const App: React.FC = () => {
                 <button 
                     onClick={handleSendMissYou}
                     className={`p-6 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition-transform ${state.isHighContrast ? 'bg-red-900 border-4 border-yellow-400 text-yellow-300' : 'bg-red-100 text-red-500 shadow-md'}`}
+                    aria-label="Send Miss You Message"
                 >
-                    <i className="fa-solid fa-heart text-3xl"></i>
+                    <i className="fa-solid fa-heart text-3xl" aria-hidden="true"></i>
                     <span className="font-bold">{t(lang, 'missYou')}</span>
                 </button>
                 <button 
                     onClick={() => navigateTo(ViewState.PARENT_INBOX)}
                     className={`p-6 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition-transform relative ${state.isHighContrast ? 'bg-pink-900 border-4 border-yellow-400 text-yellow-300' : 'bg-pink-100 text-pink-500 shadow-md'}`}
+                    aria-label="Parent Inbox"
                 >
                     {unreadParentMessages > 0 && (
                         <div className="absolute -top-2 -right-2 bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm animate-bounce shadow-sm border-2 border-white">
                             {unreadParentMessages}
                         </div>
                     )}
-                    <i className="fa-solid fa-envelope text-3xl"></i>
+                    <i className="fa-solid fa-envelope text-3xl" aria-hidden="true"></i>
                     <span className="font-bold">{t(lang, 'parentInbox')}</span>
                 </button>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-8">
-                <button onClick={() => navigateTo(ViewState.CALM)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-calm text-primary')}`}>
-                    <i className="fa-solid fa-wind text-3xl"></i><span className="font-bold">{t(lang, 'calmMode')}</span>
+                <button onClick={() => navigateTo(ViewState.CALM)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-calm text-primary')}`} aria-label="Calm Mode">
+                    <i className="fa-solid fa-wind text-3xl" aria-hidden="true"></i><span className="font-bold">{t(lang, 'calmMode')}</span>
                 </button>
-                <button onClick={() => navigateTo(ViewState.MOOD)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-blue-100 text-blue-600')}`}>
-                    <i className="fa-solid fa-face-smile text-3xl"></i><span className="font-bold">{t(lang, 'feelings')}</span>
+                <button onClick={() => navigateTo(ViewState.MOOD)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-blue-100 text-blue-600')}`} aria-label="Check Feelings">
+                    <i className="fa-solid fa-face-smile text-3xl" aria-hidden="true"></i><span className="font-bold">{t(lang, 'feelings')}</span>
                 </button>
-                <button onClick={() => navigateTo(ViewState.COACH)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-purple-100 text-purple-600')}`}>
-                    <i className="fa-solid fa-headset text-3xl"></i><span className="font-bold">{t(lang, 'aiCoach')}</span>
+                <button onClick={() => navigateTo(ViewState.COACH)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-purple-100 text-purple-600')}`} aria-label="AI Coach">
+                    <i className="fa-solid fa-headset text-3xl" aria-hidden="true"></i><span className="font-bold">{t(lang, 'aiCoach')}</span>
                 </button>
-                <button onClick={() => navigateTo(ViewState.TIMER)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-gray-200 text-gray-700')}`}>
-                    <i className="fa-solid fa-hourglass-start text-3xl"></i><span className="font-bold">{t(lang, 'waitTimer')}</span>
+                <button onClick={() => navigateTo(ViewState.TIMER)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-gray-200 text-gray-700')}`} aria-label="Wait Timer">
+                    <i className="fa-solid fa-hourglass-start text-3xl" aria-hidden="true"></i><span className="font-bold">{t(lang, 'waitTimer')}</span>
                 </button>
-                 <button onClick={() => navigateTo(ViewState.VOICE_RECORDER)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-teal-100 text-teal-600')}`}>
-                    <i className="fa-solid fa-microphone text-3xl"></i><span className="font-bold">{t(lang, 'tellParents')}</span>
+                 <button onClick={() => navigateTo(ViewState.VOICE_RECORDER)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-teal-100 text-teal-600')}`} aria-label="Tell Parents">
+                    <i className="fa-solid fa-microphone text-3xl" aria-hidden="true"></i><span className="font-bold">{t(lang, 'tellParents')}</span>
                 </button>
-                <button onClick={() => navigateTo(ViewState.RESEARCH)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-indigo-100 text-indigo-600')}`}>
-                    <i className="fa-solid fa-book-open text-3xl"></i><span className="font-bold">{t(lang, 'research')}</span>
+                <button onClick={() => navigateTo(ViewState.RESEARCH)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-indigo-100 text-indigo-600')}`} aria-label="Research Tool">
+                    <i className="fa-solid fa-book-open text-3xl" aria-hidden="true"></i><span className="font-bold">{t(lang, 'research')}</span>
                 </button>
-                <button onClick={() => navigateTo(ViewState.SOCIAL)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-pink-100 text-pink-600')}`}>
-                    <i className="fa-solid fa-users text-3xl"></i><span className="font-bold">{t(lang, 'social')}</span>
+                <button onClick={() => navigateTo(ViewState.SOCIAL)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-pink-100 text-pink-600')}`} aria-label="Social Practice">
+                    <i className="fa-solid fa-users text-3xl" aria-hidden="true"></i><span className="font-bold">{t(lang, 'social')}</span>
                 </button>
-                <button onClick={() => navigateTo(ViewState.QUIZ)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-orange-100 text-orange-600')}`}>
-                    <i className="fa-solid fa-puzzle-piece text-3xl"></i><span className="font-bold">{t(lang, 'quiz')}</span>
+                <button onClick={() => navigateTo(ViewState.QUIZ)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-orange-100 text-orange-600')}`} aria-label="Quiz">
+                    <i className="fa-solid fa-puzzle-piece text-3xl" aria-hidden="true"></i><span className="font-bold">{t(lang, 'quiz')}</span>
                 </button>
-                {/* Scanner Button */}
-                <button onClick={() => navigateTo(ViewState.SCANNER)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-slate-700 text-white')}`}>
-                    <i className="fa-solid fa-radar text-3xl"></i><span className="font-bold">{t(lang, 'envScanner')}</span>
+                <button onClick={() => navigateTo(ViewState.SCANNER)} className={`p-6 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-transform ${buttonClass('bg-slate-700 text-white')}`} aria-label="Environment Scanner">
+                    <i className="fa-solid fa-radar text-3xl" aria-hidden="true"></i><span className="font-bold">{t(lang, 'envScanner')}</span>
                 </button>
             </div>
 
@@ -655,8 +724,9 @@ const App: React.FC = () => {
                             key={schedule.id}
                             onClick={() => startRoutine(schedule.id)}
                             className={`w-full p-4 rounded-xl flex items-center gap-4 text-left active:bg-gray-50 ${state.isHighContrast ? 'bg-gray-900 border border-yellow-400 text-yellow-300' : 'bg-white shadow-sm border border-gray-100'}`}
+                            aria-label={`Start routine: ${schedule.title}, ${schedule.steps.length} steps`}
                         >
-                            <span className="text-3xl">{schedule.steps[0]?.emoji}</span>
+                            <span className="text-3xl" aria-hidden="true">{schedule.steps[0]?.emoji}</span>
                             <div className="flex-1">
                                 <div className="flex justify-between items-center">
                                     <h4 className={`font-bold ${state.isHighContrast ? 'text-yellow-300' : 'text-gray-800'}`}>{schedule.title}</h4>
@@ -668,7 +738,7 @@ const App: React.FC = () => {
                                 </div>
                                 <p className={`text-xs ${state.isHighContrast ? 'text-yellow-100' : 'text-gray-400'}`}>{schedule.steps.length} {t(lang, 'steps')}</p>
                             </div>
-                            <i className="fa-solid fa-play text-primary"></i>
+                            <i className="fa-solid fa-play text-primary" aria-hidden="true"></i>
                         </button>
                     ))}
                 </div>
@@ -705,7 +775,7 @@ const App: React.FC = () => {
             style={{ boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)' }}
             aria-label="Open Communication Board"
         >
-             <i className="fa-solid fa-comment-dots text-3xl"></i>
+             <i className="fa-solid fa-comment-dots text-3xl" aria-hidden="true"></i>
         </button>
       )}
 

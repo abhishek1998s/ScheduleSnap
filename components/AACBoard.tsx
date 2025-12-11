@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { t } from '../utils/translations';
 import { AACButton, AACCategoryType, VisualScene, ChildProfile } from '../types';
 import { generateAACSymbol } from '../services/geminiService';
@@ -10,8 +10,8 @@ interface AACBoardProps {
   language?: string;
   customButtons?: AACButton[];
   onAddCustomButton?: (btn: AACButton) => void;
-  audioEnabled?: boolean; // NEW
-  profile?: ChildProfile; // NEW: For sensory check
+  audioEnabled?: boolean;
+  profile?: ChildProfile;
 }
 
 const CATEGORIES: { id: AACCategoryType, icon: string }[] = [
@@ -29,17 +29,35 @@ export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, c
   const [activeScene, setActiveScene] = useState<VisualScene | null>(null);
   const [newButtonLabel, setNewButtonLabel] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+        // Focus management on open
+        setTimeout(() => closeButtonRef.current?.focus(), 100);
+    }
+  }, [isOpen]);
+
+  // Handle Escape key
+  useEffect(() => {
+      const handleKeyDown = (e: KeyboardEvent) => {
+          if (isOpen && e.key === 'Escape') {
+              onClose();
+          }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   const speak = (text: string) => {
-    // Safety Check: Block if child has high sound sensitivity OR audio disabled
     if (!audioEnabled) return;
     if (profile?.sensoryProfile?.soundSensitivity === 'high') return;
 
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    // Use profile settings or default to 1
     utterance.rate = profile?.audioPreferences?.speechRate || 1;
     window.speechSynthesis.speak(utterance);
   };
@@ -137,7 +155,6 @@ export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, c
       if (activeCategory === 'Custom') {
           btns = customButtons;
       } else if (activeCategory === 'Scenes') {
-          // Render Scene Selection
           if (!activeScene) {
              return (
                  <div className="h-full overflow-y-auto p-4 pb-24">
@@ -161,7 +178,6 @@ export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, c
                  </div>
              );
           } else {
-             // Render Active Scene Vocabulary
              return (
                  <div className="flex flex-col h-full">
                      <div className="p-2 border-b flex items-center gap-2 bg-gray-50 shrink-0">
@@ -243,18 +259,25 @@ export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, c
   };
 
   return (
-    <div className="fixed inset-0 z-[60] bg-white sm:inset-4 sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-slideUp border border-gray-100">
+    <div 
+        ref={containerRef}
+        className="fixed inset-0 z-[60] bg-white sm:inset-4 sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-slideUp border border-gray-100"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Communication Board"
+    >
         {/* Header */}
         <div className="bg-gray-100 p-3 flex justify-between items-center border-b shrink-0">
           <h2 className="text-lg font-bold text-gray-700 flex items-center gap-2">
-              <i className="fa-regular fa-comment-dots"></i> {t(language, 'communication')}
+              <i className="fa-regular fa-comment-dots" aria-hidden="true"></i> {t(language, 'communication')}
           </h2>
           <button 
+            ref={closeButtonRef}
             onClick={onClose}
             className="w-12 h-12 bg-white border border-gray-200 rounded-full hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors flex items-center justify-center shadow-sm"
-            aria-label="Close AAC Board"
+            aria-label="Close Communication Board"
           >
-            <i className="fa-solid fa-times text-xl"></i>
+            <i className="fa-solid fa-times text-xl" aria-hidden="true"></i>
           </button>
         </div>
 
@@ -273,7 +296,7 @@ export const AACBoard: React.FC<AACBoardProps> = ({ isOpen, onClose, language, c
                     }`}
                     aria-label={`Category ${cat.id}`}
                 >
-                    <i className={`fa-solid ${cat.icon} text-lg mb-1`}></i>
+                    <i className={`fa-solid ${cat.icon} text-lg mb-1`} aria-hidden="true"></i>
                     <span className="text-[10px] font-bold uppercase tracking-wide">{t(language, `cat${cat.id}`)}</span>
                 </button>
             ))}
