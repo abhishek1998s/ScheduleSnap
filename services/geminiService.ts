@@ -469,7 +469,15 @@ export const generateEmotionQuiz = async (age: number, level: number, language: 
                         options: { type: Type.ARRAY, items: { type: Type.STRING } }, 
                         correctAnswer: { type: Type.STRING }, 
                         hint: { type: Type.STRING }, 
-                        explanation: { type: Type.OBJECT, properties: { text: { type: Type.STRING }, facialFeatures: { type: Type.STRING }, bodyLanguage: { type: Type.STRING }, whyItLooksThisWay: { type: Type.STRING } } }, 
+                        explanation: { 
+                            type: Type.OBJECT, 
+                            properties: { 
+                                text: { type: Type.STRING }, 
+                                facialFeatures: { type: Type.STRING }, 
+                                bodyLanguage: { type: Type.STRING }, 
+                                whyItLooksThisWay: { type: Type.STRING } 
+                            } 
+                        }, 
                         visualType: { type: Type.STRING }, 
                         difficultyLevel: { type: Type.NUMBER } 
                     } 
@@ -477,8 +485,7 @@ export const generateEmotionQuiz = async (age: number, level: number, language: 
             }
         });
         const result = JSON.parse(response.text || '{}');
-        // Ensure visualType is passed through if not returned by model
-        return { ...result, visualType };
+        return { ...result, visualType }; // Ensure visualType is passed back
     } catch (e) { return getMockQuiz(); }
 };
 

@@ -132,9 +132,9 @@ export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, language, stats, 
                 
                 {/* Visual Type Selector */}
                 <div className="flex gap-2 mb-2">
-                  <button onClick={() => setVisualType('emoji')} className={`px-3 py-1 rounded-full text-xs font-bold border ${visualType === 'emoji' ? 'bg-yellow-400 text-white border-yellow-400' : 'bg-white text-gray-500 border-gray-200'}`}>😊 Emoji</button>
-                  <button onClick={() => setVisualType('cartoon')} className={`px-3 py-1 rounded-full text-xs font-bold border ${visualType === 'cartoon' ? 'bg-yellow-400 text-white border-yellow-400' : 'bg-white text-gray-500 border-gray-200'}`}>🎨 Cartoon</button>
-                  <button onClick={() => setVisualType('photo')} className={`px-3 py-1 rounded-full text-xs font-bold border ${visualType === 'photo' ? 'bg-yellow-400 text-white border-yellow-400' : 'bg-white text-gray-500 border-gray-200'}`}>📷 Photo</button>
+                  <button onClick={() => setVisualType('emoji')} className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors ${visualType === 'emoji' ? 'bg-yellow-400 text-white border-yellow-400' : 'bg-white text-gray-500 border-gray-200'}`}>😊 Emoji</button>
+                  <button onClick={() => setVisualType('cartoon')} className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors ${visualType === 'cartoon' ? 'bg-yellow-400 text-white border-yellow-400' : 'bg-white text-gray-500 border-gray-200'}`}>🎨 Cartoon</button>
+                  <button onClick={() => setVisualType('photo')} className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors ${visualType === 'photo' ? 'bg-yellow-400 text-white border-yellow-400' : 'bg-white text-gray-500 border-gray-200'}`}>📷 Photo</button>
                 </div>
 
                 {/* Visual */}
