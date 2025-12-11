@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Schedule, ChildProfile, BehaviorLog, MoodEntry, BehaviorAnalysis, VoiceMessage, CompletionLog, WeeklyReport, ScheduleOptimization, ParentMessage } from '../types';
 import { analyzeBehaviorLogs, analyzeBehaviorVideo, generateScheduleOptimization, generateWeeklyReport } from '../services/geminiService';
@@ -485,7 +484,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                     </div>
                                     <div>
                                         <label className="text-xs font-bold text-gray-400 uppercase">Age</label>
-                                        <input type="number" value={editAge} onChange={(e) => setEditAge(e.target.value)} className="w-full p-2 bg-gray-50 rounded-lg border focus:border-primary outline-none" />
+                                        <input type="number" value={editAge} onChange={(e) => setEditAge(Number(e.target.value))} className="w-full p-2 bg-gray-50 rounded-lg border focus:border-primary outline-none" />
                                     </div>
                                 </div>
                                 <div>

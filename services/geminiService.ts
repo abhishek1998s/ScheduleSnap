@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { 
     SocialScenario, AACButton, BehaviorLog, ChildProfile, BehaviorAnalysis, 
@@ -26,7 +27,7 @@ const parseJSON = (text: string | undefined, fallback: any) => {
 
 // --- CONFIGURATION HELPERS ---
 
-// Deep Think configuration based on task complexity for Gemini 3 Pro
+// Deep Think configuration - ONLY for Gemini 2.5 models
 const getThinkingConfig = (taskType: 'simple' | 'medium' | 'complex' | 'maximum') => {
   const budgets = {
     simple: 1024,      // micro-steps, coping strategies
@@ -111,7 +112,7 @@ export const generateMicroSteps = async (instruction: string, profile: ChildProf
     const prompt = `Break down the task "${instruction}" into 3-5 micro-steps for a ${profile.age}-year-old autistic child. Keep it simple. Return JSON array of strings. Language: ${profile.language}`;
     
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.5-flash',
         contents: [{ text: prompt }],
         config: {
             ...getThinkingConfig('simple'),
@@ -148,7 +149,6 @@ export const predictMeltdownRisk = async (
         model: 'gemini-3-pro-preview',
         contents: [{ text: prompt }],
         config: {
-            ...getThinkingConfig('complex'),
             responseMimeType: 'application/json',
             responseSchema: {
                 type: Type.OBJECT,
@@ -194,7 +194,6 @@ export const analyzeBehaviorLogs = async (logs: BehaviorLog[], profile: ChildPro
         model: 'gemini-3-pro-preview',
         contents: [{ text: prompt }],
         config: {
-            ...getThinkingConfig('complex'),
             responseMimeType: 'application/json',
             responseSchema: {
                 type: Type.OBJECT,
@@ -221,7 +220,6 @@ export const analyzeBehaviorVideo = async (base64Video: string, profile: ChildPr
             { text: prompt }
         ],
         config: {
-            ...getThinkingConfig('maximum'),
             responseMimeType: 'application/json',
             responseSchema: {
                 type: Type.OBJECT,
@@ -254,7 +252,6 @@ export const generateWeeklyReport = async (
         model: 'gemini-3-pro-preview',
         contents: [{ text: prompt }],
         config: {
-            ...getThinkingConfig('medium'),
             responseMimeType: 'application/json',
             responseSchema: {
                 type: Type.OBJECT,
@@ -293,7 +290,6 @@ export const generateScheduleOptimization = async (
         model: 'gemini-3-pro-preview',
         contents: [{ text: prompt }],
         config: {
-            ...getThinkingConfig('maximum'),
             responseMimeType: 'application/json',
             responseSchema: {
                 type: Type.OBJECT,
@@ -382,7 +378,6 @@ export const analyzeTherapySession = async (
             { text: prompt }
         ],
         config: {
-            ...getThinkingConfig('maximum'),
             responseMimeType: 'application/json',
             responseSchema: {
                 type: Type.OBJECT,
@@ -448,7 +443,7 @@ export const generateLearningPath = async (profile: ChildProfile, skillArea: str
     const prompt = `Create a 5-lesson learning path for ${skillArea} for a ${profile.age}-year-old child.`;
     
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.5-flash',
         contents: [{ text: prompt }],
         config: {
             ...getThinkingConfig('medium'),
@@ -497,7 +492,7 @@ export const generateLessonContent = async (lesson: Lesson, profile: ChildProfil
     const prompt = `Generate content for a ${lesson.type} lesson titled "${lesson.title}" for a ${profile.age}-year-old.`;
     
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.5-flash',
         contents: [{ text: prompt }],
         config: {
             ...getThinkingConfig('medium'),
@@ -512,7 +507,7 @@ export const generateAACSymbol = async (label: string, language: string): Promis
     const prompt = `Suggest an emoji, color (Tailwind class), and simple voice phrase for an AAC button labeled "${label}". Language: ${language}`;
     
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.5-flash',
         contents: [{ text: prompt }],
         config: {
             responseMimeType: 'application/json',
@@ -542,7 +537,7 @@ export const generateCopingStrategy = async (mood: string, profile: ChildProfile
     const prompt = `Suggest 3 simple coping strategies for a ${profile.age}-year-old autistic child feeling ${mood}. Keep it short.`;
     
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.5-flash',
         contents: [{ text: prompt }],
         config: {
             ...getThinkingConfig('simple'),
@@ -575,7 +570,7 @@ export const generateEmotionQuiz = async (
     `;
 
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.5-flash',
         contents: [{ text: prompt }],
         config: {
             ...getThinkingConfig('medium'),
@@ -621,7 +616,7 @@ export const generateRewards = async (profile: ChildProfile, currentTokens: numb
     const prompt = `Suggest 6 rewards for a child who likes ${profile.interests.join(', ')}.`;
     
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.5-flash',
         contents: [{ text: prompt }],
         config: {
             responseMimeType: 'application/json',
@@ -647,7 +642,7 @@ export const generateSocialScenario = async (age: number, language: string): Pro
     const prompt = `Generate a social scenario for a ${age}-year-old to practice social skills.`;
     
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.5-flash',
         contents: [{ text: prompt }],
         config: {
             ...getThinkingConfig('medium'),
@@ -692,7 +687,7 @@ export const analyzeChildSpeech = async (audioBlob: Blob, profile: ChildProfile)
     `;
 
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.5-flash',
         contents: [
             { inlineData: { mimeType: 'audio/webm', data: base64Audio } },
             { text: prompt }
@@ -771,7 +766,6 @@ export const analyzeRoutineFrame = async (
             { text: prompt }
         ],
         config: {
-            ...getThinkingConfig('complex'),
             responseMimeType: 'application/json',
             responseSchema: {
                 type: Type.OBJECT,
@@ -801,7 +795,7 @@ export const generateCompanionComment = async (
     `;
 
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.5-flash',
         contents: [{ text: prompt }],
         config: {
             responseMimeType: 'text/plain'
@@ -818,7 +812,7 @@ export const validateBuilderRoutine = async (steps: string[], profile: ChildProf
     `;
 
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.5-flash',
         contents: [{ text: prompt }],
         config: {
             responseMimeType: 'application/json',
@@ -845,7 +839,7 @@ export const generateMagicStory = async (topic: string, concern: string, profile
     `;
 
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.5-flash',
         contents: [{ text: prompt }],
         config: {
             ...getThinkingConfig('medium'),
@@ -894,7 +888,6 @@ export const scanEnvironment = async (
             { text: prompt }
         ],
         config: {
-            ...getThinkingConfig('complex'),
             responseMimeType: 'application/json',
             responseSchema: {
                 type: Type.OBJECT,

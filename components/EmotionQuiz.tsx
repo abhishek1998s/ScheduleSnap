@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { QuizQuestion, QuizStats, ChildProfile } from '../types';
 import { generateEmotionQuiz } from '../services/geminiService';
 import { t } from '../utils/translations';
@@ -20,6 +20,7 @@ const XP_PER_QUESTION = 20;
 export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, language, stats, profile, audioEnabled = true, onUpdateStats, onExit }) => {
   const [question, setQuestion] = useState<QuizQuestion | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [showLevelUp, setShowLevelUp] = useState(false);
@@ -30,7 +31,7 @@ export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, language, stats, 
   const [lastTopic, setLastTopic] = useState<string | undefined>(undefined);
 
   // TTS Helper
-  const speak = (text: string) => {
+  const speak = useCallback((text: string) => {
     // Safety Check
     if (!audioEnabled) return;
     if (profile?.sensoryProfile?.soundSensitivity === 'high') return;
@@ -60,31 +61,34 @@ export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, language, stats, 
     }
 
     window.speechSynthesis.speak(utterance);
-  };
+  }, [audioEnabled, profile]);
 
-  const loadQuestion = async () => {
+  const loadQuestion = useCallback(async () => {
     setLoading(true);
+    setError(null);
     setSelected(null);
     setIsCorrect(null);
     setShowExplanation(false);
     setShowLevelUp(false);
+    setQuestion(null);
     
     try {
         const q = await generateEmotionQuiz(age, stats.level, language || 'English', lastTopic, visualType);
+        if (!q) throw new Error("Failed to generate question");
         setQuestion(q);
         setLastTopic(q.correctAnswer);
         speak(q.question);
     } catch (e) {
         console.error(e);
+        setError(t(language, 'connectionFailed'));
     } finally {
         setLoading(false);
     }
-  };
+  }, [age, stats.level, language, lastTopic, visualType, speak]);
 
   useEffect(() => { 
-      setLastTopic(undefined);
       loadQuestion(); 
-  }, [age, stats.level, visualType]);
+  }, [loadQuestion]); // Correct dependency
 
   const handleAnswer = (option: string) => {
     if(!question) return;
@@ -135,6 +139,27 @@ export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, language, stats, 
             <p className="text-xs font-bold text-yellow-600 mt-2 uppercase">{t(language, 'level')} {stats.level}</p>
         </div>
      );
+  }
+
+  if (error) {
+      return (
+          <div className="h-full flex flex-col items-center justify-center bg-yellow-50 p-6 text-center">
+              <i className="fa-solid fa-triangle-exclamation text-4xl text-orange-400 mb-4"></i>
+              <p className="font-bold text-gray-600 mb-6">{error}</p>
+              <button 
+                  onClick={loadQuestion}
+                  className="bg-yellow-400 text-black px-6 py-3 rounded-xl font-bold shadow-md hover:bg-yellow-500 transition-colors"
+              >
+                  <i className="fa-solid fa-rotate-right mr-2"></i> {t(language, 'retry')}
+              </button>
+              <button 
+                  onClick={onExit}
+                  className="mt-4 text-gray-400 font-bold text-sm hover:text-gray-600"
+              >
+                  {t(language, 'cancel')}
+              </button>
+          </div>
+      );
   }
 
   if (!question) return null;
