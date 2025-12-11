@@ -15,6 +15,39 @@ export const WaitTimer: React.FC<WaitTimerProps> = ({ onExit, language, audioEna
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [isRunning, setIsRunning] = useState(false);
 
+  // TTS Helper
+  const speak = (text: string) => {
+    // Safety Check
+    if (!audioEnabled) return;
+    if (profile?.sensoryProfile?.soundSensitivity === 'high') return;
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = profile?.audioPreferences?.speechRate || 1;
+
+    // Voice Selection Logic
+    if (profile?.audioPreferences?.voiceId) {
+        const voices = window.speechSynthesis.getVoices();
+        const voiceId = profile.audioPreferences.voiceId;
+        const isMale = ['Kore', 'Fenrir', 'Charon'].includes(voiceId);
+        const isFemale = ['Puck', 'Aoede'].includes(voiceId);
+        const langCode = profile.language === 'Spanish' ? 'es' : profile.language === 'Hindi' ? 'hi' : 'en';
+        
+        const langVoices = voices.filter(v => v.lang.startsWith(langCode));
+        let selectedVoice = langVoices[0];
+
+        if (isMale) {
+            selectedVoice = langVoices.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('google us english')) || langVoices[0];
+        } else if (isFemale) {
+            selectedVoice = langVoices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('samantha')) || langVoices[0];
+        }
+        
+        if (selectedVoice) utterance.voice = selectedVoice;
+    }
+
+    window.speechSynthesis.speak(utterance);
+  };
+
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
     if (isRunning && timeLeft !== null && timeLeft > 0) {
@@ -23,10 +56,17 @@ export const WaitTimer: React.FC<WaitTimerProps> = ({ onExit, language, audioEna
       }, 1000);
     } else if (timeLeft === 0 && isRunning) {
       setIsRunning(false);
-      // Play alarm sound only if enabled AND child is not sound sensitive
+      
+      // Play sound/speech based on settings
       if (audioEnabled && profile?.sensoryProfile?.soundSensitivity !== 'high') {
+          // Play standard alarm for clarity
           const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
           audio.play().catch(() => {});
+          
+          // Then speak encouragement
+          setTimeout(() => {
+              speak(t(language, 'done') + "! " + t(language, 'goodJob'));
+          }, 1500);
       }
     }
     return () => clearInterval(interval);
@@ -37,6 +77,7 @@ export const WaitTimer: React.FC<WaitTimerProps> = ({ onExit, language, audioEna
     setDuration(sec);
     setTimeLeft(sec);
     setIsRunning(true);
+    speak(`${min} ${t(language, 'minutes')}. ${t(language, 'waiting')}`);
   };
 
   const calculateDashOffset = () => {

@@ -7,20 +7,55 @@ import { t } from '../utils/translations';
 interface RewardStoreProps {
   tokens: number;
   profile: ChildProfile;
+  audioEnabled?: boolean; // New
   onRedeem: (cost: number) => void;
   onExit: () => void;
 }
 
-export const RewardStore: React.FC<RewardStoreProps> = ({ tokens, profile, onRedeem, onExit }) => {
+export const RewardStore: React.FC<RewardStoreProps> = ({ tokens, profile, audioEnabled = true, onRedeem, onExit }) => {
   const [rewards, setRewards] = useState<RewardItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [purchasedItem, setPurchasedItem] = useState<RewardItem | null>(null);
   const [confirmingReward, setConfirmingReward] = useState<RewardItem | null>(null);
   const lang = profile.language;
 
+  // TTS Helper
+  const speak = (text: string) => {
+    // Safety Check
+    if (!audioEnabled) return;
+    if (profile.sensoryProfile.soundSensitivity === 'high') return;
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = profile.audioPreferences?.speechRate || 1;
+
+    // Voice Selection Logic
+    if (profile?.audioPreferences?.voiceId) {
+        const voices = window.speechSynthesis.getVoices();
+        const voiceId = profile.audioPreferences.voiceId;
+        const isMale = ['Kore', 'Fenrir', 'Charon'].includes(voiceId);
+        const isFemale = ['Puck', 'Aoede'].includes(voiceId);
+        const langCode = profile.language === 'Spanish' ? 'es' : profile.language === 'Hindi' ? 'hi' : 'en';
+        
+        const langVoices = voices.filter(v => v.lang.startsWith(langCode));
+        let selectedVoice = langVoices[0];
+
+        if (isMale) {
+            selectedVoice = langVoices.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('google us english')) || langVoices[0];
+        } else if (isFemale) {
+            selectedVoice = langVoices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('samantha')) || langVoices[0];
+        }
+        
+        if (selectedVoice) utterance.voice = selectedVoice;
+    }
+
+    window.speechSynthesis.speak(utterance);
+  };
+
   useEffect(() => {
     const loadRewards = async () => {
         setIsLoading(true);
+        speak(t(lang, 'findingRewards'));
         try {
             const data = await generateRewards(profile, tokens);
             setRewards(data);
@@ -34,6 +69,7 @@ export const RewardStore: React.FC<RewardStoreProps> = ({ tokens, profile, onRed
   }, [profile]);
 
   const handleBuyClick = (reward: RewardItem) => {
+      speak(`${t(lang, 'buyRewardPrompt')} ${reward.name}?`);
       setConfirmingReward(reward);
   };
 
@@ -42,6 +78,7 @@ export const RewardStore: React.FC<RewardStoreProps> = ({ tokens, profile, onRed
           onRedeem(confirmingReward.cost);
           setPurchasedItem(confirmingReward);
           setConfirmingReward(null);
+          speak(`${t(lang, 'youBoughtIt')} ${confirmingReward.name}!`);
       }
   };
 

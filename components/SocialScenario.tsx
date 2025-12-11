@@ -1,29 +1,63 @@
 
 import React, { useState, useEffect } from 'react';
-import { SocialScenario } from '../types';
+import { SocialScenario, ChildProfile } from '../types';
 import { generateSocialScenario } from '../services/geminiService';
 import { t } from '../utils/translations';
 
 interface SocialScenarioProps {
   age: number;
   language?: string;
+  profile?: ChildProfile; // NEW
+  audioEnabled?: boolean; // NEW
   onComplete: (success: boolean) => void;
   onExit: () => void;
 }
 
-export const SocialScenarioPractice: React.FC<SocialScenarioProps> = ({ age, language, onComplete, onExit }) => {
+export const SocialScenarioPractice: React.FC<SocialScenarioProps> = ({ age, language, profile, audioEnabled = true, onComplete, onExit }) => {
   const [scenario, setScenario] = useState<SocialScenario | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
+
+  // TTS Helper
+  const speak = (text: string) => {
+    if (!audioEnabled) return;
+    if (profile?.sensoryProfile?.soundSensitivity === 'high') return;
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = profile?.audioPreferences?.speechRate || 1;
+
+    if (profile?.audioPreferences?.voiceId) {
+        const voices = window.speechSynthesis.getVoices();
+        const voiceId = profile.audioPreferences.voiceId;
+        const isMale = ['Kore', 'Fenrir', 'Charon'].includes(voiceId);
+        const isFemale = ['Puck', 'Aoede'].includes(voiceId);
+        const langCode = profile.language === 'Spanish' ? 'es' : profile.language === 'Hindi' ? 'hi' : 'en';
+        
+        const langVoices = voices.filter(v => v.lang.startsWith(langCode));
+        let selectedVoice = langVoices[0];
+
+        if (isMale) {
+            selectedVoice = langVoices.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('google us english')) || langVoices[0];
+        } else if (isFemale) {
+            selectedVoice = langVoices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('samantha')) || langVoices[0];
+        }
+        
+        if (selectedVoice) utterance.voice = selectedVoice;
+    }
+
+    window.speechSynthesis.speak(utterance);
+  };
 
   const loadScenario = async () => {
     setLoading(true);
     setSelectedOption(null);
     setShowFeedback(false);
     try {
-        const s = await generateSocialScenario(age, language);
+        const s = await generateSocialScenario(age, language || 'English');
         setScenario(s);
+        speak(s.description);
     } catch (e) {
         console.error(e);
     } finally {
@@ -36,10 +70,14 @@ export const SocialScenarioPractice: React.FC<SocialScenarioProps> = ({ age, lan
   const handleOptionSelect = (index: number) => {
     setSelectedOption(index);
     setShowFeedback(true);
+    
+    const feedback = scenario?.options[index].feedback || '';
+    speak(feedback);
+
     if (scenario?.options[index].isAppropriate) {
         setTimeout(() => {
             onComplete(true);
-        }, 2000);
+        }, 3000);
     }
   };
 
@@ -68,7 +106,13 @@ export const SocialScenarioPractice: React.FC<SocialScenarioProps> = ({ age, lan
 
         <div className="flex-1 overflow-y-auto pb-8">
             <div className="min-h-full flex flex-col justify-center">
-                <div className="bg-white p-6 rounded-3xl shadow-sm mb-6 text-center">
+                <div className="bg-white p-6 rounded-3xl shadow-sm mb-6 text-center relative">
+                    <button 
+                        onClick={() => speak(scenario.description)}
+                        className="absolute top-2 right-2 text-purple-300 hover:text-purple-500"
+                    >
+                        <i className="fa-solid fa-volume-high"></i>
+                    </button>
                     <div className="text-6xl mb-4">{scenario.emoji}</div>
                     <h2 className="text-2xl font-bold text-gray-800 mb-2">{scenario.title}</h2>
                     <p className="text-lg text-gray-600">{scenario.description}</p>

@@ -533,6 +533,8 @@ const App: React.FC = () => {
               age={state.profile.age}
               language={state.profile.language}
               stats={state.quizStats}
+              profile={state.profile} // NEW: Pass profile for TTS
+              audioEnabled={audioEnabled} // NEW: Pass audio setting
               onUpdateStats={(newStats) => {
                   const gainedXp = newStats.xp - state.quizStats.xp;
                   // If leveled up or just gained lots of XP, maybe give a token?
@@ -547,6 +549,7 @@ const App: React.FC = () => {
           <RewardStore 
               tokens={state.tokens}
               profile={state.profile}
+              audioEnabled={audioEnabled} // NEW: Pass audio setting
               onRedeem={(cost) => setState(prev => ({ ...prev, tokens: prev.tokens - cost }))}
               onExit={() => setState(prev => ({ ...prev, view: ViewState.HOME }))}
           />
@@ -556,6 +559,8 @@ const App: React.FC = () => {
           <SocialScenarioPractice 
               age={state.profile.age}
               language={state.profile.language}
+              profile={state.profile} // NEW: Pass profile for TTS
+              audioEnabled={audioEnabled} // NEW: Pass audio setting
               onComplete={(success) => {
                   if(success) setState(prev => ({ ...prev, tokens: prev.tokens + 1 }));
               }}

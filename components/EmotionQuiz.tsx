@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { QuizQuestion, QuizStats } from '../types';
+import { QuizQuestion, QuizStats, ChildProfile } from '../types';
 import { generateEmotionQuiz } from '../services/geminiService';
 import { t } from '../utils/translations';
 
@@ -8,6 +8,8 @@ interface EmotionQuizProps {
   age: number;
   language?: string;
   stats: QuizStats;
+  profile?: ChildProfile; // NEW
+  audioEnabled?: boolean; // NEW
   onUpdateStats: (newStats: QuizStats) => void;
   onExit: () => void;
 }
@@ -15,7 +17,7 @@ interface EmotionQuizProps {
 const XP_TO_LEVEL_UP = 100;
 const XP_PER_QUESTION = 20;
 
-export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, language, stats, onUpdateStats, onExit }) => {
+export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, language, stats, profile, audioEnabled = true, onUpdateStats, onExit }) => {
   const [question, setQuestion] = useState<QuizQuestion | null>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
@@ -26,6 +28,39 @@ export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, language, stats, 
   
   // Track previous question's answer to avoid repetition
   const [lastTopic, setLastTopic] = useState<string | undefined>(undefined);
+
+  // TTS Helper
+  const speak = (text: string) => {
+    // Safety Check
+    if (!audioEnabled) return;
+    if (profile?.sensoryProfile?.soundSensitivity === 'high') return;
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = profile?.audioPreferences?.speechRate || 1;
+
+    // Voice Selection Logic
+    if (profile?.audioPreferences?.voiceId) {
+        const voices = window.speechSynthesis.getVoices();
+        const voiceId = profile.audioPreferences.voiceId;
+        const isMale = ['Kore', 'Fenrir', 'Charon'].includes(voiceId);
+        const isFemale = ['Puck', 'Aoede'].includes(voiceId);
+        const langCode = profile.language === 'Spanish' ? 'es' : profile.language === 'Hindi' ? 'hi' : 'en';
+        
+        const langVoices = voices.filter(v => v.lang.startsWith(langCode));
+        let selectedVoice = langVoices[0];
+
+        if (isMale) {
+            selectedVoice = langVoices.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('google us english')) || langVoices[0];
+        } else if (isFemale) {
+            selectedVoice = langVoices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('samantha')) || langVoices[0];
+        }
+        
+        if (selectedVoice) utterance.voice = selectedVoice;
+    }
+
+    window.speechSynthesis.speak(utterance);
+  };
 
   const loadQuestion = async () => {
     setLoading(true);
@@ -38,6 +73,7 @@ export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, language, stats, 
         const q = await generateEmotionQuiz(age, stats.level, language || 'English', lastTopic, visualType);
         setQuestion(q);
         setLastTopic(q.correctAnswer);
+        speak(q.question);
     } catch (e) {
         console.error(e);
     } finally {
@@ -46,10 +82,9 @@ export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, language, stats, 
   };
 
   useEffect(() => { 
-      // Reset avoidance when level changes to allow fresh start
       setLastTopic(undefined);
       loadQuestion(); 
-  }, [age, stats.level, visualType]); // Reload when visual type changes
+  }, [age, stats.level, visualType]);
 
   const handleAnswer = (option: string) => {
     if(!question) return;
@@ -58,6 +93,7 @@ export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, language, stats, 
     if (option === question.correctAnswer) {
         setIsCorrect(true);
         setShowExplanation(true);
+        speak(t(language, 'youGotIt'));
         
         // Calculate new stats
         let newXp = stats.xp + XP_PER_QUESTION;
@@ -80,10 +116,14 @@ export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, language, stats, 
         onUpdateStats(newStats);
         
         if (leveledUp) {
-            setTimeout(() => setShowLevelUp(true), 1500);
+            setTimeout(() => {
+                setShowLevelUp(true);
+                speak(t(language, 'levelUp'));
+            }, 1500);
         }
     } else {
         setIsCorrect(false);
+        speak("Try again");
     }
   };
 
@@ -141,7 +181,6 @@ export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, language, stats, 
                 <div className="text-center animate-bounce shrink-0 relative">
                      {question.visualType === 'scenario' || question.visualType === 'photo' || question.visualType === 'cartoon' ? (
                          <div className="bg-white p-6 rounded-3xl shadow-md border-2 border-yellow-100 max-w-sm">
-                             {/* Since we don't have actual generated images, we use large emoji or text description as placeholder for 'photo'/'cartoon' modes */}
                              <div className="text-6xl mb-2">{question.emoji}</div>
                              <p className="text-sm text-gray-400 font-bold uppercase">{question.visualType}</p>
                          </div>
@@ -153,8 +192,17 @@ export const EmotionQuiz: React.FC<EmotionQuizProps> = ({ age, language, stats, 
                 </div>
                 
                 {/* Question */}
-                <div className="bg-white p-6 rounded-3xl shadow-sm text-center w-full max-w-lg">
+                <div className="bg-white p-6 rounded-3xl shadow-sm text-center w-full max-w-lg relative">
                     <p className="text-xl font-bold text-gray-800">{question.question}</p>
+                    
+                    {/* Speak Button */}
+                    <button 
+                        onClick={() => speak(question.question)} 
+                        className="absolute top-2 right-2 text-gray-400 hover:text-yellow-500"
+                        title="Read Question"
+                    >
+                        <i className="fa-solid fa-volume-high"></i>
+                    </button>
                     
                     {/* Hint Section */}
                     {isCorrect === false && (
