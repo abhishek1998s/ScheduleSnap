@@ -56,6 +56,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Analysis State
   const [analysis, setAnalysis] = useState<BehaviorAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
   
   // Weekly Report State
   const [weeklyReport, setWeeklyReport] = useState<WeeklyReport | null>(null);
@@ -141,8 +142,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
   const runAnalysis = async () => {
+    setAnalysisError(null);
     if (behaviorLogs.length < 2) {
-        alert(t(lang, 'needLogs'));
+        setAnalysisError(t(lang, 'needLogs'));
         return;
     }
     setIsAnalyzing(true);
@@ -150,7 +152,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         const result = await analyzeBehaviorLogs(behaviorLogs, profile);
         setAnalysis(result);
     } catch (e) {
-        alert("Analysis failed. Try again.");
+        setAnalysisError("Analysis failed. Try again.");
     } finally {
         setIsAnalyzing(false);
     }
@@ -172,6 +174,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const file = e.target.files?.[0];
     if (file) {
         setIsAnalyzing(true);
+        setAnalysisError(null);
         const reader = new FileReader();
         reader.onloadend = async () => {
             const base64 = (reader.result as string).split(',')[1];
@@ -179,7 +182,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 const result = await analyzeBehaviorVideo(base64, profile, file.type);
                 setAnalysis(result);
             } catch (error) {
-                alert("Video analysis failed.");
+                setAnalysisError("Video analysis failed.");
             } finally {
                 setIsAnalyzing(false);
             }
@@ -766,6 +769,33 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         </button>
                     </div>
 
+                    {/* NEW: Recent History Section */}
+                    {behaviorLogs.length > 0 && (
+                        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                            <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <i className="fa-solid fa-clock-rotate-left text-gray-400"></i> History
+                            </h3>
+                            <div className="space-y-2 max-h-48 overflow-y-auto">
+                                {behaviorLogs.slice().reverse().map(log => (
+                                    <div key={log.id} className="p-3 bg-gray-50 rounded-xl flex justify-between items-center text-sm">
+                                        <div>
+                                            <span className="font-bold text-gray-700 block">{log.behavior}</span>
+                                            <span className="text-xs text-gray-400">{new Date(log.timestamp).toLocaleDateString()} {new Date(log.timestamp).toLocaleTimeString()}</span>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-1">
+                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                                log.intensity === 'Severe' ? 'bg-red-100 text-red-600' : 
+                                                log.intensity === 'Moderate' ? 'bg-orange-100 text-orange-600' : 
+                                                'bg-yellow-100 text-yellow-600'
+                                            }`}>{log.intensity}</span>
+                                            {log.trigger && <span className="text-xs text-gray-500 max-w-[100px] truncate">Trigger: {log.trigger}</span>}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* AI Analysis */}
                     <div className="bg-indigo-50 p-6 rounded-3xl border border-indigo-100">
                         <div className="flex justify-between items-center mb-4">
@@ -782,6 +812,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 </button>
                             </div>
                         </div>
+
+                        {analysisError && (
+                            <div className="mb-4 bg-red-100 text-red-600 p-3 rounded-xl text-sm font-bold flex items-center gap-2 animate-slideUp">
+                                <i className="fa-solid fa-circle-exclamation"></i>
+                                {analysisError}
+                            </div>
+                        )}
 
                         {analysis ? (
                             <div className="space-y-4 bg-white p-4 rounded-2xl shadow-sm animate-slideUp">
