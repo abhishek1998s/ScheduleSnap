@@ -22,6 +22,9 @@ export const MeltdownPredictionAlert: React.FC<MeltdownPredictionAlertProps> = (
   const textColor = isHigh ? 'text-red-800' : 'text-yellow-800';
   const icon = isHigh ? 'fa-triangle-exclamation' : 'fa-bell';
 
+  // Fun names for risk levels to match screenshot vibe
+  const riskPersona = isHigh ? "The Mixed-Up Monster" : "The Wobbly Jelly";
+
   if (isMinimized) {
       return (
           <button 
@@ -38,63 +41,67 @@ export const MeltdownPredictionAlert: React.FC<MeltdownPredictionAlertProps> = (
         {/* Header */}
         <div className="flex justify-between items-start mb-3">
             <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl ${isHigh ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-600'}`}>
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${isHigh ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-600'} shrink-0`}>
                     <i className={`fa-solid ${icon}`}></i>
                 </div>
                 <div>
                     <h3 className={`font-bold text-lg leading-none ${textColor}`}>
-                        {t(language, 'riskLevel')}: {prediction.riskLevel.toUpperCase()}
+                        {riskPersona}
                     </h3>
-                    <p className={`text-xs font-bold opacity-70 ${textColor}`}>
-                        {prediction.timeEstimate} • {prediction.confidence}% {t(language, 'confidence')}
+                    <p className={`text-xs font-bold opacity-80 ${textColor} mt-1`}>
+                        {t(language, 'riskLevel')}: {prediction.riskLevel.toUpperCase()} • {prediction.confidence}%
                     </p>
                 </div>
             </div>
             <div className="flex gap-2">
-                <button onClick={() => setIsMinimized(true)} className="text-gray-400 hover:text-gray-600 p-3" aria-label="Minimize Alert">
+                <button onClick={() => setIsMinimized(true)} className="text-gray-400 hover:text-gray-600 p-2" aria-label="Minimize Alert">
                     <i className="fa-solid fa-minus"></i>
                 </button>
-                <button onClick={onDismiss} className="text-gray-400 hover:text-gray-600 p-3" aria-label="Dismiss Alert">
+                <button onClick={onDismiss} className="text-gray-400 hover:text-gray-600 p-2" aria-label="Dismiss Alert">
                     <i className="fa-solid fa-times"></i>
                 </button>
             </div>
         </div>
 
         {/* Why / Factors */}
-        <div className="mb-4">
-             <p className={`text-xs font-bold uppercase mb-1 opacity-60 ${textColor}`}>{t(language, 'whyRisk')}</p>
-             <ul className="space-y-1">
+        <div className="mb-4 bg-white/50 p-3 rounded-xl">
+             <p className={`text-xs font-bold uppercase mb-2 opacity-70 ${textColor}`}>{t(language, 'whyRisk')}</p>
+             <ul className="space-y-2">
                  {prediction.riskFactors.slice(0, 2).map((factor, i) => (
-                     <li key={i} className={`text-sm flex items-start gap-2 ${textColor}`}>
-                         <i className="fa-solid fa-circle-dot text-[6px] mt-1.5 opacity-50"></i>
-                         <span>{factor.factor} <span className="opacity-60 text-xs">({factor.evidence})</span></span>
+                     <li key={i} className={`text-sm flex items-start gap-2 ${textColor} leading-tight`}>
+                         <i className="fa-solid fa-circle-dot text-[6px] mt-1.5 opacity-50 shrink-0"></i>
+                         <span>
+                             <span className="font-bold">{factor.factor}</span> 
+                             <span className="opacity-80 ml-1 block text-xs mt-0.5">{factor.evidence}</span>
+                         </span>
                      </li>
                  ))}
              </ul>
         </div>
 
-        {/* Actions */}
-        <div className="grid grid-cols-2 gap-2">
+        {/* Actions - Now wrapping text to show full detail */}
+        <div className="grid grid-cols-2 gap-3 mb-2">
             {prediction.preventionStrategies.slice(0, 2).map((strat, i) => (
                 <button 
                     key={i}
                     onClick={() => onAction(strat.strategy)}
-                    className={`py-3 px-4 rounded-lg text-sm font-bold truncate text-center transition-colors shadow-sm border ${
+                    className={`p-3 rounded-xl text-xs font-bold text-left transition-colors shadow-sm border h-full flex items-center ${
                         isHigh 
-                            ? 'bg-white text-red-600 border-red-100 hover:bg-red-50' 
+                            ? 'bg-white text-red-700 border-red-100 hover:bg-red-50' 
                             : 'bg-white text-yellow-700 border-yellow-100 hover:bg-yellow-50'
                     }`}
                 >
                     {strat.strategy}
                 </button>
             ))}
-            <button 
-                onClick={() => onAction('calm_mode')}
-                className={`col-span-2 py-4 rounded-xl font-bold text-white shadow-md flex items-center justify-center gap-2 ${isHigh ? 'bg-red-500 hover:bg-red-600' : 'bg-yellow-500 hover:bg-yellow-600'}`}
-            >
-                <i className="fa-solid fa-wind"></i> {t(language, 'startCalmMode')}
-            </button>
         </div>
+        
+        <button 
+            onClick={() => onAction('calm_mode')}
+            className={`w-full py-4 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-2 text-lg transform active:scale-95 transition-all ${isHigh ? 'bg-red-500 hover:bg-red-600' : 'bg-yellow-500 hover:bg-yellow-600'}`}
+        >
+            <i className="fa-solid fa-wind"></i> {t(language, 'startCalmMode')}
+        </button>
     </div>
   );
 };
